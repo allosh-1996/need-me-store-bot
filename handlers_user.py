@@ -264,21 +264,28 @@ async def my_orders(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     if query:
         await query.answer()
-    
+
     user = update.effective_user
     orders = db.get_user_orders(user.id)
-    
-    if not orders:
-        text = "📋 ليس لديك طلبات سابقة."
-    else:
-        status_emoji = {'pending': '⏳', 'completed': '✅', 'rejected': '❌'}
-        text = "📋 *طلباتك الأخيرة:*\n\n"
-        for o in orders:
-            emoji = status_emoji.get(o['status'], '❓')
-            text += f"{emoji} #{o['id']} — {o['product_name']} — {o['status']}\n"
 
     from telegram import InlineKeyboardButton, InlineKeyboardMarkup
     back_kb = InlineKeyboardMarkup([[InlineKeyboardButton("🔙 رجوع", callback_data="back_main")]])
+
+    if not orders:
+        text = "📋 ليس لديك طلبات سابقة."
+        if query:
+            await query.edit_message_text(text, reply_markup=back_kb)
+        else:
+            await update.message.reply_text(text, reply_markup=back_kb)
+        return
+
+    status_emoji = {"pending": "⏳", "completed": "✅", "rejected": "❌"}
+    lines_text = ["📋 *طلباتك الأخيرة:*", ""]
+    for o in orders:
+        emoji = status_emoji.get(o["status"], "❓")
+        lines_text.append(f"{emoji} #{o['id']} — {o['product_name']} — {o['status']}")
+    text = "\n".join(lines_text)
+
     if query:
         await query.edit_message_text(text, parse_mode=ParseMode.MARKDOWN, reply_markup=back_kb)
     else:
