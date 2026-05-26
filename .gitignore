@@ -1,0 +1,21 @@
+# لا ترفع قاعدة البيانات (فيها بيانات العملاء)
+store.db
+
+# لا ترفع الأسرار
+.env
+config_local.py
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+
+# Logs
+*.log
+logs/
+
+# OS
+.DS_Store
+Thumbs.db

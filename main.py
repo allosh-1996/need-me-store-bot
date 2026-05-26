@@ -1,0 +1,164 @@
+import logging
+import sys
+import os
+
+sys.path.insert(0, os.path.dirname(__file__))
+
+from telegram import Update
+from telegram.ext import (
+    Application, CommandHandler, CallbackQueryHandler,
+    MessageHandler, ConversationHandler, filters
+)
+
+import database as db
+from config import BOT_TOKEN, ADMIN_ID
+import handlers_user as hu
+import handlers_admin as ha
+import handlers_charge as hc
+
+logging.basicConfig(
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    level=logging.INFO,
+    handlers=[logging.StreamHandler()]
+)
+logger = logging.getLogger(__name__)
+
+def main():
+    db.init_db()
+    logger.info("✅ قاعدة البيانات جاهزة")
+
+    app = Application.builder().token(BOT_TOKEN).build()
+
+    # ========== ConversationHandler: شراء منتج ==========
+    buy_conv = ConversationHandler(
+        entry_points=[CallbackQueryHandler(hu.show_payment_details, pattern=r'^pay_\d+_\w+_\w+$')],
+        states={
+            hu.WAITING_PROOF: [
+                MessageHandler(
+                    filters.PHOTO | filters.Document.ALL | (filters.TEXT & ~filters.COMMAND),
+                    hu.receive_proof
+                )
+            ],
+        },
+        fallbacks=[CommandHandler('cancel', lambda u, c: ConversationHandler.END)],
+        per_user=True,
+        per_chat=True,
+        per_message=False,
+    )
+
+    # ========== ConversationHandler: إضافة منتج ==========
+    add_product_conv = ConversationHandler(
+        entry_points=[CallbackQueryHandler(ha.add_product_start, pattern='^adm_add_product$')],
+        states={
+            ha.ADM_PROD_NAME:      [MessageHandler(filters.TEXT & ~filters.COMMAND, ha.add_product_name)],
+            ha.ADM_PROD_DESC:      [MessageHandler(filters.TEXT & ~filters.COMMAND, ha.add_product_desc)],
+            ha.ADM_PROD_PRICE_USD: [MessageHandler(filters.TEXT & ~filters.COMMAND, ha.add_product_price_usd)],
+            ha.ADM_PROD_PRICE_SYP: [MessageHandler(filters.TEXT & ~filters.COMMAND, ha.add_product_price_syp)],
+            ha.ADM_PROD_CATEGORY:  [MessageHandler(filters.TEXT & ~filters.COMMAND, ha.add_product_category)],
+            ha.ADM_PROD_STOCK:     [MessageHandler(filters.TEXT & ~filters.COMMAND, ha.add_product_stock)],
+        },
+        fallbacks=[CommandHandler('cancel', ha.cancel)],
+        per_user=True,
+        per_chat=True,
+        per_message=False,
+    )
+
+    # ========== ConversationHandler: تحديث مخزون ==========
+    stock_conv = ConversationHandler(
+        entry_points=[CallbackQueryHandler(ha.update_stock_start, pattern=r'^adm_stock_\d+$')],
+        states={
+            ha.ADM_STOCK_UPDATE: [MessageHandler(filters.TEXT & ~filters.COMMAND, ha.update_stock_receive)],
+        },
+        fallbacks=[CommandHandler('cancel', ha.cancel)],
+        per_user=True,
+        per_chat=True,
+        per_message=False,
+    )
+
+    # ========== ConversationHandler: رسالة جماعية ==========
+    broadcast_conv = ConversationHandler(
+        entry_points=[CallbackQueryHandler(ha.broadcast_start, pattern='^adm_broadcast$')],
+        states={
+            ha.ADM_BROADCAST_MSG: [
+                MessageHandler(
+                    (filters.TEXT & ~filters.COMMAND) | filters.PHOTO,
+                    ha.broadcast_send
+                )
+            ],
+        },
+        fallbacks=[CommandHandler('cancel', ha.cancel)],
+        per_user=True,
+        per_chat=True,
+        per_message=False,
+    )
+
+    # ========== ConversationHandler: شحن رصيد ==========
+    charge_conv = ConversationHandler(
+        entry_points=[
+            CallbackQueryHandler(hc.charge_start, pattern='^charge_start$'),
+            CommandHandler('charge', hc.charge_start),
+        ],
+        states={
+            hc.WAITING_METHOD: [
+                CallbackQueryHandler(hc.charge_method_selected, pattern=r'^chg_method_')
+            ],
+            hc.WAITING_AMOUNT: [MessageHandler(filters.TEXT & ~filters.COMMAND, hc.charge_amount)],
+            hc.WAITING_TXHASH: [
+                MessageHandler(filters.PHOTO | (filters.TEXT & ~filters.COMMAND), hc.charge_proof)
+            ],
+        },
+        fallbacks=[CommandHandler('cancel', hc.charge_cancel)],
+        per_user=True, per_chat=True, per_message=False,
+    )
+
+    # ========== أوامر ==========
+    app.add_handler(CommandHandler("start",    hu.start))
+    app.add_handler(CommandHandler("help",     hu.help_cmd))
+    app.add_handler(CommandHandler("products", hu.show_products))
+    app.add_handler(CommandHandler("orders",   hu.my_orders))
+    app.add_handler(CommandHandler("admin",    ha.admin_panel))
+
+    # ========== Conversations ==========
+    app.add_handler(add_product_conv)
+    app.add_handler(stock_conv)
+    app.add_handler(broadcast_conv)
+    app.add_handler(charge_conv)
+    app.add_handler(buy_conv)
+
+    # ========== Callbacks الرصيد ==========
+    app.add_handler(CallbackQueryHandler(hc.show_balance,         pattern='^show_balance$'))
+    app.add_handler(CallbackQueryHandler(hu.confirm_buy,          pattern=r'^confirm_buy_\d+$'))
+    app.add_handler(CallbackQueryHandler(hc.admin_confirm_charge, pattern=r'^chg_confirm_\d+$'))
+    app.add_handler(CallbackQueryHandler(hc.admin_reject_charge,  pattern=r'^chg_reject_\d+$'))
+
+    # ========== Callbacks المستخدم ==========
+    app.add_handler(CallbackQueryHandler(hu.show_products,       pattern='^products$'))
+    app.add_handler(CallbackQueryHandler(hu.show_category,       pattern=r'^cat_'))
+    app.add_handler(CallbackQueryHandler(hu.show_product_detail, pattern=r'^prod_\d+$'))
+    app.add_handler(CallbackQueryHandler(hu.initiate_buy,        pattern=r'^buy_\d+_\w+$'))
+    app.add_handler(CallbackQueryHandler(hu.my_orders,           pattern='^my_orders$'))
+    app.add_handler(CallbackQueryHandler(hu.payment_info,        pattern='^payment_info$'))
+    app.add_handler(CallbackQueryHandler(hu.contact,             pattern='^contact$'))
+    app.add_handler(CallbackQueryHandler(hu.back_main,           pattern='^back_main$'))
+
+    # ========== Callbacks الأدمن ==========
+    app.add_handler(CallbackQueryHandler(ha.admin_panel,          pattern='^adm_back$'))
+    app.add_handler(CallbackQueryHandler(ha.admin_stats,          pattern='^adm_stats$'))
+    app.add_handler(CallbackQueryHandler(ha.show_pending_orders,  pattern='^adm_orders$'))
+    app.add_handler(CallbackQueryHandler(ha.confirm_order,        pattern=r'^adm_confirm_\d+$'))
+    app.add_handler(CallbackQueryHandler(ha.reject_order,         pattern=r'^adm_reject_\d+$'))
+    app.add_handler(CallbackQueryHandler(ha.admin_show_products,  pattern='^adm_products$'))
+    app.add_handler(CallbackQueryHandler(ha.admin_product_detail, pattern=r'^adm_prod_detail_\d+$'))
+    app.add_handler(CallbackQueryHandler(ha.delete_product,       pattern=r'^adm_del_\d+$'))
+
+    # ========== القائمة الثابتة ==========
+    app.add_handler(MessageHandler(
+        filters.TEXT & filters.Regex(r'^(🚀 ابدأ|💬 Support|ℹ️ About)$'),
+        hu.handle_persistent_menu
+    ))
+
+    logger.info(f"🚀 البوت شغال! Admin ID: {ADMIN_ID}")
+    app.run_polling(allowed_updates=Update.ALL_TYPES)
+
+if __name__ == '__main__':
+    main()
