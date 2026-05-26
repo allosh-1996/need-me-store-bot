@@ -1,4 +1,5 @@
 import logging
+from keep_alive import keep_alive
 import sys
 import os
 
@@ -24,6 +25,7 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 def main():
+    keep_alive()  # منع النوم | Prevent sleeping
     db.init_db()
     logger.info("✅ قاعدة البيانات جاهزة")
 
