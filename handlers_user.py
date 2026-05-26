@@ -11,12 +11,6 @@ WAITING_PROOF = 1
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
     db.upsert_user(user.id, user.username or "", user.full_name or "")
-    # أرسل القائمة الثابتة أولاً (تظهر دايماً)
-    await update.message.reply_text(
-        "👋",
-        reply_markup=kb.persistent_menu()
-    )
-    # ثم رسالة الترحيب مع الأزرار الداخلية
     await update.message.reply_text(
         WELCOME_MSG,
         parse_mode=ParseMode.MARKDOWN,
@@ -314,6 +308,12 @@ async def back_main(update: Update, context: ContextTypes.DEFAULT_TYPE):
         WELCOME_MSG,
         parse_mode=ParseMode.MARKDOWN,
         reply_markup=kb.main_menu()
+    )
+    # نعيد إظهار القائمة الثابتة
+    await context.bot.send_message(
+        chat_id=query.message.chat_id,
+        text="‌",  # نص غير مرئي
+        reply_markup=kb.persistent_menu()
     )
 
 
