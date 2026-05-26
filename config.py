@@ -7,29 +7,40 @@ ADMIN_ID = int(os.environ.get("ADMIN_TELEGRAM_ID", "0"))
 USDT_WALLET = os.environ.get("USDT_WALLET", "ضع_محفظة_USDT_هنا")
 SYRIATEL_CASH = os.environ.get("SYRIATEL_CASH", "ضع_رقم_سيريتيل_كاش_هنا")
 
-# رسالة الترحيب
+# ═══════════════════════════════════════
+# رسالة الترحيب | Welcome Message
+# ═══════════════════════════════════════
 WELCOME_MSG = """
-🛍️ *أهلاً بك في Need Me Store!*
+🌙 *Need Me Store*
 
-نوفر لك:
-• 🍎 حسابات Apple iCloud
-• 📧 إيميلات جاهزة
-• 📋 حسابات استبيانات Survey
-• 📚 شروحات وطرق حصرية
+مرحباً بك في متجرنا الرقمي الموثوق ✨
+_Welcome to your trusted digital store_
+
+━━━━━━━━━━━━━━━━
+🍎 Apple iCloud Accounts
+📧 Ready-made Emails
+📋 Survey Accounts  
+📚 Exclusive Methods & Guides
+━━━━━━━━━━━━━━━━
 
 اختر من القائمة أدناه 👇
+_Choose from the menu below_
 """
 
-# رسالة الدفع
+# ═══════════════════════════════════════
+# رسالة الدفع | Payment Message
+# ═══════════════════════════════════════
 PAYMENT_MSG = """
-💳 *طرق الدفع المتاحة:*
+💳 *Payment Methods  |  طرق الدفع*
 
-1️⃣ *USDT (BEP-20)*
+━━━━━━━━━━━━━━━━
+🪙 *USDT — BEP-20*
 `{usdt_wallet}`
 
-2️⃣ *Syriatel Cash*
+📱 *Syriatel Cash  |  سيريتيل كاش*
 `{syriatel_cash}`
+━━━━━━━━━━━━━━━━
 
-⚠️ بعد الدفع، أرسل إيصال الدفع (صورة أو رقم العملية)
+⚠️ بعد الدفع أرسل إيصال التحويل
+_After payment, send your receipt_
 """
-
