@@ -104,7 +104,10 @@ def main():
             ],
             hc.WAITING_AMOUNT: [MessageHandler(filters.TEXT & ~filters.COMMAND, hc.charge_amount)],
             hc.WAITING_TXHASH: [
-                MessageHandler(filters.PHOTO | (filters.TEXT & ~filters.COMMAND), hc.charge_proof)
+                MessageHandler(
+                    filters.PHOTO | filters.Document.ALL | (filters.TEXT & ~filters.COMMAND),
+                    hc.charge_proof
+                )
             ],
         },
         fallbacks=[CommandHandler('cancel', hc.charge_cancel)],
