@@ -322,7 +322,7 @@ async def handle_persistent_menu(update: Update, context: ContextTypes.DEFAULT_T
         await update.message.reply_text(
             "💬 *الدعم والمساعدة*\n\n"
             "للتواصل المباشر مع الأدمن:\n"
-            "👉 @Allosh1996\n\n"
+            "👉 @Allosh96ha\n\n"
             "أو راسلنا وسنرد في أقرب وقت 🙏",
             parse_mode="Markdown",
             reply_markup=kb.persistent_menu()
