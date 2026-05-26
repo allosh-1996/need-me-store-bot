@@ -104,56 +104,77 @@ async def charge_amount(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def charge_proof(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
-    amount = context.user_data.get('charge_amount', 0)
+
+    # نقرأ كل البيانات من context مع fallback آمن
+    amount = context.user_data.get("charge_amount", 0)
+    method = context.user_data.get("charge_method", "usdt")
+    display = context.user_data.get("charge_display", f"${amount}" if method == "usdt" else f"{amount:,.0f} ل.س")
+    method_label = "USDT BEP-20" if method == "usdt" else "Syriatel Cash"
+
+    # إذا ضاع الـ amount من context — نوقف
+    if not amount:
+        await update.message.reply_text(
+            "❌ انتهت جلسة الشحن. ابدأ من جديد.",
+            reply_markup=kb.persistent_menu()
+        )
+        return ConversationHandler.END
 
     # استقبال الإيصال
     if update.message.photo:
         proof = update.message.photo[-1].file_id
         proof_type = "photo"
-        tx_hash = update.message.caption or ""
+        tx_hash = update.message.caption or "صورة"
+    elif update.message.document:
+        proof = update.message.document.file_id
+        proof_type = "document"
+        tx_hash = update.message.caption or "ملف"
     else:
-        proof = update.message.text
+        proof = update.message.text or ""
         proof_type = "text"
         tx_hash = proof
 
-    # إنشاء طلب الشحن
-    method = context.user_data.get("charge_method", "usdt")
-    display = context.user_data.get("charge_display", f"${amount}")
-    req_id = db.create_charge_request(
-        user_id=user.id,
-        username=user.username or "",
-        full_name=user.full_name or "",
-        amount_usd=amount,
-        tx_hash=tx_hash,
-        method=method
-    )
-    db.update_charge_proof(req_id, proof)
+    # إنشاء طلب الشحن في قاعدة البيانات
+    try:
+        req_id = db.create_charge_request(
+            user_id=user.id,
+            username=user.username or "",
+            full_name=user.full_name or "",
+            amount_usd=amount,
+            tx_hash=tx_hash,
+            method=method
+        )
+        db.update_charge_proof(req_id, proof)
+    except Exception as e:
+        print(f"خطأ DB: {e}")
+        await update.message.reply_text("❌ خطأ في الحفظ، حاول مرة ثانية.")
+        return ConversationHandler.END
 
     # إشعار الأدمن
-    method = context.user_data.get("charge_method", "usdt")
-    display = context.user_data.get("charge_display", f"${amount}")
-    method_label = "USDT BEP-20" if method == "usdt" else "Syriatel Cash"
     admin_text = (
-        f"💰 *طلب شحن رصيد #{req_id}*\n\n"
+        f"💰 *طلب شحن رصيد \#{req_id}*\n\n"
         f"👤 {user.full_name} (@{user.username or 'لا يوجد'})\n"
         f"🆔 `{user.id}`\n"
         f"💵 المبلغ: *{display}*\n"
         f"💳 الطريقة: *{method_label}*\n"
-        f"🔗 TXID: `{tx_hash[:60] if tx_hash else 'صورة'}`"
+        f"🔗 TXID: `{tx_hash[:60]}`"
     )
 
     from telegram import InlineKeyboardButton, InlineKeyboardMarkup
-    admin_kb = InlineKeyboardMarkup([
-        [
-            InlineKeyboardButton(f"✅ تأكيد ${amount}", callback_data=f"chg_confirm_{req_id}"),
-            InlineKeyboardButton("❌ رفض", callback_data=f"chg_reject_{req_id}")
-        ]
-    ])
+    admin_kb = InlineKeyboardMarkup([[
+        InlineKeyboardButton(f"✅ تأكيد {display}", callback_data=f"chg_confirm_{req_id}"),
+        InlineKeyboardButton("❌ رفض", callback_data=f"chg_reject_{req_id}")
+    ]])
 
     try:
         if proof_type == "photo":
             await context.bot.send_photo(
                 chat_id=ADMIN_ID, photo=proof,
+                caption=admin_text, parse_mode=ParseMode.MARKDOWN,
+                reply_markup=admin_kb
+            )
+        elif proof_type == "document":
+            await context.bot.send_document(
+                chat_id=ADMIN_ID, document=proof,
                 caption=admin_text, parse_mode=ParseMode.MARKDOWN,
                 reply_markup=admin_kb
             )
@@ -165,18 +186,21 @@ async def charge_proof(update: Update, context: ContextTypes.DEFAULT_TYPE):
     except Exception as e:
         print(f"خطأ إشعار أدمن: {e}")
 
-    from telegram import InlineKeyboardButton, InlineKeyboardMarkup
+    # رد على العميل
     done_kb = InlineKeyboardMarkup([[InlineKeyboardButton("🏠 الرئيسية", callback_data="back_main")]])
     await update.message.reply_text(
         f"✅ *تم استلام طلب الشحن!*\n\n"
-        f"🔖 رقم الطلب: `#{req_id}`\n"
-        f"💵 المبلغ: `{display}`\n\n"
+        f"🔖 رقم الطلب: `\#{req_id}`\n"
+        f"💵 المبلغ: `{display}`\n"
+        f"💳 الطريقة: {method_label}\n\n"
         f"سيتم مراجعة التحويل وإضافة الرصيد خلال وقت قصير ⏳",
         parse_mode=ParseMode.MARKDOWN,
         reply_markup=done_kb
     )
 
-    context.user_data.pop('charge_amount', None)
+    # تنظيف context
+    for k in ["charge_amount", "charge_method", "charge_display"]:
+        context.user_data.pop(k, None)
     return ConversationHandler.END
 
 async def charge_cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
