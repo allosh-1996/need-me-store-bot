@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html class="light" lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Need Me Store — تسجيل الدخول</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/styles.css">
+<script src="/theme.js"></script>
+<style>
+body{background:var(--surface-base);display:flex;align-items:center;justify-content:center;min-height:100vh;font-family:var(--font-sans)}
+.box{background:var(--surface-primary);box-shadow:var(--shadow-lifted-card);border-radius:var(--radius-xl);padding:40px;width:360px;text-align:center}
+.logo{font-size:2.5rem;margin-bottom:8px}
+h2{color:var(--text-primary);margin-bottom:4px;font-size:1.3rem}
+.sub{color:var(--text-muted);font-size:.85rem;margin-bottom:24px}
+input{width:100%;padding:10px 14px;border-radius:var(--radius-md);border:none;box-shadow:var(--shadow-lifted-card);background:var(--surface-secondary);color:var(--text-primary);font-size:.95rem;margin-bottom:12px;outline:none;font-family:var(--font-sans)}
+input:focus{box-shadow:0 0 0 2px var(--blue-800)}
+button{width:100%;padding:11px;background:var(--button-primary-bg);color:var(--button-primary-fg);border:none;border-radius:var(--radius-md);font-size:.95rem;font-weight:600;cursor:pointer}
+.error{color:var(--red-600);font-size:.85rem;margin-bottom:10px}
+</style>
+</head>
+<body>
+<div class="box">
+  <div class="logo">🛍️</div>
+  <h2>Need Me Store</h2>
+  <p class="sub">لوحة التحكم</p>
+  {% if error %}<p class="error">{{ error }}</p>{% endif %}
+  <form method="POST">
+    <input type="password" name="password" placeholder="كلمة السر" autofocus>
+    <button type="submit">دخول →</button>
+  </form>
+</div>
+</body></html>
