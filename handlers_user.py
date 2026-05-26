@@ -322,7 +322,13 @@ async def handle_persistent_menu(update: Update, context: ContextTypes.DEFAULT_T
     text = update.message.text
     
     if text == "🚀 ابدأ":
-        await start(update, context)
+        user = update.effective_user
+        db.upsert_user(user.id, user.username or "", user.full_name or "")
+        await update.message.reply_text(
+            WELCOME_MSG,
+            parse_mode=ParseMode.MARKDOWN,
+            reply_markup=kb.main_menu()
+        )
     
     elif text == "💬 Support":
         from config import ADMIN_ID
