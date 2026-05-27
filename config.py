@@ -53,3 +53,12 @@ PAYMENT_MSG = """
 ⚠️ بعد الدفع أرسل إيصال التحويل
 _After payment, send your receipt_
 """
+
+# Proxy Config
+PROXY_TYPES = {
+    "http": "🌐 HTTP/HTTPS",
+    "socks5": "🔌 SOCKS5",
+    "residential": "🏠 Residential",
+    "mobile": "📱 Mobile 4G/5G",
+    "modem": "🖥️ Modem Private",
+}
