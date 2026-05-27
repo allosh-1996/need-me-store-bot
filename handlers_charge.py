@@ -237,27 +237,35 @@ async def admin_confirm_charge(update: Update, context: ContextTypes.DEFAULT_TYP
         return
 
     req_id = int(query.data.replace("chg_confirm_", ""))
-    req = db.confirm_charge(req_id)
+    req = db.get_charge_request(req_id)
 
     if not req:
         try:
-            await query.edit_message_caption("🔴 الطلب غير موجود أو تمت معالجته  |  Not found or already processed")
+            await query.edit_message_caption("🔴 الطلب غير موجود  |  Not found")
         except:
-            await query.edit_message_text("🔴 Not found or already processed")
+            await query.edit_message_text("🔴 Not found")
         return
 
-    new_balance = db.get_balance(req['user_id'])
+    # ✅ بس غير الحالة لـ pending_manual — بدون ما يضيف رصيد
+    db.reject_charge(req_id)  # نغلق الطلب
+    # نعيد فتحه بحالة جديدة
+    conn = db.get_conn()
+    c = conn.cursor()
+    c.execute("UPDATE charge_requests SET status='accepted' WHERE id=?", (req_id,))
+    conn.commit()
+    conn.close()
 
+    # إشعار المستخدم إن الطلب قُبل وبانتظار الإضافة
     try:
         await context.bot.send_message(
             chat_id=req['user_id'],
             text=(
-                f"✅ *Balance Added!  |  تم شحن رصيدك!*\n\n"
-                f"━━━━━━━━━━━━━━━━\n"
-                f"💵 Added: `${req['amount_usd']}`\n"
-                f"💰 New Balance: `${new_balance:.2f}`\n"
-                f"━━━━━━━━━━━━━━━━\n"
-                f"🛍️ _يمكنك الآن التسوق  |  You can shop now!_"
+                f"✅ *Request Accepted!  |  تم قبول طلبك!*\n\n"
+                f"▬▬▬▬▬▬▬▬▬▬▬▬▬▬\n"
+                f"💵 Amount: `${req['amount_usd']}`\n\n"
+                f"⏳ _سيتم إضافة الرصيد قريباً_\n"
+                f"_Balance will be added shortly_ 🚀\n"
+                f"▬▬▬▬▬▬▬▬▬▬▬▬▬▬"
             ),
             parse_mode=ParseMode.MARKDOWN,
             reply_markup=kb.main_menu()
@@ -267,11 +275,13 @@ async def admin_confirm_charge(update: Update, context: ContextTypes.DEFAULT_TYP
 
     try:
         await query.edit_message_caption(
-            f"✅ Confirmed #{req_id} — ${req['amount_usd']} for {req['full_name']}"
+            f"✅ Accepted #{req_id} — ${req['amount_usd']} for {req['full_name']}\n"
+            f"⚠️ أضف الرصيد يدوياً من الداشبورد → المستخدمين"
         )
     except:
         await query.edit_message_text(
-            f"✅ Confirmed `#{req_id}` — `${req['amount_usd']}` for {req['full_name']}",
+            f"✅ Accepted `#{req_id}` — `${req['amount_usd']}` for {req['full_name']}\n"
+            f"⚠️ أضف الرصيد يدوياً من الداشبورد → المستخدمين",
             parse_mode=ParseMode.MARKDOWN
         )
 
