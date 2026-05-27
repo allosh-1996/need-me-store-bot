@@ -55,22 +55,32 @@ STRINGS = {
     # ═══ رسالة الترحيب ═══
     "welcome": {
         "ar": (
-            "*اهلا بك في NexVault*\n\n"
-            "نوفر لك كل ما تحتاجه من منتجات رقمية\n"
-            "باسعار تنافسية وتسليم فوري.\n\n"
-            "سرعة في تنفيذ المهام.\n\n"
-            "حسابات Apple  |  ايميلات جاهزة\n"
-            "بروكسيات  |  Survey Accounts  |  Games\n\n"
-            "اختر ما تريد من القائمة ادناه."
+            "*أهلاً بك في NexVault*\n"
+            "بوابتك الرقمية المتكاملة! نوفر لك كل ما تحتاجه من منتجات وخدمات رقمية بجودة احترافية.\n\n"
+            "*لماذا تختارنا؟*\n"
+            "• أداء المهام بجودة احترافية.\n"
+            "• أسعار تنافسية تناسب الجميع.\n\n"
+            "*قائمة منتجاتنا:*\n"
+            "حسابات Apple\n"
+            "إيميلات جاهزة\n"
+            "بروكسيات عالية السرعة\n"
+            "حسابات استبيانات (Survey Accounts)\n"
+            "ألعاب (Games)\n\n"
+            "اختر ما تريد من القائمة أدناه لبدء الطلب"
         ),
         "en": (
-            "*Welcome to NexVault*\n\n"
-            "Your trusted digital store.\n"
-            "Competitive prices & instant delivery.\n\n"
-            "Fast execution guaranteed.\n\n"
-            "Apple Accounts  |  Ready Emails\n"
-            "Proxies  |  Survey Accounts  |  Games\n\n"
-            "Choose from the menu below."
+            "*Welcome to NexVault*\n"
+            "Your all-in-one digital gateway! We provide everything you need with professional quality.\n\n"
+            "*Why choose us?*\n"
+            "• Professional quality execution.\n"
+            "• Competitive prices for everyone.\n\n"
+            "*Our products:*\n"
+            "Apple Accounts\n"
+            "Ready-made Emails\n"
+            "High-speed Proxies\n"
+            "Survey Accounts\n"
+            "Games\n\n"
+            "Choose from the menu below to start your order"
         ),
     },
 
