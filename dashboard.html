@@ -494,11 +494,18 @@ function openModal(id) { $(id).classList.add('open') }
 function closeModal(id) { $(id).classList.remove('open') }
 
 async function api(url, method='GET', body=null) {
-  const r = await fetch(url, {
-    method, headers:{'Content-Type':'application/json'},
-    body: body ? JSON.stringify(body) : null
-  })
-  return r.json()
+  try {
+    const r = await fetch(url, {
+      method, headers:{'Content-Type':'application/json'},
+      body: body ? JSON.stringify(body) : null
+    })
+    if (r.status === 401 || r.redirected) { window.location='/login'; return null }
+    if (!r.ok) return null
+    return await r.json()
+  } catch(e) {
+    console.error('API Error:', url, e)
+    return null
+  }
 }
 
 async function loadStats() {
@@ -615,7 +622,7 @@ let _currentDrawerBalance = 0
 async function loadUsers(){
   const data = await api('/api/users')
   const grid = $('users-grid')
-  if(!data.length){ grid.innerHTML='<p style="color:var(--muted);text-align:center;padding:40px">لا يوجد مستخدمين</p>'; return }
+  if(!data || !Array.isArray(data) || !data.length){ grid.innerHTML='<p style="color:var(--muted);text-align:center;padding:40px">لا يوجد مستخدمين</p>'; return }
   grid.innerHTML = data.map(u => {
     const initials = (u.full_name||'?').charAt(0).toUpperCase()
     const name = (u.full_name||'—').split(' ').slice(0,2).join(' ')
