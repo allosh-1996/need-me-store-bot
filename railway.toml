@@ -1,6 +1,9 @@
 [build]
 builder = "nixpacks"
 
+[build.nixpacksPlan.phases.install]
+cmds = ["pip install --break-system-packages -r requirements.txt"]
+
 [deploy]
 startCommand = "python run_all.py"
 restartPolicyType = "always"
