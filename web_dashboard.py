@@ -6,9 +6,23 @@ from flask import Flask, render_template, request, jsonify, session, redirect, u
 import database as db
 import os
 import asyncio
-from config import ADMIN_ID
+import requests as req_lib
+from config import ADMIN_ID, BOT_TOKEN
 
 app = Flask(__name__, template_folder='.')
+
+def tg_send(chat_id, text):
+    """إرسال رسالة تيليغرام من الداشبورد"""
+    try:
+        req_lib.post(
+            f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage",
+            json={"chat_id": chat_id, "text": text, "parse_mode": "Markdown"},
+            timeout=5
+        )
+    except Exception as e:
+        print(f"TG send error: {e}")
+
+
 app.secret_key = os.environ.get("DASHBOARD_SECRET", "needmestore2026")
 DASHBOARD_PASSWORD = os.environ.get("DASHBOARD_PASSWORD", "admin123")
 
@@ -108,7 +122,34 @@ def api_orders():
 @auth_required
 def api_order_status(oid):
     status = request.json.get('status')
+    order = db.get_order(oid)
     db.update_order_status(oid, status)
+
+    if order:
+        if status == 'completed':
+            product = db.get_product(order['product_id'])
+            stock_text = f"\n✅ *تفاصيل المنتج:*\n`{product['stock']}`" if product and product['stock'] else ""
+            tg_send(order['user_id'],
+                f"🎉 *تم تأكيد طلبك!  |  Order Confirmed!*\n\n"
+                f"━━━━━━━━━━━━━━━━\n"
+                f"🔖 Order ID: `#{oid}`\n"
+                f"📦 {order['product_name']}\n"
+                f"💵 ${order['price_usd']}"
+                + stock_text +
+                f"\n━━━━━━━━━━━━━━━━\n"
+                f"شكراً لثقتك 🙏  |  _Thank you!_"
+            )
+        elif status == 'rejected':
+            tg_send(order['user_id'],
+                f"🔴 *تم رفض طلبك  |  Order Rejected*\n\n"
+                f"━━━━━━━━━━━━━━━━\n"
+                f"🔖 Order ID: `#{oid}`\n"
+                f"📦 {order['product_name']}\n"
+                f"💵 ${order['price_usd']}\n"
+                f"━━━━━━━━━━━━━━━━\n"
+                f"_للاستفسار تواصل مع الأدمن_"
+            )
+
     return jsonify({"ok": True})
 
 @app.route('/api/charges')
@@ -124,13 +165,36 @@ def api_charges():
 @app.route('/api/charges/<int:cid>/confirm', methods=['POST'])
 @auth_required
 def api_confirm_charge(cid):
+    charge = db.get_charge_request(cid)
     db.confirm_charge(cid)
+    if charge:
+        method_label = "USDT BEP-20" if charge['method'] == 'usdt' else "Syriatel Cash"
+        tg_send(charge['user_id'],
+            f"✅ *تم قبول طلب الشحن!  |  Top Up Accepted!*\n\n"
+            f"━━━━━━━━━━━━━━━━\n"
+            f"💵 المبلغ  |  Amount: `${charge['amount_usd']}`\n"
+            f"💳 {method_label}\n"
+            f"━━━━━━━━━━━━━━━━\n"
+            f"⏳ _سيتم إضافة الرصيد لحسابك قريباً_\n"
+            f"_Your balance will be added shortly_ 🚀"
+        )
     return jsonify({"ok": True})
 
 @app.route('/api/charges/<int:cid>/reject', methods=['POST'])
 @auth_required
 def api_reject_charge(cid):
+    charge = db.get_charge_request(cid)
     db.reject_charge(cid)
+    if charge:
+        method_label = "USDT BEP-20" if charge['method'] == 'usdt' else "Syriatel Cash"
+        tg_send(charge['user_id'],
+            f"🔴 *تم رفض طلب الشحن  |  Top Up Rejected*\n\n"
+            f"━━━━━━━━━━━━━━━━\n"
+            f"💵 المبلغ  |  Amount: `${charge['amount_usd']}`\n"
+            f"💳 {method_label}\n"
+            f"━━━━━━━━━━━━━━━━\n"
+            f"_للاستفسار تواصل مع الأدمن_"
+        )
     return jsonify({"ok": True})
 
 @app.route('/api/users')
@@ -214,7 +278,33 @@ def api_proxy_orders():
 @auth_required
 def api_proxy_order_status(oid):
     status = request.json.get('status')
+    conn = db.get_conn()
+    c = conn.cursor()
+    c.execute("SELECT * FROM proxy_orders WHERE id=?", (oid,))
+    proxy = c.fetchone()
+    conn.close()
     db.update_proxy_order_status(oid, status)
+    if proxy:
+        if status == 'completed':
+            tg_send(proxy['user_id'],
+                f"✅ *تم قبول طلب البروكسي!  |  Proxy Order Accepted!*\n\n"
+                f"━━━━━━━━━━━━━━━━\n"
+                f"🔖 Order ID: `#{oid}`\n"
+                f"📦 {proxy['proxy_type_label']} x{proxy['quantity']}\n"
+                f"🌍 {proxy['country']}\n"
+                f"━━━━━━━━━━━━━━━━\n"
+                f"⏳ _سيتم التواصل معك وإرسال البروكسيات قريباً_ 🚀"
+            )
+        elif status == 'rejected':
+            tg_send(proxy['user_id'],
+                f"🔴 *تم رفض طلب البروكسي  |  Proxy Order Rejected*\n\n"
+                f"━━━━━━━━━━━━━━━━\n"
+                f"🔖 Order ID: `#{oid}`\n"
+                f"📦 {proxy['proxy_type_label']} x{proxy['quantity']}\n"
+                f"🌍 {proxy['country']}\n"
+                f"━━━━━━━━━━━━━━━━\n"
+                f"_للاستفسار تواصل مع الأدمن_"
+            )
     return jsonify({"ok": True})
 
 def run_dashboard():
