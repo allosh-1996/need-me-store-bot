@@ -16,6 +16,7 @@ from config import BOT_TOKEN, ADMIN_ID
 import handlers_user as hu
 import handlers_admin as ha
 import handlers_charge as hc
+import handlers_proxy as hp
 
 logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
@@ -116,6 +117,19 @@ def main():
         per_user=True, per_chat=True, per_message=False,
     )
 
+    # ========== ConversationHandler: بروكسي ==========
+    proxy_conv = ConversationHandler(
+        entry_points=[CallbackQueryHandler(hp.proxy_menu, pattern='^proxy_menu$')],
+        states={
+            hp.PROXY_TYPE:    [CallbackQueryHandler(hp.proxy_type_selected, pattern=r'^prx_(http|socks5|residential|mobile|modem)$')],
+            hp.PROXY_QTY:     [MessageHandler(filters.TEXT & ~filters.COMMAND, hp.proxy_qty)],
+            hp.PROXY_COUNTRY: [MessageHandler(filters.TEXT & ~filters.COMMAND, hp.proxy_country)],
+            hp.PROXY_NOTES:   [MessageHandler(filters.TEXT & ~filters.COMMAND, hp.proxy_notes)],
+        },
+        fallbacks=[CommandHandler('cancel', hp.proxy_cancel)],
+        per_user=True, per_chat=True, per_message=False,
+    )
+
     # ========== أوامر ==========
     app.add_handler(CommandHandler("start",    hu.start))
     app.add_handler(CommandHandler("help",     hu.help_cmd))
@@ -124,6 +138,7 @@ def main():
     app.add_handler(CommandHandler("admin",    ha.admin_panel))
 
     # ========== Conversations ==========
+    app.add_handler(proxy_conv)
     app.add_handler(add_product_conv)
     app.add_handler(stock_conv)
     app.add_handler(broadcast_conv)
@@ -155,6 +170,10 @@ def main():
     app.add_handler(CallbackQueryHandler(ha.admin_show_products,  pattern='^adm_products$'))
     app.add_handler(CallbackQueryHandler(ha.admin_product_detail, pattern=r'^adm_prod_detail_\d+$'))
     app.add_handler(CallbackQueryHandler(ha.delete_product,       pattern=r'^adm_del_\d+$'))
+
+    # ========== Callbacks البروكسي ==========
+    app.add_handler(CallbackQueryHandler(hp.proxy_admin_done,   pattern=r'^prx_done_\d+$'))
+    app.add_handler(CallbackQueryHandler(hp.proxy_admin_reject, pattern=r'^prx_reject_\d+$'))
 
     # ========== القائمة الثابتة ==========
     app.add_handler(MessageHandler(
