@@ -17,11 +17,11 @@ app = Flask(__name__)
 
 @app.route('/')
 def home():
-    return "🌙 Need Me Store Bot — Online ✅"
+    return "🌙 NexVault Bot — Online ✅"
 
 @app.route('/health')
 def health():
-    return {"status": "alive", "bot": "Need Me Store"}, 200
+    return {"status": "alive", "bot": "NexVault"}, 200
 
 def run_server():
     app.run(host='0.0.0.0', port=8080, debug=False, use_reloader=False)

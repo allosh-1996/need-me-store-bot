@@ -11,7 +11,7 @@ SYRIATEL_CASH = os.environ.get("SYRIATEL_CASH", "ضع_رقم_سيريتيل_كا
 # رسالة الترحيب | Welcome Message
 # ═══════════════════════════════════════
 WELCOME_MSG = """
-🌑 *Need Me Store*
+🌑 *NexVault*
 
 _Welcome to your trusted digital store_
 

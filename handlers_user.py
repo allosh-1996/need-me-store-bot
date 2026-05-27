@@ -348,7 +348,7 @@ async def handle_persistent_menu(update: Update, context: ContextTypes.DEFAULT_T
 
     elif "About" in text:
         await update.message.reply_text(
-            "🌙 *Need Me Store*\n\n"
+            "🌙 *NexVault*\n\n"
             "━━━━━━━━━━━━━━━━\n"
             "🛍️ متجرك الرقمي الموثوق\n"
             "_Your trusted digital store_\n\n"

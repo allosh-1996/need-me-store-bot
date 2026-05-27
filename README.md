@@ -1,4 +1,4 @@
-# Need Me Store Bot 🛍️
+# NexVault Bot 🛍️
 
 بوت متجر رقمي على تيليغرام.
 

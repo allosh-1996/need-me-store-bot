@@ -20,7 +20,7 @@ async def admin_panel(update: Update, context: ContextTypes.DEFAULT_TYPE):
     text = (
         "⚙️ *Admin Panel  |  لوحة التحكم*\n\n"
         "━━━━━━━━━━━━━━━━\n"
-        "🌙 Need Me Store — Admin\n"
+        "🌙 NexVault — Admin\n"
         "━━━━━━━━━━━━━━━━"
     )
 
