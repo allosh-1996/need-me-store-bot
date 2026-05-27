@@ -337,9 +337,23 @@ async def proxy_confirm(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # إرسال الطلب
     user = query.from_user
     type_label = context.user_data.get("proxy_type_label", "")
+    proxy_type = context.user_data.get("proxy_type", "")
     qty = context.user_data.get("proxy_qty", "")
     country = context.user_data.get("proxy_country", "")
     notes = context.user_data.get("proxy_notes", "—")
+
+    # تسجيل المستخدم + حفظ الطلب بقاعدة البيانات
+    db.upsert_user(user.id, user.username or "", user.full_name or "")
+    order_id = db.create_proxy_order(
+        user_id=user.id,
+        username=user.username or "",
+        full_name=user.full_name or "",
+        proxy_type=proxy_type,
+        proxy_type_label=type_label,
+        quantity=qty,
+        country=country,
+        notes=notes
+    )
 
     admin_text = (
         f"🔒 *New Proxy Order  |  طلب بروكسي جديد*\n\n"
@@ -351,12 +365,13 @@ async def proxy_confirm(update: Update, context: ContextTypes.DEFAULT_TYPE):
         f"🌍 Country  |  الدولة: *{country}*\n"
         f"📝 Notes  |  ملاحظات: {notes}\n"
         f"▬▬▬▬▬▬▬▬▬▬▬▬▬▬\n"
-        f"💵 Format: `ip:port:user:pass`"
+        f"💵 Format: `ip:port:user:pass`\n"
+        f"🔖 Order ID: `#{order_id}`"
     )
 
     admin_kb = InlineKeyboardMarkup([[
-        InlineKeyboardButton("✅ تم الإرسال", callback_data=f"prx_done_{user.id}"),
-        InlineKeyboardButton("❌ رفض", callback_data=f"prx_reject_{user.id}")
+        InlineKeyboardButton("✅ تم الإرسال", callback_data=f"prx_done_{user.id}_{order_id}"),
+        InlineKeyboardButton("❌ رفض", callback_data=f"prx_reject_{user.id}_{order_id}")
     ]])
 
     try:
@@ -399,7 +414,11 @@ async def proxy_admin_done(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if query.from_user.id != ADMIN_ID:
         return
 
-    user_id = int(query.data.replace("prx_done_", ""))
+    parts = query.data.replace("prx_done_", "").split("_")
+    user_id = int(parts[0])
+    order_id = int(parts[1]) if len(parts) > 1 else None
+    if order_id:
+        db.update_proxy_order_status(order_id, "completed")
     try:
         await context.bot.send_message(
             chat_id=user_id,
@@ -424,7 +443,11 @@ async def proxy_admin_reject(update: Update, context: ContextTypes.DEFAULT_TYPE)
     if query.from_user.id != ADMIN_ID:
         return
 
-    user_id = int(query.data.replace("prx_reject_", ""))
+    parts = query.data.replace("prx_reject_", "").split("_")
+    user_id = int(parts[0])
+    order_id = int(parts[1]) if len(parts) > 1 else None
+    if order_id:
+        db.update_proxy_order_status(order_id, "rejected")
     try:
         await context.bot.send_message(
             chat_id=user_id,

@@ -86,6 +86,21 @@ def init_db():
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )''')
 
+    # جدول طلبات البروكسي
+    c.execute('''CREATE TABLE IF NOT EXISTS proxy_orders (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id INTEGER NOT NULL,
+        username TEXT,
+        full_name TEXT,
+        proxy_type TEXT,
+        proxy_type_label TEXT,
+        quantity INTEGER,
+        country TEXT,
+        notes TEXT,
+        status TEXT DEFAULT 'pending',
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )''')
+
     conn.commit()
     conn.close()
 
@@ -329,3 +344,31 @@ def mark_broadcast_sent(broadcast_id, sent_count):
     c.execute("UPDATE broadcasts SET is_sent=1, sent_count=? WHERE id=?", (sent_count, broadcast_id))
     conn.commit()
     conn.close()
+
+# ============ طلبات البروكسي ============
+def create_proxy_order(user_id, username, full_name, proxy_type, proxy_type_label, quantity, country, notes):
+    conn = get_conn()
+    c = conn.cursor()
+    c.execute("""INSERT INTO proxy_orders (user_id, username, full_name, proxy_type, proxy_type_label, quantity, country, notes)
+                 VALUES (?,?,?,?,?,?,?,?)""",
+              (user_id, username, full_name, proxy_type, proxy_type_label, quantity, country, notes))
+    conn.commit()
+    oid = c.lastrowid
+    conn.close()
+    return oid
+
+def get_pending_proxy_orders():
+    conn = get_conn()
+    c = conn.cursor()
+    c.execute("SELECT * FROM proxy_orders WHERE status='pending' ORDER BY created_at DESC")
+    rows = c.fetchall()
+    conn.close()
+    return rows
+
+def update_proxy_order_status(order_id, status):
+    conn = get_conn()
+    c = conn.cursor()
+    c.execute("UPDATE proxy_orders SET status=? WHERE id=?", (status, order_id))
+    conn.commit()
+    conn.close()
+

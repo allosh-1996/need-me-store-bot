@@ -185,13 +185,37 @@ def api_notifications():
                "product": r["product_name"], "amount": r["price_usd"],
                "time": r["created_at"]} for r in c.fetchall()]
 
+    # طلبات بروكسي معلقة
+    c.execute("SELECT id, full_name, proxy_type_label, quantity, country, created_at FROM proxy_orders WHERE status='pending' ORDER BY created_at DESC LIMIT 20")
+    proxies = [{"type": "proxy", "id": r["id"], "name": r["full_name"],
+                "product": f"{r['proxy_type_label']} x{r['quantity']} ({r['country']})",
+                "amount": 0, "time": r["created_at"]} for r in c.fetchall()]
+
     conn.close()
 
-    notifications = sorted(charges + orders, key=lambda x: x["time"], reverse=True)
+    notifications = sorted(charges + orders + proxies, key=lambda x: x["time"], reverse=True)
     return jsonify({
         "notifications": notifications,
         "count": len(notifications)
     })
+
+
+@app.route('/api/proxy_orders')
+@auth_required
+def api_proxy_orders():
+    conn = db.get_conn()
+    c = conn.cursor()
+    c.execute("SELECT * FROM proxy_orders ORDER BY created_at DESC LIMIT 100")
+    rows = [dict(r) for r in c.fetchall()]
+    conn.close()
+    return jsonify(rows)
+
+@app.route('/api/proxy_orders/<int:oid>/status', methods=['POST'])
+@auth_required
+def api_proxy_order_status(oid):
+    status = request.json.get('status')
+    db.update_proxy_order_status(oid, status)
+    return jsonify({"ok": True})
 
 def run_dashboard():
     app.run(host='0.0.0.0', port=5000, debug=False, use_reloader=False)

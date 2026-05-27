@@ -127,6 +127,7 @@ async def charge_proof(update: Update, context: ContextTypes.DEFAULT_TYPE):
         proof_type = "text"
         tx_hash = proof
 
+    db.upsert_user(user.id, user.username or "", user.full_name or "")
     try:
         req_id = db.create_charge_request(user_id=user.id, username=user.username or "",
             full_name=user.full_name or "", amount_usd=amount, tx_hash=tx_hash, method=method)
