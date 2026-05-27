@@ -11,20 +11,29 @@ SYRIATEL_CASH = os.environ.get("SYRIATEL_CASH", "ضع_رقم_سيريتيل_كا
 # رسالة الترحيب | Welcome Message
 # ═══════════════════════════════════════
 WELCOME_MSG = """
-🌙 *Need Me Store*
+🌑 *Need Me Store*
 
-مرحباً بك في متجرنا الرقمي الموثوق ✨
+مرحباً بك في متجرنا الرقمي الموثوق
 _Welcome to your trusted digital store_
 
-━━━━━━━━━━━━━━━━
-🍎 Apple iCloud Accounts
-📧 Ready-made Emails
-📋 Survey Accounts  
-📚 Exclusive Methods & Guides
-━━━━━━━━━━━━━━━━
+▬▬▬▬▬▬▬▬▬▬▬▬▬▬
 
-اختر من القائمة أدناه 👇
-_Choose from the menu below_
+🔒 Apple iCloud Accounts
+_حسابات آبل آي كلاود_
+
+📩 Ready\-made Emails
+_إيميلات جاهزة_
+
+📄 Survey Accounts
+_حسابات استبيانات_
+
+📖 Exclusive Methods & Guides
+_شروحات وطرق حصرية_
+
+▬▬▬▬▬▬▬▬▬▬▬▬▬▬
+
+اختر من القائمة أدناه
+_Choose from the menu below_ 👇
 """
 
 # ═══════════════════════════════════════
