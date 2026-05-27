@@ -3,162 +3,200 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Need Me Store — لوحة التحكم</title>
+<title>Need Me Store — Dashboard</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 :root{
-  --bg:#0f0f13;--surface:#1a1a24;--surface2:#22222f;--border:#2a2a3a;
-  --text:#e8e8f0;--muted:#6b6b85;--accent:#7c5cfc;--accent2:#5b4bd4;
+  --bg:#0d0d11;--surface:#16161e;--surface2:#1e1e28;--border:#252532;
+  --text:#e2e2ee;--muted:#5a5a72;--accent:#7c5cfc;--accent2:#5b4bd4;
   --green:#22c55e;--red:#ef4444;--orange:#f97316;--blue:#3b82f6;
-  --green-dim:#14532d;--red-dim:#450a0a;--orange-dim:#431407;
+  --green-dim:rgba(34,197,94,.12);--red-dim:rgba(239,68,68,.12);--orange-dim:rgba(249,115,22,.12);
 }
-body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;display:flex}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
 
-/* Sidebar */
-.sidebar{width:230px;min-height:100vh;background:var(--surface);border-left:1px solid var(--border);display:flex;flex-direction:column;position:fixed;right:0;top:0;z-index:100}
-.logo{padding:24px 20px;border-bottom:1px solid var(--border)}
-.logo h1{font-size:1rem;font-weight:700;color:var(--text)}
-.logo p{font-size:.75rem;color:var(--muted);margin-top:3px}
-.logo .dot{display:inline-block;width:8px;height:8px;background:var(--green);border-radius:50%;margin-left:6px;animation:pulse 2s infinite}
-@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
-nav{flex:1;padding:12px 10px}
-.nav-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:8px;cursor:pointer;color:var(--muted);font-size:.875rem;transition:all .15s;margin-bottom:2px}
+/* ═══ TOP BAR (mobile) ═══ */
+.topbar{display:none;align-items:center;justify-content:space-between;padding:14px 16px;background:var(--surface);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:50}
+.topbar-logo{font-size:.95rem;font-weight:700}
+.topbar-dot{display:inline-block;width:7px;height:7px;background:var(--green);border-radius:50%;margin-left:6px;animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.3}}
+
+/* ═══ LAYOUT ═══ */
+.layout{display:flex;min-height:100vh}
+
+/* ═══ SIDEBAR (desktop) ═══ */
+.sidebar{width:220px;background:var(--surface);border-left:1px solid var(--border);display:flex;flex-direction:column;position:fixed;right:0;top:0;height:100vh;z-index:100}
+.logo{padding:20px 16px;border-bottom:1px solid var(--border)}
+.logo h1{font-size:.95rem;font-weight:700}
+.logo p{font-size:.72rem;color:var(--muted);margin-top:3px}
+nav{flex:1;padding:10px 8px;overflow-y:auto}
+.nav-item{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:8px;cursor:pointer;color:var(--muted);font-size:.82rem;transition:all .15s;margin-bottom:2px}
 .nav-item:hover{background:var(--surface2);color:var(--text)}
 .nav-item.active{background:var(--accent);color:#fff;font-weight:600}
-.nav-item .icon{font-size:1rem;width:20px;text-align:center}
-.sidebar-footer{padding:16px 10px;border-top:1px solid var(--border)}
-.logout-btn{width:100%;padding:9px;background:var(--red-dim);color:var(--red);border:1px solid var(--red);border-radius:8px;cursor:pointer;font-size:.8rem;font-weight:500}
+.nav-icon{font-size:.95rem;width:18px;text-align:center}
+.sidebar-footer{padding:12px 8px;border-top:1px solid var(--border)}
+.logout-btn{width:100%;padding:8px;background:var(--red-dim);color:var(--red);border:1px solid rgba(239,68,68,.3);border-radius:8px;cursor:pointer;font-size:.78rem;font-weight:500;transition:all .15s}
 .logout-btn:hover{background:var(--red);color:#fff}
 
-/* Main */
-.main{margin-right:230px;flex:1;padding:28px;min-height:100vh}
+/* ═══ MAIN ═══ */
+.main{margin-right:220px;flex:1;padding:24px;min-height:100vh;padding-bottom:80px}
 .page{display:none}.page.active{display:block}
-.page-header{margin-bottom:24px;display:flex;align-items:center;justify-content:space-between}
-.page-header-left h2{font-size:1.3rem;font-weight:700}
-.page-header-left p{color:var(--muted);font-size:.8rem;margin-top:3px}
 
-/* Stats */
-.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:14px;margin-bottom:24px}
-.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px}
-.stat-card .icon{font-size:1.6rem;margin-bottom:10px}
-.stat-card .val{font-size:1.8rem;font-weight:700}
-.stat-card .lbl{font-size:.75rem;color:var(--muted);margin-top:3px}
+/* ═══ PAGE HEADER ═══ */
+.page-header{margin-bottom:20px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px}
+.page-title h2{font-size:1.15rem;font-weight:700}
+.page-title p{color:var(--muted);font-size:.75rem;margin-top:2px}
 
-/* Cards */
-.card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px;margin-bottom:16px}
-.card h3{font-size:.95rem;font-weight:600;margin-bottom:16px;color:var(--muted)}
+/* ═══ STATS ═══ */
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:12px;margin-bottom:20px}
+.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px;text-align:center}
+.stat-icon{font-size:1.4rem;margin-bottom:8px}
+.stat-val{font-size:1.6rem;font-weight:700;line-height:1}
+.stat-lbl{font-size:.7rem;color:var(--muted);margin-top:4px}
 
-/* Table */
-.table-wrap{overflow-x:auto}
-table{width:100%;border-collapse:collapse}
-th{text-align:right;padding:10px 14px;font-size:.75rem;color:var(--muted);font-weight:500;border-bottom:1px solid var(--border)}
-td{padding:10px 14px;font-size:.8rem;color:var(--text);border-bottom:1px solid var(--border)}
+/* ═══ CARD ═══ */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:14px}
+.card-title{font-size:.82rem;font-weight:600;color:var(--muted);margin-bottom:14px;text-transform:uppercase;letter-spacing:.05em}
+
+/* ═══ TABLE ═══ */
+.table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+table{width:100%;border-collapse:collapse;min-width:480px}
+th{text-align:right;padding:8px 12px;font-size:.7rem;color:var(--muted);font-weight:500;border-bottom:1px solid var(--border);white-space:nowrap}
+td{padding:9px 12px;font-size:.78rem;border-bottom:1px solid var(--border);vertical-align:middle}
 tr:last-child td{border-bottom:none}
 tr:hover td{background:var(--surface2)}
 
-/* Badges */
-.badge{display:inline-flex;align-items:center;padding:3px 10px;border-radius:20px;font-size:.7rem;font-weight:600}
+/* ═══ BADGES ═══ */
+.badge{display:inline-flex;align-items:center;padding:2px 8px;border-radius:20px;font-size:.68rem;font-weight:600;white-space:nowrap}
 .badge-success{background:var(--green-dim);color:var(--green)}
 .badge-error{background:var(--red-dim);color:var(--red)}
 .badge-warning{background:var(--orange-dim);color:var(--orange)}
-.badge-info{background:#1e3a5f;color:var(--blue)}
 
-/* Buttons */
-.btn{padding:7px 14px;border-radius:8px;border:none;cursor:pointer;font-size:.8rem;font-weight:500;transition:all .15s}
+/* ═══ BUTTONS ═══ */
+.btn{padding:7px 14px;border-radius:7px;border:none;cursor:pointer;font-size:.78rem;font-weight:500;transition:all .15s;white-space:nowrap}
 .btn-primary{background:var(--accent);color:#fff}
 .btn-primary:hover{background:var(--accent2)}
-.btn-success{background:var(--green-dim);color:var(--green);border:1px solid var(--green)}
+.btn-success{background:var(--green-dim);color:var(--green);border:1px solid rgba(34,197,94,.3)}
 .btn-success:hover{background:var(--green);color:#fff}
-.btn-danger{background:var(--red-dim);color:var(--red);border:1px solid var(--red)}
+.btn-danger{background:var(--red-dim);color:var(--red);border:1px solid rgba(239,68,68,.3)}
 .btn-danger:hover{background:var(--red);color:#fff}
-.btn-sm{padding:4px 10px;font-size:.72rem}
+.btn-sm{padding:4px 9px;font-size:.7rem}
+.btn-group{display:flex;gap:6px;flex-wrap:wrap}
 
-/* Tabs */
-.tabs{display:flex;gap:4px;margin-bottom:16px;background:var(--surface2);padding:4px;border-radius:8px;width:fit-content}
-.tab{padding:6px 16px;border-radius:6px;cursor:pointer;font-size:.8rem;color:var(--muted);transition:all .15s}
+/* ═══ TABS ═══ */
+.tabs{display:flex;gap:3px;margin-bottom:14px;background:var(--surface2);padding:3px;border-radius:7px;width:fit-content;max-width:100%;overflow-x:auto}
+.tab{padding:5px 14px;border-radius:5px;cursor:pointer;font-size:.75rem;color:var(--muted);transition:all .15s;white-space:nowrap}
 .tab.active{background:var(--surface);color:var(--text);font-weight:500}
 
-/* Forms */
-.form-group{margin-bottom:14px}
-.form-group label{display:block;font-size:.78rem;font-weight:500;color:var(--muted);margin-bottom:5px}
+/* ═══ FORMS ═══ */
+.form-group{margin-bottom:12px}
+.form-group label{display:block;font-size:.75rem;font-weight:500;color:var(--muted);margin-bottom:4px}
 .form-group input,.form-group textarea,.form-group select{
-  width:100%;padding:9px 12px;border-radius:8px;border:1px solid var(--border);
-  background:var(--surface2);color:var(--text);font-size:.875rem;font-family:'Inter',sans-serif;outline:none
+  width:100%;padding:8px 11px;border-radius:7px;border:1px solid var(--border);
+  background:var(--surface2);color:var(--text);font-size:.82rem;font-family:'Inter',sans-serif;outline:none
 }
 .form-group input:focus,.form-group textarea:focus{border-color:var(--accent)}
 .form-group textarea{resize:vertical;min-height:80px}
-.form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 
-/* Modal */
-.modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:200;align-items:center;justify-content:center}
+/* ═══ MODAL ═══ */
+.modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:200;align-items:center;justify-content:center;padding:16px}
 .modal.open{display:flex}
-.modal-box{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:24px;width:480px;max-width:95vw;max-height:90vh;overflow-y:auto}
-.modal-box h3{font-size:1rem;font-weight:600;margin-bottom:16px}
-.modal-footer{display:flex;gap:8px;justify-content:flex-end;margin-top:16px}
+.modal-box{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px;width:100%;max-width:460px;max-height:90vh;overflow-y:auto}
+.modal-box h3{font-size:.95rem;font-weight:600;margin-bottom:14px}
+.modal-footer{display:flex;gap:8px;justify-content:flex-end;margin-top:14px}
 
-/* Empty */
-.empty{text-align:center;padding:40px;color:var(--muted);font-size:.875rem}
+/* ═══ EMPTY ═══ */
+.empty{text-align:center;padding:32px;color:var(--muted);font-size:.82rem}
 
-/* Toast */
-.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);padding:10px 20px;border-radius:8px;font-size:.8rem;font-weight:500;z-index:999;opacity:0;transition:opacity .3s;pointer-events:none}
+/* ═══ TOAST ═══ */
+.toast{position:fixed;bottom:80px;left:50%;transform:translateX(-50%);padding:9px 18px;border-radius:8px;font-size:.78rem;font-weight:500;z-index:999;opacity:0;transition:opacity .3s;pointer-events:none;white-space:nowrap}
 .toast.show{opacity:1}
+
+/* ═══ BOTTOM NAV (mobile) ═══ */
+.bottom-nav{display:none;position:fixed;bottom:0;left:0;right:0;background:var(--surface);border-top:1px solid var(--border);z-index:100;padding:6px 0 8px}
+.bottom-nav-inner{display:flex;justify-content:space-around}
+.bnav-item{display:flex;flex-direction:column;align-items:center;gap:2px;padding:4px 8px;cursor:pointer;color:var(--muted);font-size:.58rem;min-width:48px;transition:all .15s;border-radius:6px}
+.bnav-item.active{color:var(--accent)}
+.bnav-icon{font-size:1.2rem}
+
+/* ═══ RESPONSIVE ═══ */
+@media(max-width:768px){
+  .sidebar{display:none}
+  .topbar{display:flex}
+  .main{margin-right:0;padding:14px;padding-bottom:80px}
+  .bottom-nav{display:block}
+  .toast{bottom:90px}
+  .stats-grid{grid-template-columns:repeat(2,1fr)}
+  .form-row{grid-template-columns:1fr}
+  .page-header{flex-direction:column;align-items:flex-start}
+}
 </style>
 </head>
 <body>
 
+<!-- Top Bar (mobile only) -->
+<div class="topbar">
+  <div class="topbar-logo">🌙 Need Me Store <span class="topbar-dot"></span></div>
+  <a href="/logout"><button class="btn btn-danger btn-sm">خروج</button></a>
+</div>
+
+<div class="layout">
+
+<!-- Sidebar (desktop only) -->
 <aside class="sidebar">
   <div class="logo">
-    <h1>🌙 Need Me Store <span class="dot"></span></h1>
+    <h1>🌙 Need Me Store <span style="display:inline-block;width:7px;height:7px;background:var(--green);border-radius:50%;margin-right:4px;animation:pulse 2s infinite"></span></h1>
     <p>Admin Dashboard</p>
   </div>
   <nav>
-    <div class="nav-item active" onclick="showPage('stats',this)"><span class="icon">📊</span><span>الإحصائيات</span></div>
-    <div class="nav-item" onclick="showPage('products',this)"><span class="icon">📦</span><span>المنتجات</span></div>
-    <div class="nav-item" onclick="showPage('orders',this)"><span class="icon">📋</span><span>الطلبات</span></div>
-    <div class="nav-item" onclick="showPage('charges',this)"><span class="icon">💰</span><span>طلبات الشحن</span></div>
-    <div class="nav-item" onclick="showPage('users',this)"><span class="icon">👥</span><span>المستخدمين</span></div>
-    <div class="nav-item" onclick="showPage('broadcast',this)"><span class="icon">📢</span><span>رسالة جماعية</span></div>
+    <div class="nav-item active" onclick="showPage('stats',this)"><span class="nav-icon">📊</span><span>الإحصائيات</span></div>
+    <div class="nav-item" onclick="showPage('products',this)"><span class="nav-icon">📦</span><span>المنتجات</span></div>
+    <div class="nav-item" onclick="showPage('orders',this)"><span class="nav-icon">📋</span><span>الطلبات</span></div>
+    <div class="nav-item" onclick="showPage('charges',this)"><span class="nav-icon">💰</span><span>طلبات الشحن</span></div>
+    <div class="nav-item" onclick="showPage('users',this)"><span class="nav-icon">👥</span><span>المستخدمين</span></div>
+    <div class="nav-item" onclick="showPage('broadcast',this)"><span class="nav-icon">📢</span><span>رسالة جماعية</span></div>
   </nav>
   <div class="sidebar-footer">
     <a href="/logout"><button class="logout-btn">🚪 تسجيل الخروج</button></a>
   </div>
 </aside>
 
+<!-- Main Content -->
 <main class="main">
 
 <!-- Stats -->
 <div id="page-stats" class="page active">
   <div class="page-header">
-    <div class="page-header-left"><h2>📊 الإحصائيات</h2><p>نظرة عامة على المتجر</p></div>
+    <div class="page-title"><h2>📊 الإحصائيات</h2><p>نظرة عامة على المتجر</p></div>
     <button class="btn btn-primary" onclick="loadStats()">🔄 تحديث</button>
   </div>
   <div class="stats-grid">
-    <div class="stat-card"><div class="icon">👥</div><div class="val" id="s-users">—</div><div class="lbl">مستخدم</div></div>
-    <div class="stat-card"><div class="icon">📦</div><div class="val" id="s-products">—</div><div class="lbl">منتج نشط</div></div>
-    <div class="stat-card"><div class="icon">📋</div><div class="val" id="s-total">—</div><div class="lbl">إجمالي الطلبات</div></div>
-    <div class="stat-card"><div class="icon">⏳</div><div class="val" id="s-pending">—</div><div class="lbl">طلبات معلقة</div></div>
-    <div class="stat-card"><div class="icon">✅</div><div class="val" id="s-done">—</div><div class="lbl">طلبات مكتملة</div></div>
+    <div class="stat-card"><div class="stat-icon">👥</div><div class="stat-val" id="s-users">—</div><div class="stat-lbl">مستخدم</div></div>
+    <div class="stat-card"><div class="stat-icon">📦</div><div class="stat-val" id="s-products">—</div><div class="stat-lbl">منتج نشط</div></div>
+    <div class="stat-card"><div class="stat-icon">📋</div><div class="stat-val" id="s-total">—</div><div class="stat-lbl">إجمالي الطلبات</div></div>
+    <div class="stat-card"><div class="stat-icon">⏳</div><div class="stat-val" id="s-pending">—</div><div class="stat-lbl">معلقة</div></div>
+    <div class="stat-card"><div class="stat-icon">✅</div><div class="stat-val" id="s-done">—</div><div class="stat-lbl">مكتملة</div></div>
   </div>
 </div>
 
 <!-- Products -->
 <div id="page-products" class="page">
   <div class="page-header">
-    <div class="page-header-left"><h2>📦 المنتجات</h2><p>إدارة المنتجات والمخزون</p></div>
-    <button class="btn btn-primary" onclick="openModal('add-product-modal')">➕ إضافة منتج</button>
+    <div class="page-title"><h2>📦 المنتجات</h2><p>إدارة المنتجات والمخزون</p></div>
+    <button class="btn btn-primary" onclick="openModal('add-product-modal')">➕ إضافة</button>
   </div>
   <div class="card">
     <div class="table-wrap">
-      <table><thead><tr><th>الاسم</th><th>الفئة</th><th>USD</th><th>SYP</th><th>الحالة</th><th>إجراء</th></tr></thead>
-      <tbody id="products-table"><tr><td colspan="6" class="empty">جاري التحميل...</td></tr></tbody></table>
+      <table><thead><tr><th>الاسم</th><th>الفئة</th><th>USD</th><th>الحالة</th><th>إجراء</th></tr></thead>
+      <tbody id="products-table"><tr><td colspan="5" class="empty">جاري التحميل...</td></tr></tbody></table>
     </div>
   </div>
 </div>
 
 <!-- Orders -->
 <div id="page-orders" class="page">
-  <div class="page-header"><div class="page-header-left"><h2>📋 الطلبات</h2><p>إدارة طلبات العملاء</p></div></div>
+  <div class="page-header"><div class="page-title"><h2>📋 الطلبات</h2><p>إدارة طلبات العملاء</p></div></div>
   <div class="tabs">
     <div class="tab active" onclick="loadOrders('',this)">الكل</div>
     <div class="tab" onclick="loadOrders('pending',this)">⏳ معلقة</div>
@@ -167,26 +205,26 @@ tr:hover td{background:var(--surface2)}
   </div>
   <div class="card">
     <div class="table-wrap">
-      <table><thead><tr><th>#</th><th>العميل</th><th>المنتج</th><th>المبلغ</th><th>الدفع</th><th>الحالة</th><th>إجراء</th></tr></thead>
-      <tbody id="orders-table"><tr><td colspan="7" class="empty">جاري التحميل...</td></tr></tbody></table>
+      <table><thead><tr><th>#</th><th>العميل</th><th>المنتج</th><th>المبلغ</th><th>الحالة</th><th>إجراء</th></tr></thead>
+      <tbody id="orders-table"><tr><td colspan="6" class="empty">جاري التحميل...</td></tr></tbody></table>
     </div>
   </div>
 </div>
 
 <!-- Charges -->
 <div id="page-charges" class="page">
-  <div class="page-header"><div class="page-header-left"><h2>💰 طلبات الشحن</h2><p>تأكيد أو رفض طلبات شحن الرصيد</p></div></div>
+  <div class="page-header"><div class="page-title"><h2>💰 طلبات الشحن</h2><p>تأكيد أو رفض الشحن</p></div></div>
   <div class="card">
     <div class="table-wrap">
-      <table><thead><tr><th>#</th><th>العميل</th><th>المبلغ</th><th>الطريقة</th><th>TXID</th><th>الحالة</th><th>إجراء</th></tr></thead>
-      <tbody id="charges-table"><tr><td colspan="7" class="empty">جاري التحميل...</td></tr></tbody></table>
+      <table><thead><tr><th>#</th><th>العميل</th><th>المبلغ</th><th>الطريقة</th><th>الحالة</th><th>إجراء</th></tr></thead>
+      <tbody id="charges-table"><tr><td colspan="6" class="empty">جاري التحميل...</td></tr></tbody></table>
     </div>
   </div>
 </div>
 
 <!-- Users -->
 <div id="page-users" class="page">
-  <div class="page-header"><div class="page-header-left"><h2>👥 المستخدمين</h2><p>قائمة المستخدمين المسجلين</p></div></div>
+  <div class="page-header"><div class="page-title"><h2>👥 المستخدمين</h2><p>قائمة المستخدمين</p></div></div>
   <div class="card">
     <div class="table-wrap">
       <table><thead><tr><th>الاسم</th><th>يوزر</th><th>الرصيد</th><th>تاريخ التسجيل</th></tr></thead>
@@ -197,7 +235,7 @@ tr:hover td{background:var(--surface2)}
 
 <!-- Broadcast -->
 <div id="page-broadcast" class="page">
-  <div class="page-header"><div class="page-header-left"><h2>📢 رسالة جماعية</h2><p>إرسال رسالة لكل المستخدمين</p></div></div>
+  <div class="page-header"><div class="page-title"><h2>📢 رسالة جماعية</h2><p>إرسال لكل المستخدمين</p></div></div>
   <div class="card" style="max-width:500px">
     <div class="form-group"><label>نص الرسالة</label>
       <textarea id="broadcast-msg" rows="5" placeholder="اكتب رسالتك هنا..."></textarea>
@@ -207,6 +245,19 @@ tr:hover td{background:var(--surface2)}
 </div>
 
 </main>
+</div>
+
+<!-- Bottom Nav (mobile only) -->
+<nav class="bottom-nav">
+  <div class="bottom-nav-inner">
+    <div class="bnav-item active" onclick="showPage('stats',this,true)"><span class="bnav-icon">📊</span><span>إحصائيات</span></div>
+    <div class="bnav-item" onclick="showPage('products',this,true)"><span class="bnav-icon">📦</span><span>منتجات</span></div>
+    <div class="bnav-item" onclick="showPage('orders',this,true)"><span class="bnav-icon">📋</span><span>طلبات</span></div>
+    <div class="bnav-item" onclick="showPage('charges',this,true)"><span class="bnav-icon">💰</span><span>شحن</span></div>
+    <div class="bnav-item" onclick="showPage('users',this,true)"><span class="bnav-icon">👥</span><span>مستخدمين</span></div>
+    <div class="bnav-item" onclick="showPage('broadcast',this,true)"><span class="bnav-icon">📢</span><span>رسالة</span></div>
+  </div>
+</nav>
 
 <!-- Modal: إضافة منتج -->
 <div class="modal" id="add-product-modal">
@@ -224,7 +275,7 @@ tr:hover td{background:var(--surface2)}
         <option>Survey</option><option>شروحات</option><option>أخرى</option>
       </select>
     </div>
-    <div class="form-group"><label>المخزون (المحتوى الذي يُرسل للعميل)</label>
+    <div class="form-group"><label>المخزون</label>
       <textarea id="p-stock" placeholder="account@example.com:password&#10;أو رابط تحميل&#10;أو كود تفعيل"></textarea>
     </div>
     <div class="modal-footer">
@@ -239,16 +290,23 @@ tr:hover td{background:var(--surface2)}
 <script>
 const $ = id => document.getElementById(id)
 
-function showPage(name, el) {
+function showPage(name, el, isMobile=false) {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'))
-  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'))
   $('page-' + name).classList.add('active')
+
+  if (isMobile) {
+    document.querySelectorAll('.bnav-item').forEach(n => n.classList.remove('active'))
+  } else {
+    document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'))
+  }
   el.classList.add('active')
+
   if (name==='stats') loadStats()
   if (name==='products') loadProducts()
   if (name==='orders') loadOrders('')
   if (name==='charges') loadCharges()
   if (name==='users') loadUsers()
+  window.scrollTo(0,0)
 }
 
 function toast(msg, ok=true) {
@@ -283,34 +341,35 @@ async function loadStats() {
 async function loadProducts() {
   const data = await api('/api/products')
   const tb = $('products-table')
-  if (!data.length) { tb.innerHTML = '<tr><td colspan="6" class="empty">لا يوجد منتجات</td></tr>'; return }
+  if (!data.length) { tb.innerHTML = '<tr><td colspan="5" class="empty">لا يوجد منتجات</td></tr>'; return }
   tb.innerHTML = data.map(p => `
     <tr>
       <td><strong>${p.name}</strong><br><small style="color:var(--muted)">${p.description||''}</small></td>
-      <td>${p.category||'—'}</td>
+      <td><small>${p.category||'—'}</small></td>
       <td>$${p.price_usd}</td>
-      <td>${Number(p.price_syp).toLocaleString()} ل.س</td>
-      <td><span class="badge ${p.active ? 'badge-success':'badge-error'}">${p.active ? '✅ نشط':'🔴 محذوف'}</span></td>
-      <td style="display:flex;gap:6px;flex-wrap:wrap">
-        <button class="btn btn-sm btn-primary" onclick="editStock(${p.id}, \`${(p.stock||'').replace(/\`/g,"'")}\`)">✏️ مخزون</button>
-        ${p.active ? `<button class="btn btn-sm btn-danger" onclick="deleteProduct(${p.id})">🗑️</button>` : ''}
+      <td><span class="badge ${p.active?'badge-success':'badge-error'}">${p.active?'✅ نشط':'🔴 محذوف'}</span></td>
+      <td>
+        <div class="btn-group">
+          <button class="btn btn-sm btn-primary" onclick="editStock(${p.id}, \`${(p.stock||'').replace(/\`/g,"'")}\`)">✏️</button>
+          ${p.active?`<button class="btn btn-sm btn-danger" onclick="deleteProduct(${p.id})">🗑️</button>`:''}
+        </div>
       </td>
     </tr>`).join('')
 }
 
 async function addProduct() {
-  const d = {name:$('p-name').value, description:$('p-desc').value,
-    price_usd:$('p-usd').value, price_syp:$('p-syp').value,
-    category:$('p-cat').value, stock:$('p-stock').value}
-  if (!d.name || !d.price_usd) { toast('الاسم والسعر مطلوبان', false); return }
+  const d = {name:$('p-name').value,description:$('p-desc').value,
+    price_usd:$('p-usd').value,price_syp:$('p-syp').value,
+    category:$('p-cat').value,stock:$('p-stock').value}
+  if (!d.name||!d.price_usd){toast('الاسم والسعر مطلوبان',false);return}
   await api('/api/products/add','POST',d)
-  closeModal('add-product-modal'); loadProducts(); toast('✅ تم إضافة المنتج')
+  closeModal('add-product-modal');loadProducts();toast('✅ تم إضافة المنتج')
 }
 
 async function deleteProduct(id) {
   if (!confirm('حذف المنتج؟')) return
   await api(`/api/products/${id}/delete`,'POST')
-  loadProducts(); toast('🗑️ تم الحذف')
+  loadProducts();toast('🗑️ تم الحذف')
 }
 
 function editStock(id, current) {
@@ -319,83 +378,82 @@ function editStock(id, current) {
   api(`/api/products/${id}/stock`,'POST',{stock:s}).then(()=>{loadProducts();toast('✅ تم تحديث المخزون')})
 }
 
-let currentOrderFilter = ''
+let currentOrderFilter=''
 async function loadOrders(status, el) {
-  currentOrderFilter = status
-  if (el) {
-    document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'))
-    el.classList.add('active')
-  }
+  currentOrderFilter=status
+  if(el){document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));el.classList.add('active')}
   const data = await api('/api/orders?status='+status)
   const tb = $('orders-table')
-  if (!data.length) { tb.innerHTML = '<tr><td colspan="7" class="empty">لا يوجد طلبات</td></tr>'; return }
-  const badges = {pending:'badge-warning',completed:'badge-success',rejected:'badge-error'}
-  const labels = {pending:'⏳ معلق',completed:'✅ مكتمل',rejected:'❌ مرفوض'}
-  tb.innerHTML = data.map(o => `
+  if (!data.length){tb.innerHTML='<tr><td colspan="6" class="empty">لا يوجد طلبات</td></tr>';return}
+  const badges={pending:'badge-warning',completed:'badge-success',rejected:'badge-error'}
+  const labels={pending:'⏳ معلق',completed:'✅ مكتمل',rejected:'❌ مرفوض'}
+  tb.innerHTML = data.map(o=>`
     <tr>
       <td>#${o.id}</td>
       <td>${o.full_name||''}<br><small style="color:var(--muted)">@${o.username||'—'}</small></td>
-      <td>${o.product_name}</td>
+      <td><small>${o.product_name}</small></td>
       <td>$${o.price_usd}</td>
-      <td>${o.payment_method||'—'}</td>
       <td><span class="badge ${badges[o.status]||''}">${labels[o.status]||o.status}</span></td>
       <td>${o.status==='pending'?`
-        <button class="btn btn-sm btn-success" onclick="orderAction(${o.id},'completed')">✅</button>
-        <button class="btn btn-sm btn-danger" onclick="orderAction(${o.id},'rejected')">❌</button>`:'—'}
+        <div class="btn-group">
+          <button class="btn btn-sm btn-success" onclick="orderAction(${o.id},'completed')">✅</button>
+          <button class="btn btn-sm btn-danger" onclick="orderAction(${o.id},'rejected')">❌</button>
+        </div>`:'—'}
       </td>
     </tr>`).join('')
 }
 
-async function orderAction(id, status) {
+async function orderAction(id,status){
   await api(`/api/orders/${id}/status`,'POST',{status})
-  loadOrders(currentOrderFilter); toast(status==='completed'?'✅ تم التأكيد':'❌ تم الرفض')
+  loadOrders(currentOrderFilter);toast(status==='completed'?'✅ تم التأكيد':'❌ تم الرفض')
 }
 
-async function loadCharges() {
-  const data = await api('/api/charges')
-  const tb = $('charges-table')
-  if (!data.length) { tb.innerHTML = '<tr><td colspan="7" class="empty">لا يوجد طلبات شحن</td></tr>'; return }
-  const badges = {pending:'badge-warning',confirmed:'badge-success',rejected:'badge-error'}
-  const labels = {pending:'⏳ معلق',confirmed:'✅ مؤكد',rejected:'❌ مرفوض'}
-  const methods = {usdt:'USDT BEP-20',syriatel:'Syriatel Cash'}
-  tb.innerHTML = data.map(c => `
+async function loadCharges(){
+  const data=await api('/api/charges')
+  const tb=$('charges-table')
+  if(!data.length){tb.innerHTML='<tr><td colspan="6" class="empty">لا يوجد طلبات شحن</td></tr>';return}
+  const badges={pending:'badge-warning',confirmed:'badge-success',rejected:'badge-error'}
+  const labels={pending:'⏳ معلق',confirmed:'✅ مؤكد',rejected:'❌ مرفوض'}
+  const methods={usdt:'USDT',syriatel:'Syriatel'}
+  tb.innerHTML=data.map(c=>`
     <tr>
       <td>#${c.id}</td>
       <td>${c.full_name||''}<br><small style="color:var(--muted)">@${c.username||'—'}</small></td>
       <td><strong>$${c.amount_usd}</strong></td>
-      <td>${methods[c.method]||c.method||'—'}</td>
-      <td><small style="word-break:break-all;color:var(--muted)">${(c.tx_hash||'—').substring(0,25)}...</small></td>
+      <td><small>${methods[c.method]||c.method||'—'}</small></td>
       <td><span class="badge ${badges[c.status]||''}">${labels[c.status]||c.status}</span></td>
       <td>${c.status==='pending'?`
-        <button class="btn btn-sm btn-success" onclick="chargeAction(${c.id},'confirm')">✅</button>
-        <button class="btn btn-sm btn-danger" onclick="chargeAction(${c.id},'reject')">❌</button>`:'—'}
+        <div class="btn-group">
+          <button class="btn btn-sm btn-success" onclick="chargeAction(${c.id},'confirm')">✅</button>
+          <button class="btn btn-sm btn-danger" onclick="chargeAction(${c.id},'reject')">❌</button>
+        </div>`:'—'}
       </td>
     </tr>`).join('')
 }
 
-async function chargeAction(id, action) {
+async function chargeAction(id,action){
   await api(`/api/charges/${id}/${action}`,'POST')
-  loadCharges(); toast(action==='confirm'?'✅ تم تأكيد الشحن':'❌ تم الرفض')
+  loadCharges();toast(action==='confirm'?'✅ تم تأكيد الشحن':'❌ تم الرفض')
 }
 
-async function loadUsers() {
-  const data = await api('/api/users')
-  const tb = $('users-table')
-  if (!data.length) { tb.innerHTML = '<tr><td colspan="4" class="empty">لا يوجد مستخدمين</td></tr>'; return }
-  tb.innerHTML = data.map(u => `
+async function loadUsers(){
+  const data=await api('/api/users')
+  const tb=$('users-table')
+  if(!data.length){tb.innerHTML='<tr><td colspan="4" class="empty">لا يوجد مستخدمين</td></tr>';return}
+  tb.innerHTML=data.map(u=>`
     <tr>
       <td>${u.full_name||'—'}</td>
       <td>@${u.username||'—'}</td>
-      <td><strong style="color:var(--green)">$${Number(u.balance||0).toFixed(2)}</strong></td>
+      <td style="color:var(--green)"><strong>$${Number(u.balance||0).toFixed(2)}</strong></td>
       <td><small style="color:var(--muted)">${(u.joined_at||'').substring(0,10)}</small></td>
     </tr>`).join('')
 }
 
-async function sendBroadcast() {
-  const msg = $('broadcast-msg').value.trim()
-  if (!msg) { toast('اكتب رسالة أولاً', false); return }
+async function sendBroadcast(){
+  const msg=$('broadcast-msg').value.trim()
+  if(!msg){toast('اكتب رسالة أولاً',false);return}
   await api('/api/broadcast','POST',{message:msg})
-  $('broadcast-msg').value = ''
+  $('broadcast-msg').value=''
   toast('✅ تم إرسال الرسالة')
 }
 
