@@ -232,6 +232,37 @@ tr:hover td{background:var(--surface2)}
   .bnav-item{font-size:.5rem;min-width:36px}
   .bnav-icon{font-size:1rem}
 }
+
+/* ===== Users Grid ===== */
+.users-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:12px;padding:4px 0}
+.user-card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px 12px;text-align:center;cursor:pointer;transition:transform .15s,border-color .15s;-webkit-tap-highlight-color:transparent}
+.user-card:active{transform:scale(.96)}
+.user-card:hover{border-color:var(--accent)}
+.uc-avatar{width:44px;height:44px;border-radius:50%;background:var(--accent-dim);display:flex;align-items:center;justify-content:center;font-size:20px;margin:0 auto 10px}
+.uc-name{font-size:13px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:4px}
+.uc-id{font-size:11px;color:var(--muted);font-family:monospace}
+
+/* ===== User Drawer ===== */
+.drawer-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:200;opacity:0;pointer-events:none;transition:opacity .25s}
+.drawer-overlay.open{opacity:1;pointer-events:all}
+.user-drawer{position:fixed;bottom:0;left:0;right:0;background:var(--card);border-radius:22px 22px 0 0;z-index:201;padding:0 0 32px;transform:translateY(100%);transition:transform .3s cubic-bezier(.4,0,.2,1);max-height:85vh;overflow-y:auto}
+.user-drawer.open{transform:translateY(0)}
+.drawer-handle{width:40px;height:4px;background:var(--border);border-radius:4px;margin:12px auto 0}
+.drawer-content{padding:20px 24px 0;text-align:center}
+.drawer-avatar{width:64px;height:64px;border-radius:50%;background:var(--accent-dim);display:flex;align-items:center;justify-content:center;font-size:30px;margin:0 auto 12px}
+.drawer-name{font-size:18px;font-weight:700;color:var(--text);margin-bottom:4px}
+.drawer-username{font-size:14px;color:var(--muted);margin-bottom:2px}
+.drawer-id{font-size:12px;color:var(--muted);font-family:monospace;margin-bottom:12px}
+.drawer-balance{font-size:28px;font-weight:800;color:var(--green);margin-bottom:16px}
+.drawer-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:20px}
+.dstat{background:var(--bg);border-radius:10px;padding:10px 6px}
+.dstat-val{font-size:14px;font-weight:700;color:var(--text)}
+.dstat-lbl{font-size:10px;color:var(--muted);margin-top:2px}
+.drawer-actions{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.drawer-btn{padding:12px;border-radius:12px;border:none;font-size:14px;font-weight:600;cursor:pointer;transition:opacity .15s}
+.drawer-btn:active{opacity:.7}
+.btn-add{background:var(--green);color:#fff}
+.btn-deduct{background:rgba(239,68,68,.2);color:#f87171;border:1px solid rgba(239,68,68,.3)}
 </style>
 </head>
 <body>
@@ -349,10 +380,27 @@ tr:hover td{background:var(--surface2)}
 <!-- Users -->
 <div id="page-users" class="page">
   <div class="page-header"><div class="page-title"><h2>👥 المستخدمين</h2><p>قائمة المستخدمين</p></div></div>
-  <div class="card">
-    <div class="table-wrap">
-      <table><thead><tr><th>الاسم</th><th>يوزر</th><th>الرصيد</th><th>تاريخ التسجيل</th><th>إجراء</th></tr></thead>
-      <tbody id="users-table"><tr><td colspan="6" class="empty">جاري التحميل...</td></tr></tbody></table>
+  <div id="users-grid" class="users-grid"></div>
+</div>
+
+<!-- User Drawer -->
+<div id="user-drawer-overlay" class="drawer-overlay" onclick="closeDrawer()"></div>
+<div id="user-drawer" class="user-drawer">
+  <div class="drawer-handle"></div>
+  <div class="drawer-content">
+    <div class="drawer-avatar" id="drawer-avatar">👤</div>
+    <div class="drawer-name" id="drawer-name">—</div>
+    <div class="drawer-username" id="drawer-username">@—</div>
+    <div class="drawer-id" id="drawer-id">ID: —</div>
+    <div class="drawer-balance" id="drawer-balance">$0.00</div>
+    <div class="drawer-stats">
+      <div class="dstat"><div class="dstat-val" id="dstat-charged">$0</div><div class="dstat-lbl">إجمالي الشحن</div></div>
+      <div class="dstat"><div class="dstat-val" id="dstat-spent">$0</div><div class="dstat-lbl">إجمالي الإنفاق</div></div>
+      <div class="dstat"><div class="dstat-val" id="dstat-joined">—</div><div class="dstat-lbl">تاريخ الانضمام</div></div>
+    </div>
+    <div class="drawer-actions">
+      <button class="drawer-btn btn-add" id="btn-drawer-add" onclick="drawerAddBalance()">➕ إضافة رصيد</button>
+      <button class="drawer-btn btn-deduct" id="btn-drawer-deduct" onclick="drawerDeductBalance()">➖ سحب رصيد</button>
     </div>
   </div>
 </div>
@@ -560,64 +608,79 @@ async function chargeAction(id,action){
   loadCharges();toast(action==='confirm'?'✅ تم تأكيد الشحن':'❌ تم الرفض')
 }
 
+// ===== Users Grid =====
+let _currentDrawerUid = null
+let _currentDrawerBalance = 0
+
 async function loadUsers(){
-  const data=await api('/api/users')
-  const tb=$('users-table')
-  if(!data.length){tb.innerHTML='<tr><td colspan="6" class="empty">لا يوجد مستخدمين</td></tr>';return}
-  tb.innerHTML=data.map(u=>`
-    <tr>
-      <td>${u.full_name||'—'}<br><small style="color:var(--muted)">ID: ${u.id}</small></td>
-      <td>@${u.username||'—'}</td>
-      <td style="color:var(--green)"><strong>$${Number(u.balance||0).toFixed(2)}</strong></td>
-      <td><small style="color:var(--muted)">${(u.joined_at||'').substring(0,10)}</small></td>
-      <td>
-        <button class="btn btn-sm btn-success" onclick="addBalance(${u.id}, '${u.full_name||u.username||u.id}')">➕ إضافة</button>
-        <button class="btn btn-sm btn-danger" onclick="deductBalance(${u.id}, '${u.full_name||u.username||u.id}', ${Number(u.balance||0).toFixed(2)})">➖ سحب</button>
-        <button class="btn btn-sm" onclick="viewBalance(${u.id}, '${u.full_name||u.username||u.id}')">👁 تفاصيل</button>
-      </td>
-    </tr>`).join('')
+  const data = await api('/api/users')
+  const grid = $('users-grid')
+  if(!data.length){ grid.innerHTML='<p style="color:var(--muted);text-align:center;padding:40px">لا يوجد مستخدمين</p>'; return }
+  grid.innerHTML = data.map(u => {
+    const initials = (u.full_name||'?').charAt(0).toUpperCase()
+    const name = (u.full_name||'—').split(' ').slice(0,2).join(' ')
+    return `<div class="user-card" onclick="openDrawer(${u.id},'${(u.full_name||'—').replace(/'/g,"\'")}','${(u.username||'').replace(/'/g,"\'")}',${Number(u.balance||0)},${Number(u.total_charged||0)},${Number(u.total_spent||0)},'${(u.joined_at||'').substring(0,10)}')">
+      <div class="uc-avatar">${initials}</div>
+      <div class="uc-name">${name}</div>
+      <div class="uc-id">${u.id}</div>
+    </div>`
+  }).join('')
 }
 
-async function addBalance(uid, name) {
+function openDrawer(uid, name, username, balance, charged, spent, joined){
+  _currentDrawerUid = uid
+  _currentDrawerBalance = balance
+  $('drawer-avatar').textContent = name.charAt(0).toUpperCase()
+  $('drawer-name').textContent = name
+  $('drawer-username').textContent = username ? '@'+username : '—'
+  $('drawer-id').textContent = 'ID: ' + uid
+  $('drawer-balance').textContent = '$' + Number(balance).toFixed(2)
+  $('dstat-charged').textContent = '$' + Number(charged).toFixed(2)
+  $('dstat-spent').textContent = '$' + Number(spent).toFixed(2)
+  $('dstat-joined').textContent = joined || '—'
+  $('user-drawer').classList.add('open')
+  $('user-drawer-overlay').classList.add('open')
+  document.body.style.overflow = 'hidden'
+}
+
+function closeDrawer(){
+  $('user-drawer').classList.remove('open')
+  $('user-drawer-overlay').classList.remove('open')
+  document.body.style.overflow = ''
+}
+
+async function drawerAddBalance(){
+  const name = $('drawer-name').textContent
   const amount = prompt(`➕ إضافة رصيد لـ ${name}\nأدخل المبلغ بالدولار $:`)
   if (!amount || isNaN(amount) || Number(amount) <= 0) return
-  const res = await api(`/api/users/${uid}/add_balance`, 'POST', {amount: Number(amount)})
+  const res = await api(`/api/users/${_currentDrawerUid}/add_balance`, 'POST', {amount: Number(amount)})
   if (res.ok) {
-    toast(`✅ تم إضافة $${Number(amount).toFixed(2)} — الرصيد الجديد: $${res.new_balance.toFixed(2)}`)
+    $('drawer-balance').textContent = '$' + res.new_balance.toFixed(2)
+    _currentDrawerBalance = res.new_balance
+    toast(`✅ تم إضافة $${Number(amount).toFixed(2)} — الرصيد: $${res.new_balance.toFixed(2)}`)
     loadUsers()
-  } else {
-    toast('🔴 خطأ في الإضافة', false)
-  }
+  } else { toast('🔴 خطأ في الإضافة', false) }
 }
 
-async function deductBalance(uid, name, currentBalance) {
-  const amount = prompt(`➖ سحب رصيد من ${name}\nالرصيد الحالي: $${Number(currentBalance).toFixed(2)}\nأدخل المبلغ المراد سحبه:`)
+async function drawerDeductBalance(){
+  const name = $('drawer-name').textContent
+  const amount = prompt(`➖ سحب رصيد من ${name}\nالرصيد الحالي: $${Number(_currentDrawerBalance).toFixed(2)}\nأدخل المبلغ:`)
   if (!amount || isNaN(amount) || Number(amount) <= 0) return
-  if (Number(amount) > Number(currentBalance)) {
-    toast(`🔴 المبلغ أكبر من الرصيد الحالي ($${Number(currentBalance).toFixed(2)})`, false)
-    return
+  if (Number(amount) > _currentDrawerBalance) {
+    toast(`🔴 المبلغ أكبر من الرصيد ($${Number(_currentDrawerBalance).toFixed(2)})`, false); return
   }
-  const res = await api(`/api/users/${uid}/deduct_balance`, 'POST', {amount: Number(amount)})
+  const res = await api(`/api/users/${_currentDrawerUid}/deduct_balance`, 'POST', {amount: Number(amount)})
   if (res.ok) {
-    toast(`✅ تم سحب $${Number(amount).toFixed(2)} — الرصيد الجديد: $${res.new_balance.toFixed(2)}`)
+    $('drawer-balance').textContent = '$' + res.new_balance.toFixed(2)
+    _currentDrawerBalance = res.new_balance
+    toast(`✅ تم سحب $${Number(amount).toFixed(2)} — الرصيد: $${res.new_balance.toFixed(2)}`)
     loadUsers()
-  } else {
-    toast(`🔴 ${res.error || 'خطأ في السحب'}`, false)
-  }
+  } else { toast(`🔴 ${res.error || 'خطأ في السحب'}`, false) }
 }
 
-async function viewBalance(uid, name) {
-  const res = await api(`/api/users/${uid}/balance`)
-  if (res) {
-    alert(
-      `👤 ${name}\n` +
-      `━━━━━━━━━━━━━━━━\n` +
-      `💰 الرصيد الحالي:  $${Number(res.balance).toFixed(2)}\n` +
-      `📥 إجمالي الشحن:   $${Number(res.total_charged).toFixed(2)}\n` +
-      `📤 إجمالي الإنفاق: $${Number(res.total_spent).toFixed(2)}`
-    )
-  }
-}
+// legacy — kept for safety
+async function addBalance(uid, name) { openDrawer(uid, name, '', 0, 0, 0, '') }
+async function deductBalance(uid, name, bal) { openDrawer(uid, name, '', bal, 0, 0, '') }
 
 async function sendBroadcast(){
   const msg=$('broadcast-msg').value.trim()
