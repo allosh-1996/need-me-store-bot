@@ -6,7 +6,11 @@ from psycopg2.extras import RealDictCursor
 DATABASE_URL = os.environ.get("DATABASE_URL", "")
 
 def get_conn():
-    conn = psycopg2.connect(DATABASE_URL, cursor_factory=RealDictCursor)
+    conn = psycopg2.connect(
+        DATABASE_URL,
+        cursor_factory=RealDictCursor,
+        connect_timeout=15
+    )
     return conn
 
 def init_db():
