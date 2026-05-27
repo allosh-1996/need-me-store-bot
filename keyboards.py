@@ -47,11 +47,15 @@ def products_menu(products):
     return InlineKeyboardMarkup(keyboard)
 
 # ============ Product Detail Menu ============
+# FIX: كانت callback_data="buy_{product_id}" بدون عملة
+# الـ handler يتوقع buy_{id}_{currency} فصار mismatch
+# الحل: نضيف اختيار العملة هون مباشرة
 def product_detail_menu(product_id, has_stock=True):
     keyboard = []
     if has_stock:
         keyboard.append([
-            InlineKeyboardButton("🛒 شراء الآن  |  Buy Now", callback_data=f"buy_{product_id}"),
+            InlineKeyboardButton("💵 شراء بـ USD", callback_data=f"buy_{product_id}_USD"),
+            InlineKeyboardButton("💴 شراء بـ SYP", callback_data=f"buy_{product_id}_SYP"),
         ])
     keyboard.append([InlineKeyboardButton("🔙 Back  |  رجوع", callback_data="products")])
     return InlineKeyboardMarkup(keyboard)
@@ -61,6 +65,7 @@ def payment_method_menu(product_id, currency):
     keyboard = [
         [InlineKeyboardButton("🪙 USDT  (BEP-20)", callback_data=f"pay_{product_id}_{currency}_usdt")],
         [InlineKeyboardButton("📱 Syriatel Cash  |  سيريتيل كاش", callback_data=f"pay_{product_id}_{currency}_syriatel")],
+        [InlineKeyboardButton("💰 من رصيدي  |  From Balance", callback_data=f"confirm_buy_{product_id}")],
         [InlineKeyboardButton("🔙 Back  |  رجوع", callback_data=f"prod_{product_id}")],
     ]
     return InlineKeyboardMarkup(keyboard)

@@ -50,8 +50,8 @@ async def charge_method_selected(update: Update, context: ContextTypes.DEFAULT_T
             f"`{USDT_WALLET}`\n\n"
             f"⚠️ *BEP-20 Network Only*\n"
             f"━━━━━━━━━━━━━━━━\n"
-            f"💵 كم دولار تريد تشحن؟ \n"
-            f"_How much USD to top up? _"
+            f"💵 كم دولار تريد تشحن؟\n"
+            f"_How much USD to top up?_"
         )
     else:
         from config import SYRIATEL_CASH
@@ -61,8 +61,8 @@ async def charge_method_selected(update: Update, context: ContextTypes.DEFAULT_T
             f"📞 Number  |  الرقم:\n"
             f"`{SYRIATEL_CASH}`\n"
             f"━━━━━━━━━━━━━━━━\n"
-            f"💴 كم ليرة تريد تشحن؟ \n"
-            f"_How much SYP? _"
+            f"💴 كم ليرة تريد تشحن؟\n"
+            f"_How much SYP?_"
         )
 
     await query.edit_message_text(text, parse_mode=ParseMode.MARKDOWN)
@@ -74,8 +74,10 @@ async def charge_amount(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     try:
         amount = float(raw)
+        if amount <= 0:
+            raise ValueError
     except ValueError:
-        await update.message.reply_text("🔴 أرسل رقم فقط  |  Send a number only (e.g. 5 or 50000)")
+        await update.message.reply_text("🔴 أرسل رقم صحيح أكبر من صفر  |  Send a valid positive number")
         return WAITING_AMOUNT
 
     if method == "usdt":
@@ -129,8 +131,11 @@ async def charge_proof(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     db.upsert_user(user.id, user.username or "", user.full_name or "")
     try:
-        req_id = db.create_charge_request(user_id=user.id, username=user.username or "",
-            full_name=user.full_name or "", amount_usd=amount, tx_hash=tx_hash, method=method)
+        req_id = db.create_charge_request(
+            user_id=user.id, username=user.username or "",
+            full_name=user.full_name or "", amount_usd=amount,
+            tx_hash=tx_hash, method=method
+        )
         db.update_charge_proof(req_id, proof)
     except Exception as e:
         print(f"DB Error: {e}")
@@ -155,14 +160,20 @@ async def charge_proof(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     try:
         if proof_type == "photo":
-            await context.bot.send_photo(chat_id=ADMIN_ID, photo=proof,
-                caption=admin_text, parse_mode=ParseMode.MARKDOWN, reply_markup=admin_kb)
+            await context.bot.send_photo(
+                chat_id=ADMIN_ID, photo=proof,
+                caption=admin_text, parse_mode=ParseMode.MARKDOWN, reply_markup=admin_kb
+            )
         elif proof_type == "document":
-            await context.bot.send_document(chat_id=ADMIN_ID, document=proof,
-                caption=admin_text, parse_mode=ParseMode.MARKDOWN, reply_markup=admin_kb)
+            await context.bot.send_document(
+                chat_id=ADMIN_ID, document=proof,
+                caption=admin_text, parse_mode=ParseMode.MARKDOWN, reply_markup=admin_kb
+            )
         else:
-            await context.bot.send_message(chat_id=ADMIN_ID, text=admin_text,
-                parse_mode=ParseMode.MARKDOWN, reply_markup=admin_kb)
+            await context.bot.send_message(
+                chat_id=ADMIN_ID, text=admin_text,
+                parse_mode=ParseMode.MARKDOWN, reply_markup=admin_kb
+            )
     except Exception as e:
         print(f"Admin notify error: {e}")
 
@@ -226,40 +237,40 @@ async def show_balance(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text(text, parse_mode=ParseMode.MARKDOWN, reply_markup=bal_kb)
 
 async def admin_confirm_charge(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """
+    FIX: كانت تغير الحالة لـ 'accepted' بدون إضافة رصيد.
+    الحين تستخدم db.confirm_charge() اللي تضيف الرصيد تلقائياً.
+    """
     query = update.callback_query
     await query.answer()
     if query.from_user.id != ADMIN_ID:
         return
 
     req_id = int(query.data.replace("chg_confirm_", ""))
-    req = db.get_charge_request(req_id)
+    req = db.confirm_charge(req_id)  # هاد الحين يضيف الرصيد تلقائياً
 
     if not req:
         try:
-            await query.edit_message_caption("🔴 الطلب غير موجود  |  Not found")
+            await query.edit_message_caption("🔴 الطلب غير موجود أو تمت معالجته مسبقاً  |  Not found or already processed")
         except:
-            await query.edit_message_text("🔴 Not found")
+            await query.edit_message_text("🔴 Not found or already processed")
         return
 
-    # تغيير الحالة لـ accepted بدون إضافة رصيد
-    conn = db.get_conn()
-    c = conn.cursor()
-    c.execute("UPDATE charge_requests SET status='accepted' WHERE id=?", (req_id,))
-    conn.commit()
-    conn.close()
+    new_balance = db.get_balance(req['user_id'])
 
-    # إشعار العميل
+    # إشعار العميل بإضافة الرصيد
     try:
         await context.bot.send_message(
             chat_id=req['user_id'],
             text=(
-                f"✅ *تم قبول طلب الشحن!  |  Top Up Accepted!*\n\n"
+                f"✅ *تم شحن رصيدك!  |  Balance Added!*\n\n"
                 f"━━━━━━━━━━━━━━━━\n"
-                f"💵 المبلغ  |  Amount: `${req['amount_usd']}`\n"
+                f"💵 المبلغ المضاف  |  Added: `${req['amount_usd']}`\n"
                 f"💳 {('USDT BEP-20' if req['method'] == 'usdt' else 'Syriatel Cash')}\n"
+                f"💰 رصيدك الحالي  |  New Balance: `${new_balance:.2f}`\n"
                 f"━━━━━━━━━━━━━━━━\n"
-                f"⏳ _سيتم إضافة الرصيد لحسابك قريباً_\n"
-                f"_Your balance will be added shortly_ 🚀"
+                f"_يمكنك الشراء الآن من المتجر_ 🛍️\n"
+                f"_You can now shop from the store_"
             ),
             parse_mode=ParseMode.MARKDOWN,
             reply_markup=kb.main_menu()
@@ -269,13 +280,13 @@ async def admin_confirm_charge(update: Update, context: ContextTypes.DEFAULT_TYP
 
     try:
         await query.edit_message_caption(
-            f"✅ Accepted #{req_id} — ${req['amount_usd']} | {req['full_name']}\n"
-            f"⚠️ أضف الرصيد يدوياً من الداشبورد"
+            f"✅ Confirmed #{req_id} — ${req['amount_usd']} added to {req['full_name']}\n"
+            f"💰 New balance: ${new_balance:.2f}"
         )
     except:
         await query.edit_message_text(
-            f"✅ Accepted `#{req_id}` — `${req['amount_usd']}` | {req['full_name']}\n"
-            f"⚠️ أضف الرصيد يدوياً من الداشبورد",
+            f"✅ Confirmed `#{req_id}` — `${req['amount_usd']}` added to {req['full_name']}\n"
+            f"💰 New balance: `${new_balance:.2f}`",
             parse_mode=ParseMode.MARKDOWN
         )
 

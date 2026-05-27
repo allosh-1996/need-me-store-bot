@@ -241,8 +241,6 @@ def get_stats():
     conn.close()
     return stats
 
-
-
 # ============ الرصيد ============
 def get_balance(user_id):
     conn = get_conn()
@@ -315,6 +313,10 @@ def get_charge_request(req_id):
     return row
 
 def confirm_charge(req_id):
+    """
+    FIX: كانت تغير الحالة بس بدون إضافة رصيد.
+    الحين تغير الحالة وتضيف الرصيد تلقائياً.
+    """
     conn = get_conn()
     c = conn.cursor()
     c.execute("SELECT * FROM charge_requests WHERE id=?", (req_id,))
@@ -323,6 +325,8 @@ def confirm_charge(req_id):
         c.execute("UPDATE charge_requests SET status='confirmed' WHERE id=?", (req_id,))
         conn.commit()
         conn.close()
+        # أضف الرصيد تلقائياً
+        add_balance(req['user_id'], req['amount_usd'])
         return req
     conn.close()
     return None
@@ -333,7 +337,6 @@ def reject_charge(req_id):
     c.execute("UPDATE charge_requests SET status='rejected' WHERE id=?", (req_id,))
     conn.commit()
     conn.close()
-
 
 # ============ الرسائل الجماعية ============
 def get_pending_broadcasts():
@@ -377,4 +380,3 @@ def update_proxy_order_status(order_id, status):
     c.execute("UPDATE proxy_orders SET status=? WHERE id=?", (status, order_id))
     conn.commit()
     conn.close()
-

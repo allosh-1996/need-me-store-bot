@@ -23,8 +23,14 @@ def tg_send(chat_id, text):
         print(f"TG send error: {e}")
 
 
-app.secret_key = os.environ.get("DASHBOARD_SECRET", "needmestore2026")
+import secrets as _secrets
+_default_secret = _secrets.token_hex(32)  # عشوائي في كل مرة تشغيل لو ما في متغير
+app.secret_key = os.environ.get("DASHBOARD_SECRET") or _default_secret
 DASHBOARD_PASSWORD = os.environ.get("DASHBOARD_PASSWORD", "admin123")
+if not os.environ.get("DASHBOARD_SECRET"):
+    print("⚠️  WARNING: DASHBOARD_SECRET not set! Sessions will reset on restart.")
+if DASHBOARD_PASSWORD == "admin123":
+    print("⚠️  WARNING: DASHBOARD_PASSWORD is default 'admin123'! Change it in env vars.")
 
 # ═══ Auth ═══
 @app.route('/login', methods=['GET', 'POST'])
@@ -165,20 +171,25 @@ def api_charges():
 @app.route('/api/charges/<int:cid>/confirm', methods=['POST'])
 @auth_required
 def api_confirm_charge(cid):
-    charge = db.get_charge_request(cid)
-    db.confirm_charge(cid)
+    """
+    FIX: الحين يضيف الرصيد تلقائياً عبر db.confirm_charge()
+    اللي تضيف الرصيد وتغير الحالة مع بعض.
+    """
+    charge = db.confirm_charge(cid)  # يضيف الرصيد + يغير الحالة
     if charge:
+        new_balance = db.get_balance(charge['user_id'])
         method_label = "USDT BEP-20" if charge['method'] == 'usdt' else "Syriatel Cash"
         tg_send(charge['user_id'],
-            f"✅ *تم قبول طلب الشحن!  |  Top Up Accepted!*\n\n"
+            f"✅ *تم شحن رصيدك!  |  Balance Added!*\n\n"
             f"━━━━━━━━━━━━━━━━\n"
-            f"💵 المبلغ  |  Amount: `${charge['amount_usd']}`\n"
+            f"💵 المبلغ المضاف  |  Added: `${charge['amount_usd']}`\n"
             f"💳 {method_label}\n"
+            f"💰 رصيدك الحالي  |  New Balance: `${new_balance:.2f}`\n"
             f"━━━━━━━━━━━━━━━━\n"
-            f"⏳ _سيتم إضافة الرصيد لحسابك قريباً_\n"
-            f"_Your balance will be added shortly_ 🚀"
+            f"_يمكنك الشراء الآن_ 🛍️"
         )
-    return jsonify({"ok": True})
+        return jsonify({"ok": True, "new_balance": new_balance})
+    return jsonify({"ok": False, "error": "Not found or already processed"}), 404
 
 @app.route('/api/charges/<int:cid>/reject', methods=['POST'])
 @auth_required

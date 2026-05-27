@@ -42,11 +42,9 @@ async def show_products(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     text = "🛍️ *NexVault Shop*\n\n_اختر المنظومة  |  Choose platform:_"
     if query:
-        await query.edit_message_text(text, parse_mode=ParseMode.MARKDOWN,
-                                       reply_markup=platform_kb)
+        await query.edit_message_text(text, parse_mode=ParseMode.MARKDOWN, reply_markup=platform_kb)
     else:
-        await update.message.reply_text(text, parse_mode=ParseMode.MARKDOWN,
-                                         reply_markup=platform_kb)
+        await update.message.reply_text(text, parse_mode=ParseMode.MARKDOWN, reply_markup=platform_kb)
 
 async def show_platform_categories(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
@@ -86,8 +84,10 @@ async def show_category(update: Update, context: ContextTypes.DEFAULT_TYPE):
         cat_products = [p for p in products if p['category'] == category]
 
     if not cat_products:
-        await query.edit_message_text("🔴 لا يوجد منتجات في هذه الفئة\n_No products in this category_",
-                                       parse_mode=ParseMode.MARKDOWN)
+        await query.edit_message_text(
+            "🔴 لا يوجد منتجات في هذه الفئة\n_No products in this category_",
+            parse_mode=ParseMode.MARKDOWN
+        )
         return
 
     text = f"📦 *{category}*\n\n_اختر المنتج  |  Select a product:_"
@@ -114,7 +114,8 @@ async def show_product_detail(update: Update, context: ContextTypes.DEFAULT_TYPE
     text = (
         f"🏷️ *{product['name']}*\n\n"
         f"━━━━━━━━━━━━━━━━\n"
-        f"📝 {product['description'] or '_لا يوجد وصف  |  No description_'}"        + platform_line +
+        f"📝 {product['description'] or '_لا يوجد وصف  |  No description_'}"
+        + platform_line +
         f"\n\n💵 *USD:* `${product['price_usd']}`\n"
         f"💴 *SYP:* `{product['price_syp']:,.0f} ل.س`\n\n"
         f"📦 *Status:* {stock_status}\n"
@@ -125,50 +126,62 @@ async def show_product_detail(update: Update, context: ContextTypes.DEFAULT_TYPE
                                    reply_markup=kb.product_detail_menu(product_id, has_stock))
 
 async def initiate_buy(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """
+    FIX: كان الـ pattern يتوقع buy_{id}_{currency} لكن الزر كان يرسل buy_{id} فقط.
+    الحين keyboards.py يرسل buy_{id}_USD أو buy_{id}_SYP بشكل صحيح.
+    """
     query = update.callback_query
     await query.answer()
     parts = query.data.split("_")
     product_id = int(parts[1])
+    currency = parts[2].upper() if len(parts) > 2 else "USD"
+
+    context.user_data['buy_currency'] = currency
 
     user = update.effective_user
     product = db.get_product(product_id)
     if not product or not product["stock"]:
-        await query.edit_message_text("🔴 المنتج غير متوفر حالياً\n_Product is currently unavailable_",
-                                       parse_mode=ParseMode.MARKDOWN)
+        await query.edit_message_text(
+            "🔴 المنتج غير متوفر حالياً\n_Product is currently unavailable_",
+            parse_mode=ParseMode.MARKDOWN
+        )
         return
 
     balance = db.get_balance(user.id)
     price = product["price_usd"]
+    price_syp = product["price_syp"]
+    display_price = f"${price}" if currency == "USD" else f"{price_syp:,.0f} ل.س"
 
     if balance >= price:
         confirm_kb = InlineKeyboardMarkup([
-            [InlineKeyboardButton(f"✅ شراء بـ ${price}  |  Buy with Balance", callback_data=f"confirm_buy_{product_id}")],
-            [InlineKeyboardButton("⚡ شحن رصيد  |  Top Up", callback_data="charge_start")],
+            [InlineKeyboardButton(f"💰 شراء من الرصيد — ${price}", callback_data=f"confirm_buy_{product_id}")],
+            [InlineKeyboardButton("🪙 USDT BEP-20", callback_data=f"pay_{product_id}_{currency}_usdt")],
+            [InlineKeyboardButton("📱 Syriatel Cash", callback_data=f"pay_{product_id}_{currency}_syriatel")],
             [InlineKeyboardButton("🔙 Back  |  رجوع", callback_data=f"prod_{product_id}")]
         ])
         text = (
-            f"🛒 *Confirm Purchase  |  تأكيد الشراء*\n\n"
+            f"🛒 *اختر طريقة الدفع  |  Choose Payment*\n\n"
             f"━━━━━━━━━━━━━━━━\n"
             f"📦 {product['name']}\n"
-            f"💵 Price: `${price}`\n"
+            f"💵 Price: `{display_price}`\n"
             f"💰 Balance: `${balance:.2f}`\n"
-            f"📉 After: `${balance - price:.2f}`\n"
             f"━━━━━━━━━━━━━━━━"
         )
     else:
         needed = price - balance
         confirm_kb = InlineKeyboardMarkup([
+            [InlineKeyboardButton("🪙 USDT BEP-20", callback_data=f"pay_{product_id}_{currency}_usdt")],
+            [InlineKeyboardButton("📱 Syriatel Cash", callback_data=f"pay_{product_id}_{currency}_syriatel")],
             [InlineKeyboardButton(f"⚡ Top Up — Need ${needed:.2f} more", callback_data="charge_start")],
             [InlineKeyboardButton("🔙 Back  |  رجوع", callback_data=f"prod_{product_id}")]
         ])
         text = (
             f"🛒 *{product['name']}*\n\n"
             f"━━━━━━━━━━━━━━━━\n"
-            f"💵 Price: `${price}`\n"
+            f"💵 Price: `{display_price}`\n"
             f"💰 Your Balance: `${balance:.2f}`\n"
             f"━━━━━━━━━━━━━━━━\n"
-            f"🔴 *Insufficient Balance*\n"
-            f"_تحتاج_ `${needed:.2f}` _إضافية_"
+            f"_اختر طريقة الدفع  |  Choose payment method:_"
         )
 
     await query.edit_message_text(text, parse_mode=ParseMode.MARKDOWN, reply_markup=confirm_kb)
@@ -232,8 +245,10 @@ async def show_payment_details(update: Update, context: ContextTypes.DEFAULT_TYP
 async def receive_proof(update: Update, context: ContextTypes.DEFAULT_TYPE):
     order_id = context.user_data.get('pending_order_id')
     if not order_id:
-        await update.message.reply_text("🔴 لم يتم العثور على طلب نشط\n_No active order found. Start from /start_",
-                                         parse_mode=ParseMode.MARKDOWN)
+        await update.message.reply_text(
+            "🔴 لم يتم العثور على طلب نشط\n_No active order found. Start from /start_",
+            parse_mode=ParseMode.MARKDOWN
+        )
         return ConversationHandler.END
 
     user = update.effective_user
@@ -264,14 +279,18 @@ async def receive_proof(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     try:
         if proof_type == "photo":
-            await context.bot.send_photo(chat_id=ADMIN_ID, photo=proof,
+            await context.bot.send_photo(
+                chat_id=ADMIN_ID, photo=proof,
                 caption=admin_text, parse_mode=ParseMode.MARKDOWN,
-                reply_markup=kb.order_confirm_menu(order_id))
+                reply_markup=kb.order_confirm_menu(order_id)
+            )
         else:
-            await context.bot.send_message(chat_id=ADMIN_ID,
+            await context.bot.send_message(
+                chat_id=ADMIN_ID,
                 text=admin_text + f"\n\n📎 Receipt: `{proof}`",
                 parse_mode=ParseMode.MARKDOWN,
-                reply_markup=kb.order_confirm_menu(order_id))
+                reply_markup=kb.order_confirm_menu(order_id)
+            )
     except Exception as e:
         print(f"Admin notify error: {e}")
 
@@ -394,8 +413,10 @@ async def confirm_buy(update: Update, context: ContextTypes.DEFAULT_TYPE):
     product = db.get_product(product_id)
 
     if not product or not product['stock']:
-        await query.edit_message_text("🔴 المنتج نفد من المخزون\n_Product is out of stock_",
-                                       parse_mode=ParseMode.MARKDOWN)
+        await query.edit_message_text(
+            "🔴 المنتج نفد من المخزون\n_Product is out of stock_",
+            parse_mode=ParseMode.MARKDOWN
+        )
         return
 
     balance = db.get_balance(user.id)
@@ -405,9 +426,13 @@ async def confirm_buy(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await query.edit_message_text(
             f"🔴 *Insufficient Balance*\n\n"
             f"💰 Balance: `${balance:.2f}`\n"
-            f"💵 Price: `${price}`",
+            f"💵 Price: `${price}`\n\n"
+            f"_اشحن رصيدك أولاً  |  Top up your balance first_",
             parse_mode=ParseMode.MARKDOWN,
-            reply_markup=kb.main_menu()
+            reply_markup=InlineKeyboardMarkup([
+                [InlineKeyboardButton("⚡ Top Up  |  شحن", callback_data="charge_start")],
+                [InlineKeyboardButton("🔙 Back", callback_data=f"prod_{product_id}")]
+            ])
         )
         return
 
