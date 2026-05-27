@@ -21,7 +21,7 @@ _Welcome to your trusted digital store_
 🔒 Apple iCloud Accounts
 _حسابات آبل آي كلاود_
 
-📩 Ready\-made Emails
+📩 Ready-made Emails
 _إيميلات جاهزة_
 
 📄 Survey Accounts
