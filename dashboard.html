@@ -13,7 +13,42 @@
   --green:#22c55e;--red:#ef4444;--orange:#f97316;--blue:#3b82f6;
   --green-dim:rgba(34,197,94,.12);--red-dim:rgba(239,68,68,.12);--orange-dim:rgba(249,115,22,.12);
 }
-body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-height:100vh}
+body{
+  font-family:'Inter',sans-serif;
+  background:var(--bg);
+  color:var(--text);
+  min-height:100vh;
+}
+
+/* خلفية الداشبورد */
+body::before{
+  content:'';
+  position:fixed;
+  inset:0;
+  background:
+    radial-gradient(ellipse at 20% 80%, rgba(120,40,140,.18) 0%, transparent 60%),
+    radial-gradient(ellipse at 80% 20%, rgba(180,30,30,.12) 0%, transparent 55%),
+    radial-gradient(ellipse at 50% 50%, rgba(30,30,60,.4) 0%, transparent 80%);
+  pointer-events:none;
+  z-index:0;
+}
+
+/* الـ A الأحمر في الخلفية */
+body::after{
+  content:'𝒜';
+  position:fixed;
+  bottom:-60px;
+  left:-40px;
+  font-size:400px;
+  font-family:Georgia,serif;
+  color:rgba(180,20,20,.04);
+  pointer-events:none;
+  z-index:0;
+  line-height:1;
+  user-select:none;
+}
+
+.layout,.topbar,.bottom-nav{position:relative;z-index:1}
 
 /* ═══ TOP BAR (mobile) ═══ */
 .topbar{display:none;align-items:center;justify-content:space-between;padding:14px 16px;background:var(--surface);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:50}
@@ -188,7 +223,9 @@ tr:hover td{background:var(--surface2)}
 
 <!-- Top Bar (mobile only) -->
 <div class="topbar">
-  <div class="topbar-logo">🌙 Need Me Store <span class="topbar-dot"></span></div>
+  <div class="topbar-logo" style="font-family:Georgia,serif;font-style:italic;font-size:.95rem">
+    <span style="color:#cc2020">A</span>llosh <span class="topbar-dot"></span>
+  </div>
   <a href="/logout"><button class="btn btn-danger btn-sm">خروج</button></a>
 </div>
 
@@ -197,8 +234,11 @@ tr:hover td{background:var(--surface2)}
 <!-- Sidebar (desktop only) -->
 <aside class="sidebar">
   <div class="logo">
-    <h1>🌙 Need Me Store <span style="display:inline-block;width:7px;height:7px;background:var(--green);border-radius:50%;margin-right:4px;animation:pulse 2s infinite"></span></h1>
-    <p>Admin Dashboard</p>
+    <h1 style="font-family:Georgia,serif;letter-spacing:.02em">
+      <span style="color:#cc2020;font-style:italic">A</span><span style="font-style:italic">llosh</span>
+      <span style="display:inline-block;width:7px;height:7px;background:var(--green);border-radius:50%;margin-right:4px;animation:pulse 2s infinite;vertical-align:middle"></span>
+    </h1>
+    <p style="color:var(--muted);font-size:.7rem;margin-top:2px">Admin Dashboard</p>
   </div>
   <nav>
     <div class="nav-item active" onclick="showPage('stats',this)"><span class="nav-icon">📊</span><span>الإحصائيات</span></div>
