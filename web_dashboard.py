@@ -212,14 +212,46 @@ def api_users():
 @app.route('/api/broadcast', methods=['POST'])
 @auth_required
 def api_broadcast():
-    # حفظ الرسالة فقط - الإرسال الفعلي عبر البوت
     msg = request.json.get('message', '')
+    if not msg:
+        return jsonify({"ok": False, "error": "Empty message"}), 400
+
+    # احفظ بقاعدة البيانات
     conn = db.get_conn()
     c = conn.cursor()
     c.execute("INSERT INTO broadcasts (message) VALUES (?)", (msg,))
+    broadcast_id = c.lastrowid
     conn.commit()
+
+    # ارسل مباشرة لكل المستخدمين عبر Bot API
+    c.execute("SELECT id FROM users WHERE is_blocked=0")
+    users = c.fetchall()
     conn.close()
-    return jsonify({"ok": True})
+
+    sent = 0
+    failed = 0
+    for user in users:
+        try:
+            resp = req_lib.post(
+                f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage",
+                json={"chat_id": user["id"], "text": msg, "parse_mode": "Markdown"},
+                timeout=5
+            )
+            if resp.status_code == 200:
+                sent += 1
+            else:
+                failed += 1
+        except:
+            failed += 1
+
+    # حدث السجل
+    conn2 = db.get_conn()
+    c2 = conn2.cursor()
+    c2.execute("UPDATE broadcasts SET is_sent=1, sent_count=? WHERE id=?", (sent, broadcast_id))
+    conn2.commit()
+    conn2.close()
+
+    return jsonify({"ok": True, "sent": sent, "failed": failed})
 
 @app.route('/api/users/<int:uid>/add_balance', methods=['POST'])
 @auth_required
