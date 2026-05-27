@@ -234,8 +234,8 @@ tr:hover td{background:var(--surface2)}
 }
 
 /* ===== Users Grid ===== */
-.users-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:8px;padding:4px 0}
-.user-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:10px 8px;text-align:center;cursor:pointer;transition:transform .15s,border-color .15s;-webkit-tap-highlight-color:transparent}
+.users-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;padding:4px 0}
+.user-card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:10px 8px;text-align:center;cursor:pointer;transition:transform .15s,border-color .15s;-webkit-tap-highlight-color:transparent;min-width:0}
 .user-card:active{transform:scale(.95)}
 .user-card:hover{border-color:var(--accent)}
 .uc-avatar{width:32px;height:32px;border-radius:50%;background:var(--accent-dim);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:var(--accent);margin:0 auto 6px}
