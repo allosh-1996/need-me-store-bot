@@ -9,6 +9,9 @@ def main_menu():
         ],
         [
             InlineKeyboardButton("💰 رصيدي  |  Balance", callback_data="show_balance"),
+            InlineKeyboardButton("🔒 بروكسي  |  Proxy", callback_data="proxy_menu"),
+        ],
+        [
             InlineKeyboardButton("📞 تواصل  |  Contact", callback_data="contact"),
         ],
     ]
