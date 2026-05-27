@@ -60,7 +60,9 @@ async def show_platform_categories(update: Update, context: ContextTypes.DEFAULT
         await query.edit_message_text(
             f"🔴 *لا يوجد منتجات {platform} متاحة حالياً*\n_No {platform} products available_",
             parse_mode=ParseMode.MARKDOWN,
-            reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🔙 Back", callback_data="products")]])
+            reply_markup=InlineKeyboardMarkup([
+                [InlineKeyboardButton("🔙 Back  |  رجوع", callback_data="products")]
+            ])
         )
         return
 
@@ -84,9 +86,13 @@ async def show_category(update: Update, context: ContextTypes.DEFAULT_TYPE):
         cat_products = [p for p in products if p['category'] == category]
 
     if not cat_products:
+        back_cb = f"platform_{platform}" if platform else "products"
         await query.edit_message_text(
-            "🔴 لا يوجد منتجات في هذه الفئة\n_No products in this category_",
-            parse_mode=ParseMode.MARKDOWN
+            "🔴 *لا يوجد منتجات في هذه الفئة*\n_No products in this category_",
+            parse_mode=ParseMode.MARKDOWN,
+            reply_markup=InlineKeyboardMarkup([
+                [InlineKeyboardButton("🔙 Back  |  رجوع", callback_data=back_cb)]
+            ])
         )
         return
 
