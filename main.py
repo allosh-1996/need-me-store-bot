@@ -173,6 +173,7 @@ def main():
 
     # ========== Callbacks المستخدم ==========
     app.add_handler(CallbackQueryHandler(hu.show_products,       pattern='^products$'))
+    app.add_handler(CallbackQueryHandler(hu.show_platform_categories, pattern=r'^platform_(iOS|Android)$'))
     app.add_handler(CallbackQueryHandler(hu.show_category,       pattern=r'^cat_'))
     app.add_handler(CallbackQueryHandler(hu.show_product_detail, pattern=r'^prod_\d+$'))
     app.add_handler(CallbackQueryHandler(hu.initiate_buy,        pattern=r'^buy_\d+_\w+$'))

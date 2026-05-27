@@ -34,34 +34,56 @@ async def show_products(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if query:
         await query.answer()
 
-    products = db.get_all_products()
-    if not products:
-        msg = "🔴 *لا يوجد منتجات متاحة حالياً*\n_No products available right now_"
-        if query:
-            await query.edit_message_text(msg, parse_mode=ParseMode.MARKDOWN)
-        else:
-            await update.message.reply_text(msg, parse_mode=ParseMode.MARKDOWN)
-        return
+    platform_kb = InlineKeyboardMarkup([
+        [InlineKeyboardButton("🍎 iOS", callback_data="platform_iOS"),
+         InlineKeyboardButton("🤖 Android", callback_data="platform_Android")],
+        [InlineKeyboardButton("🔙 Back  |  رجوع", callback_data="back_main")],
+    ])
 
-    categories = list(set(p['category'] for p in products if p['category']))
-    if not categories:
-        categories = ['عام']
-
-    text = "🛍️ *Shop  |  المتجر*\n\n_اختر الفئة  |  Choose a category:_"
+    text = "🛍️ *NexVault Shop*\n\n_اختر المنظومة  |  Choose platform:_"
     if query:
         await query.edit_message_text(text, parse_mode=ParseMode.MARKDOWN,
-                                       reply_markup=kb.categories_menu(categories))
+                                       reply_markup=platform_kb)
     else:
         await update.message.reply_text(text, parse_mode=ParseMode.MARKDOWN,
-                                         reply_markup=kb.categories_menu(categories))
+                                         reply_markup=platform_kb)
+
+async def show_platform_categories(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+
+    platform = query.data.replace("platform_", "")
+    context.user_data['selected_platform'] = platform
+
+    products = db.get_all_products()
+    platform_products = [p for p in products if platform in (p.get('platform') or 'iOS')]
+
+    if not platform_products:
+        await query.edit_message_text(
+            f"🔴 *لا يوجد منتجات {platform} متاحة حالياً*\n_No {platform} products available_",
+            parse_mode=ParseMode.MARKDOWN,
+            reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton("🔙 Back", callback_data="products")]])
+        )
+        return
+
+    categories = list(set(p['category'] for p in platform_products if p['category']))
+    icon = "🍎" if platform == "iOS" else "🤖"
+
+    text = f"{icon} *{platform} Products*\n\n_اختر الفئة  |  Choose a category:_"
+    await query.edit_message_text(text, parse_mode=ParseMode.MARKDOWN,
+                                   reply_markup=kb.categories_menu(categories, back_cb="products"))
 
 async def show_category(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
     category = query.data.replace("cat_", "")
 
+    platform = context.user_data.get('selected_platform', '')
     products = db.get_all_products()
-    cat_products = [p for p in products if p['category'] == category]
+    if platform:
+        cat_products = [p for p in products if p['category'] == category and platform in (p.get('platform') or 'iOS')]
+    else:
+        cat_products = [p for p in products if p['category'] == category]
 
     if not cat_products:
         await query.edit_message_text("🔴 لا يوجد منتجات في هذه الفئة\n_No products in this category_",

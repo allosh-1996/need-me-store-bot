@@ -18,7 +18,7 @@ def main_menu():
     return InlineKeyboardMarkup(keyboard)
 
 # ============ Categories Menu ============
-def categories_menu(categories):
+def categories_menu(categories, back_cb="products"):
     keyboard = []
     icons = ["🍎", "📧", "📋", "📚", "🎮", "💎", "🔑", "🌐"]
     row = []
@@ -30,7 +30,7 @@ def categories_menu(categories):
             row = []
     if row:
         keyboard.append(row)
-    keyboard.append([InlineKeyboardButton("🔙 Back  |  رجوع", callback_data="back_main")])
+    keyboard.append([InlineKeyboardButton("🔙 Back  |  رجوع", callback_data=back_cb)])
     return InlineKeyboardMarkup(keyboard)
 
 # ============ Products Menu ============
