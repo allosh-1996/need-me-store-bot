@@ -218,7 +218,7 @@ async def show_balance(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     conn = db.get_conn()
     c = conn.cursor()
-    c.execute("SELECT total_charged, total_spent FROM balances WHERE user_id=?", (user.id,))
+    c.execute("SELECT total_charged, total_spent FROM balances WHERE user_id=%s", (user.id,))
     row = c.fetchone()
     conn.close()
 
