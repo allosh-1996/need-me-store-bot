@@ -4,14 +4,14 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Need Me Store — Dashboard</title>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Dancing+Script:wght@700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
 :root{
-  --bg:#0d0d11;--surface:#16161e;--surface2:#1e1e28;--border:#252532;
-  --text:#e2e2ee;--muted:#5a5a72;--accent:#7c5cfc;--accent2:#5b4bd4;
+  --bg:#060000;--surface:rgba(20,0,0,.85);--surface2:rgba(30,0,0,.7);--border:rgba(180,0,0,.2);
+  --text:#e8e0e0;--muted:#7a6060;--accent:#cc1111;--accent2:#991111;
   --green:#22c55e;--red:#ef4444;--orange:#f97316;--blue:#3b82f6;
-  --green-dim:rgba(34,197,94,.12);--red-dim:rgba(239,68,68,.12);--orange-dim:rgba(249,115,22,.12);
+  --green-dim:rgba(34,197,94,.12);--red-dim:rgba(239,68,68,.15);--orange-dim:rgba(249,115,22,.12);
 }
 body{
   font-family:'Inter',sans-serif;
@@ -20,35 +20,33 @@ body{
   min-height:100vh;
 }
 
-/* خلفية الداشبورد */
+/* خلفية الداشبورد - نفس ستايل login */
 body::before{
   content:'';
-  position:fixed;
-  inset:0;
+  position:fixed;inset:0;
   background:
-    radial-gradient(ellipse at 20% 80%, rgba(120,40,140,.18) 0%, transparent 60%),
-    radial-gradient(ellipse at 80% 20%, rgba(180,30,30,.12) 0%, transparent 55%),
-    radial-gradient(ellipse at 50% 50%, rgba(30,30,60,.4) 0%, transparent 80%);
+    radial-gradient(ellipse at 50% 0%, #2a0000 0%, transparent 60%),
+    radial-gradient(ellipse at 50% 100%, #150000 0%, transparent 60%),
+    radial-gradient(ellipse at 0% 50%, #180000 0%, transparent 50%),
+    #060000;
   pointer-events:none;
   z-index:0;
 }
 
-/* الـ A الأحمر في الخلفية */
+/* Allosh watermark في الخلفية */
 body::after{
-  content:'𝒜';
+  content:'Allosh';
   position:fixed;
-  bottom:-60px;
-  left:-40px;
-  font-size:400px;
-  font-family:Georgia,serif;
-  color:rgba(180,20,20,.04);
-  pointer-events:none;
-  z-index:0;
-  line-height:1;
-  user-select:none;
+  bottom:-20px;right:-30px;
+  font-family:'Dancing Script',cursive;
+  font-size:220px;
+  color:rgba(255,255,255,.04);
+  pointer-events:none;z-index:0;
+  line-height:1;user-select:none;
+  white-space:nowrap;
 }
 
-.layout,.topbar,.bottom-nav{position:relative;z-index:1}
+.layout,.topbar,.bottom-nav,.sidebar{position:relative;z-index:1}
 
 /* ═══ TOP BAR (mobile) ═══ */
 .topbar{display:none;align-items:center;justify-content:space-between;padding:14px 16px;background:var(--surface);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:50}
@@ -222,6 +220,11 @@ tr:hover td{background:var(--surface2)}
 <body>
 
 <!-- Top Bar (mobile only) -->
+<!-- كلمات الأركان -->
+<div style="position:fixed;top:50px;left:20px;font-size:.75rem;font-weight:700;letter-spacing:.2em;color:rgba(255,255,255,.1);z-index:0;pointer-events:none">TRACK</div>
+<div style="position:fixed;bottom:90px;left:20px;font-size:.75rem;font-weight:700;letter-spacing:.2em;color:rgba(255,255,255,.1);z-index:0;pointer-events:none">EARN</div>
+<div style="position:fixed;bottom:90px;right:20px;font-size:.75rem;font-weight:700;letter-spacing:.2em;color:rgba(255,255,255,.1);z-index:0;pointer-events:none">WIN</div>
+
 <div class="topbar">
   <div class="topbar-logo" style="font-family:Georgia,serif;font-style:italic;font-size:.95rem">
     <span style="color:#cc2020">A</span>llosh <span class="topbar-dot"></span>
