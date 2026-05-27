@@ -11,52 +11,52 @@ SYRIATEL_CASH = os.environ.get("SYRIATEL_CASH", "ضع_رقم_سيريتيل_كا
 # رسالة الترحيب | Welcome Message
 # ═══════════════════════════════════════
 WELCOME_MSG = """
-🌑 *NexVault*
+ *NexVault*
 
 _Welcome to your trusted digital store_
 
-▬▬▬▬▬▬▬▬▬▬▬▬▬▬
 
-🔒 Apple iCloud Accounts
+
+ Apple iCloud Accounts
 _حسابات آبل آي كلاود_
 
-📩 Ready-made Emails
+ Ready-made Emails
 _إيميلات جاهزة_
 
-📄 Survey Accounts
+ Survey Accounts
 _حسابات استبيانات_
 
-🔌 Proxies — HTTP / SOCKS5 / Residential / Mobile
+ Proxies — HTTP / SOCKS5 / Residential / Mobile
 _بروكسيات بجميع الأنواع_
 
-▬▬▬▬▬▬▬▬▬▬▬▬▬▬
 
-_Choose from the menu below_ 👇
+
+_Choose from the menu below_ 
 """
 
 # ═══════════════════════════════════════
 # رسالة الدفع | Payment Message
 # ═══════════════════════════════════════
 PAYMENT_MSG = """
-💳 *Payment Methods  |  طرق الدفع*
+ *Payment Methods  |  طرق الدفع*
 
-━━━━━━━━━━━━━━━━
-🪙 *USDT — BEP-20*
+
+ *USDT — BEP-20*
 `{usdt_wallet}`
 
-📱 *Syriatel Cash  |  سيريتيل كاش*
+ *Syriatel Cash  |  سيريتيل كاش*
 `{syriatel_cash}`
-━━━━━━━━━━━━━━━━
 
-⚠️ بعد الدفع أرسل إيصال التحويل
+
+ بعد الدفع أرسل إيصال التحويل
 _After payment, send your receipt_
 """
 
 # Proxy Config
 PROXY_TYPES = {
-    "http": "🌐 HTTP/HTTPS",
-    "socks5": "🔌 SOCKS5",
-    "residential": "🏠 Residential",
-    "mobile": "📱 Mobile 4G/5G",
-    "modem": "🖥️ Modem Private",
+    "http": " HTTP/HTTPS",
+    "socks5": " SOCKS5",
+    "residential": " Residential",
+    "mobile": " Mobile 4G/5G",
+    "modem": " Modem Private",
 }

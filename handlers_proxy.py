@@ -10,15 +10,15 @@ PROXY_TYPE, PROXY_QTY, PROXY_QTY_CUSTOM, PROXY_COUNTRY, PROXY_COUNTRY_CUSTOM, PR
 
 # ═══ قوائم الخيارات ═══
 COUNTRY_OPTIONS = [
-    ("🇺🇸 USA", "USA"),
-    ("🇬🇧 UK", "UK"),
-    ("🇩🇪 Germany", "Germany"),
-    ("🇫🇷 France", "France"),
-    ("🇹🇷 Turkey", "Turkey"),
-    ("🇸🇾 Syria", "Syria"),
-    ("🇸🇦 Saudi Arabia", "Saudi Arabia"),
-    ("🇦🇪 UAE", "UAE"),
-    ("🌍 Any", "Any"),
+    (" USA", "USA"),
+    (" UK", "UK"),
+    (" Germany", "Germany"),
+    (" France", "France"),
+    (" Turkey", "Turkey"),
+    (" Syria", "Syria"),
+    (" Saudi Arabia", "Saudi Arabia"),
+    (" UAE", "UAE"),
+    (" Any", "Any"),
 ]
 
 QTY_OPTIONS = [1, 5, 10, 25, 50, 100]
@@ -26,12 +26,12 @@ QTY_OPTIONS = [1, 5, 10, 25, 50, 100]
 
 def proxy_type_keyboard():
     keyboard = [
-        [InlineKeyboardButton("🌐 HTTP/HTTPS", callback_data="prx_http"),
-         InlineKeyboardButton("🔌 SOCKS5", callback_data="prx_socks5")],
-        [InlineKeyboardButton("🏠 Residential", callback_data="prx_residential"),
-         InlineKeyboardButton("📱 Mobile 4G/5G", callback_data="prx_mobile")],
-        [InlineKeyboardButton("🖥️ Modem Private", callback_data="prx_modem")],
-        [InlineKeyboardButton("🔙 Back  |  رجوع", callback_data="back_main")],
+        [InlineKeyboardButton(" HTTP/HTTPS", callback_data="prx_http"),
+         InlineKeyboardButton(" SOCKS5", callback_data="prx_socks5")],
+        [InlineKeyboardButton(" Residential", callback_data="prx_residential"),
+         InlineKeyboardButton(" Mobile 4G/5G", callback_data="prx_mobile")],
+        [InlineKeyboardButton(" Modem Private", callback_data="prx_modem")],
+        [InlineKeyboardButton(" Back  |  رجوع", callback_data="back_main")],
     ]
     return InlineKeyboardMarkup(keyboard)
 
@@ -41,8 +41,8 @@ def proxy_qty_keyboard():
     row2 = [InlineKeyboardButton(str(q), callback_data=f"prxq_{q}") for q in QTY_OPTIONS[3:]]
     keyboard = [
         row1, row2,
-        [InlineKeyboardButton("✏️ كمية مخصصة  |  Custom", callback_data="prxq_custom")],
-        [InlineKeyboardButton("🔙 Back  |  رجوع", callback_data="prx_back_type")],
+        [InlineKeyboardButton(" كمية مخصصة  |  Custom", callback_data="prxq_custom")],
+        [InlineKeyboardButton(" Back  |  رجوع", callback_data="prx_back_type")],
     ]
     return InlineKeyboardMarkup(keyboard)
 
@@ -57,23 +57,23 @@ def proxy_country_keyboard():
             row = []
     if row:
         keyboard.append(row)
-    keyboard.append([InlineKeyboardButton("✏️ دولة أخرى  |  Other", callback_data="prxc_other")])
-    keyboard.append([InlineKeyboardButton("🔙 Back  |  رجوع", callback_data="prx_back_qty")])
+    keyboard.append([InlineKeyboardButton(" دولة أخرى  |  Other", callback_data="prxc_other")])
+    keyboard.append([InlineKeyboardButton(" Back  |  رجوع", callback_data="prx_back_qty")])
     return InlineKeyboardMarkup(keyboard)
 
 
 def proxy_notes_keyboard():
     keyboard = [
-        [InlineKeyboardButton("➖ بدون ملاحظات  |  No Notes", callback_data="prxn_none")],
-        [InlineKeyboardButton("🔙 Back  |  رجوع", callback_data="prx_back_country")],
+        [InlineKeyboardButton(" بدون ملاحظات  |  No Notes", callback_data="prxn_none")],
+        [InlineKeyboardButton(" Back  |  رجوع", callback_data="prx_back_country")],
     ]
     return InlineKeyboardMarkup(keyboard)
 
 
 def proxy_confirm_keyboard():
     keyboard = [
-        [InlineKeyboardButton("✅ إرسال الطلب  |  Send Order", callback_data="prx_confirm_send")],
-        [InlineKeyboardButton("🔙 Back  |  رجوع", callback_data="prx_back_notes")],
+        [InlineKeyboardButton(" إرسال الطلب  |  Send Order", callback_data="prx_confirm_send")],
+        [InlineKeyboardButton(" Back  |  رجوع", callback_data="prx_back_notes")],
     ]
     return InlineKeyboardMarkup(keyboard)
 
@@ -85,11 +85,11 @@ async def proxy_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await query.answer()
 
     text = (
-        "🔒 *Proxies  |  بروكسيات*\n\n"
-        "▬▬▬▬▬▬▬▬▬▬▬▬▬▬\n"
+        " *Proxies  |  بروكسيات*\n\n"
+        "\n"
         "اختر نوع البروكسي\n"
         "_Choose proxy type_\n"
-        "▬▬▬▬▬▬▬▬▬▬▬▬▬▬"
+        ""
     )
 
     if query:
@@ -112,9 +112,9 @@ async def proxy_type_selected(update: Update, context: ContextTypes.DEFAULT_TYPE
     context.user_data["proxy_type_label"] = type_label
 
     await query.edit_message_text(
-        f"✅ النوع  |  Type: *{type_label}*\n\n"
-        f"▬▬▬▬▬▬▬▬▬▬▬▬▬▬\n"
-        f"🔢 كم بروكسي تريد؟\n"
+        f" النوع  |  Type: *{type_label}*\n\n"
+        f"\n"
+        f" كم بروكسي تريد؟\n"
         f"_How many proxies?_",
         parse_mode=ParseMode.MARKDOWN,
         reply_markup=proxy_qty_keyboard()
@@ -130,11 +130,11 @@ async def proxy_qty_selected(update: Update, context: ContextTypes.DEFAULT_TYPE)
     # رجوع للنوع
     if query.data == "prx_back_type":
         await query.edit_message_text(
-            "🔒 *Proxies  |  بروكسيات*\n\n"
-            "▬▬▬▬▬▬▬▬▬▬▬▬▬▬\n"
+            " *Proxies  |  بروكسيات*\n\n"
+            "\n"
             "اختر نوع البروكسي\n"
             "_Choose proxy type_\n"
-            "▬▬▬▬▬▬▬▬▬▬▬▬▬▬",
+            "",
             parse_mode=ParseMode.MARKDOWN,
             reply_markup=proxy_type_keyboard()
         )
@@ -143,9 +143,9 @@ async def proxy_qty_selected(update: Update, context: ContextTypes.DEFAULT_TYPE)
     # كمية مخصصة
     if query.data == "prxq_custom":
         await query.edit_message_text(
-            f"✅ النوع: *{context.user_data.get('proxy_type_label', '')}*\n\n"
-            f"▬▬▬▬▬▬▬▬▬▬▬▬▬▬\n"
-            f"✏️ اكتب الكمية يدوياً\n"
+            f" النوع: *{context.user_data.get('proxy_type_label', '')}*\n\n"
+            f"\n"
+            f" اكتب الكمية يدوياً\n"
             f"_Type quantity manually (1–10000):_",
             parse_mode=ParseMode.MARKDOWN
         )
@@ -155,10 +155,10 @@ async def proxy_qty_selected(update: Update, context: ContextTypes.DEFAULT_TYPE)
     context.user_data["proxy_qty"] = qty
 
     await query.edit_message_text(
-        f"✅ النوع: *{context.user_data.get('proxy_type_label', '')}*\n"
-        f"✅ الكمية  |  Qty: *{qty}*\n\n"
-        f"▬▬▬▬▬▬▬▬▬▬▬▬▬▬\n"
-        f"🌍 اختر الدولة\n"
+        f" النوع: *{context.user_data.get('proxy_type_label', '')}*\n"
+        f" الكمية  |  Qty: *{qty}*\n\n"
+        f"\n"
+        f" اختر الدولة\n"
         f"_Choose country_",
         parse_mode=ParseMode.MARKDOWN,
         reply_markup=proxy_country_keyboard()
@@ -175,7 +175,7 @@ async def proxy_qty_custom(update: Update, context: ContextTypes.DEFAULT_TYPE):
             raise ValueError
     except:
         await update.message.reply_text(
-            "🔴 أرسل رقم صحيح بين 1 و 10000\n_Send a valid number between 1–10000_",
+            " أرسل رقم صحيح بين 1 و 10000\n_Send a valid number between 1–10000_",
             parse_mode=ParseMode.MARKDOWN
         )
         return PROXY_QTY_CUSTOM
@@ -183,10 +183,10 @@ async def proxy_qty_custom(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data["proxy_qty"] = qty
 
     await update.message.reply_text(
-        f"✅ النوع: *{context.user_data.get('proxy_type_label', '')}*\n"
-        f"✅ الكمية  |  Qty: *{qty}*\n\n"
-        f"▬▬▬▬▬▬▬▬▬▬▬▬▬▬\n"
-        f"🌍 اختر الدولة\n"
+        f" النوع: *{context.user_data.get('proxy_type_label', '')}*\n"
+        f" الكمية  |  Qty: *{qty}*\n\n"
+        f"\n"
+        f" اختر الدولة\n"
         f"_Choose country_",
         parse_mode=ParseMode.MARKDOWN,
         reply_markup=proxy_country_keyboard()
@@ -202,9 +202,9 @@ async def proxy_country_selected(update: Update, context: ContextTypes.DEFAULT_T
     # رجوع للكمية
     if query.data == "prx_back_qty":
         await query.edit_message_text(
-            f"✅ النوع: *{context.user_data.get('proxy_type_label', '')}*\n\n"
-            f"▬▬▬▬▬▬▬▬▬▬▬▬▬▬\n"
-            f"🔢 كم بروكسي تريد؟\n"
+            f" النوع: *{context.user_data.get('proxy_type_label', '')}*\n\n"
+            f"\n"
+            f" كم بروكسي تريد؟\n"
             f"_How many proxies?_",
             parse_mode=ParseMode.MARKDOWN,
             reply_markup=proxy_qty_keyboard()
@@ -214,10 +214,10 @@ async def proxy_country_selected(update: Update, context: ContextTypes.DEFAULT_T
     # دولة أخرى
     if query.data == "prxc_other":
         await query.edit_message_text(
-            f"✅ النوع: *{context.user_data.get('proxy_type_label', '')}*\n"
-            f"✅ الكمية: *{context.user_data.get('proxy_qty', '')}*\n\n"
-            f"▬▬▬▬▬▬▬▬▬▬▬▬▬▬\n"
-            f"✏️ اكتب اسم الدولة\n"
+            f" النوع: *{context.user_data.get('proxy_type_label', '')}*\n"
+            f" الكمية: *{context.user_data.get('proxy_qty', '')}*\n\n"
+            f"\n"
+            f" اكتب اسم الدولة\n"
             f"_Type country name:_",
             parse_mode=ParseMode.MARKDOWN
         )
@@ -227,11 +227,11 @@ async def proxy_country_selected(update: Update, context: ContextTypes.DEFAULT_T
     context.user_data["proxy_country"] = country
 
     await query.edit_message_text(
-        f"✅ النوع: *{context.user_data.get('proxy_type_label', '')}*\n"
-        f"✅ الكمية: *{context.user_data.get('proxy_qty', '')}*\n"
-        f"✅ الدولة  |  Country: *{country}*\n\n"
-        f"▬▬▬▬▬▬▬▬▬▬▬▬▬▬\n"
-        f"📝 أي ملاحظات إضافية؟\n"
+        f" النوع: *{context.user_data.get('proxy_type_label', '')}*\n"
+        f" الكمية: *{context.user_data.get('proxy_qty', '')}*\n"
+        f" الدولة  |  Country: *{country}*\n\n"
+        f"\n"
+        f" أي ملاحظات إضافية؟\n"
         f"_Any additional notes?_",
         parse_mode=ParseMode.MARKDOWN,
         reply_markup=proxy_notes_keyboard()
@@ -245,11 +245,11 @@ async def proxy_country_custom(update: Update, context: ContextTypes.DEFAULT_TYP
     context.user_data["proxy_country"] = country
 
     await update.message.reply_text(
-        f"✅ النوع: *{context.user_data.get('proxy_type_label', '')}*\n"
-        f"✅ الكمية: *{context.user_data.get('proxy_qty', '')}*\n"
-        f"✅ الدولة  |  Country: *{country}*\n\n"
-        f"▬▬▬▬▬▬▬▬▬▬▬▬▬▬\n"
-        f"📝 أي ملاحظات إضافية؟\n"
+        f" النوع: *{context.user_data.get('proxy_type_label', '')}*\n"
+        f" الكمية: *{context.user_data.get('proxy_qty', '')}*\n"
+        f" الدولة  |  Country: *{country}*\n\n"
+        f"\n"
+        f" أي ملاحظات إضافية؟\n"
         f"_Any additional notes?_",
         parse_mode=ParseMode.MARKDOWN,
         reply_markup=proxy_notes_keyboard()
@@ -267,10 +267,10 @@ async def proxy_notes_handler(update: Update, context: ContextTypes.DEFAULT_TYPE
         # رجوع للدولة
         if query.data == "prx_back_country":
             await query.edit_message_text(
-                f"✅ النوع: *{context.user_data.get('proxy_type_label', '')}*\n"
-                f"✅ الكمية: *{context.user_data.get('proxy_qty', '')}*\n\n"
-                f"▬▬▬▬▬▬▬▬▬▬▬▬▬▬\n"
-                f"🌍 اختر الدولة\n"
+                f" النوع: *{context.user_data.get('proxy_type_label', '')}*\n"
+                f" الكمية: *{context.user_data.get('proxy_qty', '')}*\n\n"
+                f"\n"
+                f" اختر الدولة\n"
                 f"_Choose country_",
                 parse_mode=ParseMode.MARKDOWN,
                 reply_markup=proxy_country_keyboard()
@@ -296,13 +296,13 @@ async def _show_confirm(target, context, edit=True):
     notes = context.user_data.get("proxy_notes", "—")
 
     text = (
-        f"📋 *ملخص الطلب  |  Order Summary*\n\n"
-        f"▬▬▬▬▬▬▬▬▬▬▬▬▬▬\n"
-        f"📦 النوع  |  Type: *{type_label}*\n"
-        f"🔢 الكمية  |  Qty: *{qty}*\n"
-        f"🌍 الدولة  |  Country: *{country}*\n"
-        f"📝 ملاحظات  |  Notes: {notes}\n"
-        f"▬▬▬▬▬▬▬▬▬▬▬▬▬▬\n"
+        f" *ملخص الطلب  |  Order Summary*\n\n"
+        f"\n"
+        f" النوع  |  Type: *{type_label}*\n"
+        f" الكمية  |  Qty: *{qty}*\n"
+        f" الدولة  |  Country: *{country}*\n"
+        f" ملاحظات  |  Notes: {notes}\n"
+        f"\n"
         f"_تأكد من المعلومات قبل الإرسال_\n"
         f"_Confirm details before sending_"
     )
@@ -323,11 +323,11 @@ async def proxy_confirm(update: Update, context: ContextTypes.DEFAULT_TYPE):
     # رجوع للملاحظات
     if query.data == "prx_back_notes":
         await query.edit_message_text(
-            f"✅ النوع: *{context.user_data.get('proxy_type_label', '')}*\n"
-            f"✅ الكمية: *{context.user_data.get('proxy_qty', '')}*\n"
-            f"✅ الدولة: *{context.user_data.get('proxy_country', '')}*\n\n"
-            f"▬▬▬▬▬▬▬▬▬▬▬▬▬▬\n"
-            f"📝 أي ملاحظات إضافية؟\n"
+            f" النوع: *{context.user_data.get('proxy_type_label', '')}*\n"
+            f" الكمية: *{context.user_data.get('proxy_qty', '')}*\n"
+            f" الدولة: *{context.user_data.get('proxy_country', '')}*\n\n"
+            f"\n"
+            f" أي ملاحظات إضافية؟\n"
             f"_Any additional notes?_",
             parse_mode=ParseMode.MARKDOWN,
             reply_markup=proxy_notes_keyboard()
@@ -356,22 +356,22 @@ async def proxy_confirm(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
 
     admin_text = (
-        f"🔒 *New Proxy Order  |  طلب بروكسي جديد*\n\n"
-        f"▬▬▬▬▬▬▬▬▬▬▬▬▬▬\n"
-        f"👤 {user.full_name} (@{user.username or '—'})\n"
-        f"🆔 `{user.id}`\n\n"
-        f"📦 Type  |  النوع: *{type_label}*\n"
-        f"🔢 Quantity  |  الكمية: *{qty}*\n"
-        f"🌍 Country  |  الدولة: *{country}*\n"
-        f"📝 Notes  |  ملاحظات: {notes}\n"
-        f"▬▬▬▬▬▬▬▬▬▬▬▬▬▬\n"
-        f"💵 Format: `ip:port:user:pass`\n"
-        f"🔖 Order ID: `#{order_id}`"
+        f" *New Proxy Order  |  طلب بروكسي جديد*\n\n"
+        f"\n"
+        f" {user.full_name} (@{user.username or '—'})\n"
+        f" `{user.id}`\n\n"
+        f" Type  |  النوع: *{type_label}*\n"
+        f" Quantity  |  الكمية: *{qty}*\n"
+        f" Country  |  الدولة: *{country}*\n"
+        f" Notes  |  ملاحظات: {notes}\n"
+        f"\n"
+        f" Format: `ip:port:user:pass`\n"
+        f" Order ID: `#{order_id}`"
     )
 
     admin_kb = InlineKeyboardMarkup([[
-        InlineKeyboardButton("✅ تم الإرسال", callback_data=f"prx_done_{user.id}_{order_id}"),
-        InlineKeyboardButton("❌ رفض", callback_data=f"prx_reject_{user.id}_{order_id}")
+        InlineKeyboardButton(" تم الإرسال", callback_data=f"prx_done_{user.id}_{order_id}"),
+        InlineKeyboardButton(" رفض", callback_data=f"prx_reject_{user.id}_{order_id}")
     ]])
 
     try:
@@ -385,18 +385,18 @@ async def proxy_confirm(update: Update, context: ContextTypes.DEFAULT_TYPE):
         print(f"Admin notify error: {e}")
 
     done_kb = InlineKeyboardMarkup([[
-        InlineKeyboardButton("🏠 Home  |  الرئيسية", callback_data="back_main")
+        InlineKeyboardButton(" Home  |  الرئيسية", callback_data="back_main")
     ]])
 
     await query.edit_message_text(
-        f"✅ *Order Sent!  |  تم إرسال طلبك!*\n\n"
-        f"▬▬▬▬▬▬▬▬▬▬▬▬▬▬\n"
-        f"📦 {type_label}\n"
-        f"🔢 {qty} proxies\n"
-        f"🌍 {country}\n"
-        f"▬▬▬▬▬▬▬▬▬▬▬▬▬▬\n"
+        f" *Order Sent!  |  تم إرسال طلبك!*\n\n"
+        f"\n"
+        f" {type_label}\n"
+        f" {qty} proxies\n"
+        f" {country}\n"
+        f"\n"
         f"⏳ سيتم التواصل معك قريباً\n"
-        f"_We'll contact you soon_ 🚀",
+        f"_We'll contact you soon_ ",
         parse_mode=ParseMode.MARKDOWN,
         reply_markup=done_kb
     )
@@ -423,19 +423,19 @@ async def proxy_admin_done(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await context.bot.send_message(
             chat_id=user_id,
             text=(
-                f"✅ *تم قبول طلب البروكسي!  |  Proxy Order Accepted!*\n\n"
-                f"━━━━━━━━━━━━━━━━\n"
-                f"🔖 Order ID: `#{order_id}`\n"
-                f"━━━━━━━━━━━━━━━━\n"
+                f" *تم قبول طلب البروكسي!  |  Proxy Order Accepted!*\n\n"
+                f"\n"
+                f" Order ID: `#{order_id}`\n"
+                f"\n"
                 f"⏳ _سيتم التواصل معك وإرسال البروكسيات قريباً_\n"
-                f"_We'll send your proxies shortly_ 🚀"
+                f"_We'll send your proxies shortly_ "
             ),
             parse_mode=ParseMode.MARKDOWN,
             reply_markup=kb.main_menu()
         )
-        await query.edit_message_text(f"✅ تم إشعار المستخدم `{user_id}`", parse_mode=ParseMode.MARKDOWN)
+        await query.edit_message_text(f" تم إشعار المستخدم `{user_id}`", parse_mode=ParseMode.MARKDOWN)
     except Exception as e:
-        await query.edit_message_text(f"🔴 Error: {e}")
+        await query.edit_message_text(f" Error: {e}")
 
 
 async def proxy_admin_reject(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -453,21 +453,21 @@ async def proxy_admin_reject(update: Update, context: ContextTypes.DEFAULT_TYPE)
         await context.bot.send_message(
             chat_id=user_id,
             text=(
-                f"🔴 *تم رفض طلب البروكسي  |  Proxy Order Rejected*\n\n"
-                f"━━━━━━━━━━━━━━━━\n"
-                f"🔖 Order ID: `#{order_id}`\n"
-                f"━━━━━━━━━━━━━━━━\n"
+                f" *تم رفض طلب البروكسي  |  Proxy Order Rejected*\n\n"
+                f"\n"
+                f" Order ID: `#{order_id}`\n"
+                f"\n"
                 f"_للاستفسار تواصل مع الأدمن_\n"
                 f"_Contact admin for more info_"
             ),
             parse_mode=ParseMode.MARKDOWN,
             reply_markup=kb.main_menu()
         )
-        await query.edit_message_text(f"🔴 تم رفض طلب `{user_id}`", parse_mode=ParseMode.MARKDOWN)
+        await query.edit_message_text(f" تم رفض طلب `{user_id}`", parse_mode=ParseMode.MARKDOWN)
     except Exception as e:
-        await query.edit_message_text(f"🔴 Error: {e}")
+        await query.edit_message_text(f" Error: {e}")
 
 
 async def proxy_cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("❌ Cancelled  |  تم الإلغاء", reply_markup=kb.persistent_menu())
+    await update.message.reply_text(" Cancelled  |  تم الإلغاء", reply_markup=kb.persistent_menu())
     return ConversationHandler.END

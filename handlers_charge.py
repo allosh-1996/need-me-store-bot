@@ -16,16 +16,16 @@ async def charge_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     balance = db.get_balance(user.id)
 
     method_kb = InlineKeyboardMarkup([
-        [InlineKeyboardButton("🪙 USDT BEP-20  (دولار  |  USD)", callback_data="chg_method_usdt")],
-        [InlineKeyboardButton("📱 Syriatel Cash  (ليرة سورية  |  SYP)", callback_data="chg_method_syriatel")],
-        [InlineKeyboardButton("🔙 Back  |  رجوع", callback_data="back_main")]
+        [InlineKeyboardButton(" USDT BEP-20  (دولار  |  USD)", callback_data="chg_method_usdt")],
+        [InlineKeyboardButton(" Syriatel Cash  (ليرة سورية  |  SYP)", callback_data="chg_method_syriatel")],
+        [InlineKeyboardButton(" Back  |  رجوع", callback_data="back_main")]
     ])
 
     text = (
-        f"⚡ *Top Up  |  شحن الرصيد*\n\n"
-        f"━━━━━━━━━━━━━━━━\n"
-        f"💰 Current Balance  |  رصيدك: `${balance:.2f}`\n"
-        f"━━━━━━━━━━━━━━━━\n"
+        f" *Top Up  |  شحن الرصيد*\n\n"
+        f"\n"
+        f" Current Balance  |  رصيدك: `${balance:.2f}`\n"
+        f"\n"
         f"_اختر طريقة الشحن  |  Choose payment method:_"
     )
 
@@ -44,24 +44,24 @@ async def charge_method_selected(update: Update, context: ContextTypes.DEFAULT_T
 
     if method == "usdt":
         text = (
-            f"🪙 *USDT BEP-20 Top Up*\n\n"
-            f"━━━━━━━━━━━━━━━━\n"
-            f"📋 Wallet Address  |  عنوان المحفظة:\n"
+            f" *USDT BEP-20 Top Up*\n\n"
+            f"\n"
+            f" Wallet Address  |  عنوان المحفظة:\n"
             f"`{USDT_WALLET}`\n\n"
-            f"⚠️ *BEP-20 Network Only*\n"
-            f"━━━━━━━━━━━━━━━━\n"
-            f"💵 كم دولار تريد تشحن؟\n"
+            f" *BEP-20 Network Only*\n"
+            f"\n"
+            f" كم دولار تريد تشحن؟\n"
             f"_How much USD to top up?_"
         )
     else:
         from config import SYRIATEL_CASH
         text = (
-            f"📱 *Syriatel Cash Top Up*\n\n"
-            f"━━━━━━━━━━━━━━━━\n"
-            f"📞 Number  |  الرقم:\n"
+            f" *Syriatel Cash Top Up*\n\n"
+            f"\n"
+            f" Number  |  الرقم:\n"
             f"`{SYRIATEL_CASH}`\n"
-            f"━━━━━━━━━━━━━━━━\n"
-            f"💴 كم ليرة تريد تشحن؟\n"
+            f"\n"
+            f" كم ليرة تريد تشحن؟\n"
             f"_How much SYP?_"
         )
 
@@ -77,12 +77,12 @@ async def charge_amount(update: Update, context: ContextTypes.DEFAULT_TYPE):
         if amount <= 0:
             raise ValueError
     except ValueError:
-        await update.message.reply_text("🔴 أرسل رقم صحيح أكبر من صفر  |  Send a valid positive number")
+        await update.message.reply_text(" أرسل رقم صحيح أكبر من صفر  |  Send a valid positive number")
         return WAITING_AMOUNT
 
     if method == "usdt":
         if amount > 10000:
-            await update.message.reply_text("🔴 الحد الأقصى $10,000  |  Maximum $10,000")
+            await update.message.reply_text(" الحد الأقصى $10,000  |  Maximum $10,000")
             return WAITING_AMOUNT
         display = f"${amount}"
     else:
@@ -91,11 +91,11 @@ async def charge_amount(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data["charge_amount"] = amount
     context.user_data["charge_display"] = display
 
-    cancel_kb = InlineKeyboardMarkup([[InlineKeyboardButton("❌ Cancel  |  إلغاء", callback_data="back_main")]])
+    cancel_kb = InlineKeyboardMarkup([[InlineKeyboardButton(" Cancel  |  إلغاء", callback_data="back_main")]])
     await update.message.reply_text(
-        f"✅ Amount  |  المبلغ: `{display}`\n\n"
-        f"━━━━━━━━━━━━━━━━\n"
-        f"📸 أرسل صورة الإيصال أو TXID 👇\n"
+        f" Amount  |  المبلغ: `{display}`\n\n"
+        f"\n"
+        f" أرسل صورة الإيصال أو TXID \n"
         f"_Send receipt screenshot or transaction ID_",
         parse_mode=ParseMode.MARKDOWN,
         reply_markup=cancel_kb
@@ -111,7 +111,7 @@ async def charge_proof(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     if not amount:
         await update.message.reply_text(
-            "🔴 انتهت الجلسة  |  Session expired. Start again.",
+            " انتهت الجلسة  |  Session expired. Start again.",
             reply_markup=kb.persistent_menu()
         )
         return ConversationHandler.END
@@ -139,23 +139,23 @@ async def charge_proof(update: Update, context: ContextTypes.DEFAULT_TYPE):
         db.update_charge_proof(req_id, proof)
     except Exception as e:
         print(f"DB Error: {e}")
-        await update.message.reply_text("🔴 خطأ في الحفظ  |  Save error, try again.")
+        await update.message.reply_text(" خطأ في الحفظ  |  Save error, try again.")
         return ConversationHandler.END
 
     admin_text = (
-        f"💰 *Top Up Request  |  طلب شحن* `#{req_id}`\n\n"
-        f"━━━━━━━━━━━━━━━━\n"
-        f"👤 {user.full_name} (@{user.username or '—'})\n"
-        f"🆔 `{user.id}`\n"
-        f"💵 Amount: `{display}`\n"
-        f"💳 Method: `{method_label}`\n"
-        f"🔗 TXID: `{tx_hash[:60]}`\n"
-        f"━━━━━━━━━━━━━━━━"
+        f" *Top Up Request  |  طلب شحن* `#{req_id}`\n\n"
+        f"\n"
+        f" {user.full_name} (@{user.username or '—'})\n"
+        f" `{user.id}`\n"
+        f" Amount: `{display}`\n"
+        f" Method: `{method_label}`\n"
+        f" TXID: `{tx_hash[:60]}`\n"
+        f""
     )
 
     admin_kb = InlineKeyboardMarkup([[
-        InlineKeyboardButton(f"✅ Confirm {display}", callback_data=f"chg_confirm_{req_id}"),
-        InlineKeyboardButton("❌ Reject", callback_data=f"chg_reject_{req_id}")
+        InlineKeyboardButton(f" Confirm {display}", callback_data=f"chg_confirm_{req_id}"),
+        InlineKeyboardButton(" Reject", callback_data=f"chg_reject_{req_id}")
     ]])
 
     try:
@@ -177,14 +177,14 @@ async def charge_proof(update: Update, context: ContextTypes.DEFAULT_TYPE):
     except Exception as e:
         print(f"Admin notify error: {e}")
 
-    done_kb = InlineKeyboardMarkup([[InlineKeyboardButton("🏠 Home  |  الرئيسية", callback_data="back_main")]])
+    done_kb = InlineKeyboardMarkup([[InlineKeyboardButton(" Home  |  الرئيسية", callback_data="back_main")]])
     await update.message.reply_text(
-        f"✅ *Top Up Request Sent!  |  تم إرسال طلب الشحن!*\n\n"
-        f"━━━━━━━━━━━━━━━━\n"
-        f"🔖 Request ID: `#{req_id}`\n"
-        f"💵 Amount: `{display}`\n"
-        f"💳 Method: {method_label}\n"
-        f"━━━━━━━━━━━━━━━━\n"
+        f" *Top Up Request Sent!  |  تم إرسال طلب الشحن!*\n\n"
+        f"\n"
+        f" Request ID: `#{req_id}`\n"
+        f" Amount: `{display}`\n"
+        f" Method: {method_label}\n"
+        f"\n"
         f"⏳ _سيتم مراجعة التحويل وإضافة الرصيد قريباً_\n"
         f"_Balance will be added after review_",
         parse_mode=ParseMode.MARKDOWN,
@@ -197,7 +197,7 @@ async def charge_proof(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def charge_cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data.pop('charge_amount', None)
-    await update.message.reply_text("❌ Cancelled  |  تم الإلغاء", reply_markup=kb.persistent_menu())
+    await update.message.reply_text(" Cancelled  |  تم الإلغاء", reply_markup=kb.persistent_menu())
     return ConversationHandler.END
 
 async def show_balance(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -218,17 +218,17 @@ async def show_balance(update: Update, context: ContextTypes.DEFAULT_TYPE):
     total_spent = row['total_spent'] if row else 0
 
     bal_kb = InlineKeyboardMarkup([
-        [InlineKeyboardButton("⚡ Top Up  |  شحن رصيد", callback_data="charge_start")],
-        [InlineKeyboardButton("🔙 Back  |  رجوع", callback_data="back_main")]
+        [InlineKeyboardButton(" Top Up  |  شحن رصيد", callback_data="charge_start")],
+        [InlineKeyboardButton(" Back  |  رجوع", callback_data="back_main")]
     ])
 
     text = (
-        f"💰 *My Balance  |  رصيدي*\n\n"
-        f"━━━━━━━━━━━━━━━━\n"
-        f"💵 Balance: `${balance:.2f}`\n"
-        f"📥 Total Charged: `${total_charged:.2f}`\n"
-        f"📤 Total Spent: `${total_spent:.2f}`\n"
-        f"━━━━━━━━━━━━━━━━"
+        f" *My Balance  |  رصيدي*\n\n"
+        f"\n"
+        f" Balance: `${balance:.2f}`\n"
+        f" Total Charged: `${total_charged:.2f}`\n"
+        f" Total Spent: `${total_spent:.2f}`\n"
+        f""
     )
 
     if query:
@@ -251,9 +251,9 @@ async def admin_confirm_charge(update: Update, context: ContextTypes.DEFAULT_TYP
 
     if not req:
         try:
-            await query.edit_message_caption("🔴 الطلب غير موجود أو تمت معالجته مسبقاً  |  Not found or already processed")
+            await query.edit_message_caption(" الطلب غير موجود أو تمت معالجته مسبقاً  |  Not found or already processed")
         except:
-            await query.edit_message_text("🔴 Not found or already processed")
+            await query.edit_message_text(" Not found or already processed")
         return
 
     new_balance = db.get_balance(req['user_id'])
@@ -263,13 +263,13 @@ async def admin_confirm_charge(update: Update, context: ContextTypes.DEFAULT_TYP
         await context.bot.send_message(
             chat_id=req['user_id'],
             text=(
-                f"✅ *تم شحن رصيدك!  |  Balance Added!*\n\n"
-                f"━━━━━━━━━━━━━━━━\n"
-                f"💵 المبلغ المضاف  |  Added: `${req['amount_usd']}`\n"
-                f"💳 {('USDT BEP-20' if req['method'] == 'usdt' else 'Syriatel Cash')}\n"
-                f"💰 رصيدك الحالي  |  New Balance: `${new_balance:.2f}`\n"
-                f"━━━━━━━━━━━━━━━━\n"
-                f"_يمكنك الشراء الآن من المتجر_ 🛍️\n"
+                f" *تم شحن رصيدك!  |  Balance Added!*\n\n"
+                f"\n"
+                f" المبلغ المضاف  |  Added: `${req['amount_usd']}`\n"
+                f" {('USDT BEP-20' if req['method'] == 'usdt' else 'Syriatel Cash')}\n"
+                f" رصيدك الحالي  |  New Balance: `${new_balance:.2f}`\n"
+                f"\n"
+                f"_يمكنك الشراء الآن من المتجر_ \n"
                 f"_You can now shop from the store_"
             ),
             parse_mode=ParseMode.MARKDOWN,
@@ -280,13 +280,13 @@ async def admin_confirm_charge(update: Update, context: ContextTypes.DEFAULT_TYP
 
     try:
         await query.edit_message_caption(
-            f"✅ Confirmed #{req_id} — ${req['amount_usd']} added to {req['full_name']}\n"
-            f"💰 New balance: ${new_balance:.2f}"
+            f" Confirmed #{req_id} — ${req['amount_usd']} added to {req['full_name']}\n"
+            f" New balance: ${new_balance:.2f}"
         )
     except:
         await query.edit_message_text(
-            f"✅ Confirmed `#{req_id}` — `${req['amount_usd']}` added to {req['full_name']}\n"
-            f"💰 New balance: `${new_balance:.2f}`",
+            f" Confirmed `#{req_id}` — `${req['amount_usd']}` added to {req['full_name']}\n"
+            f" New balance: `${new_balance:.2f}`",
             parse_mode=ParseMode.MARKDOWN
         )
 
@@ -305,12 +305,12 @@ async def admin_reject_charge(update: Update, context: ContextTypes.DEFAULT_TYPE
         await context.bot.send_message(
             chat_id=req['user_id'],
             text=(
-                f"🔴 *تم رفض طلب الشحن  |  Top Up Rejected*\n\n"
-                f"━━━━━━━━━━━━━━━━\n"
-                f"🔖 Request ID: `#{req_id}`\n"
-                f"💵 المبلغ  |  Amount: `${req['amount_usd']}`\n"
-                f"💳 {method_label}\n"
-                f"━━━━━━━━━━━━━━━━\n"
+                f" *تم رفض طلب الشحن  |  Top Up Rejected*\n\n"
+                f"\n"
+                f" Request ID: `#{req_id}`\n"
+                f" المبلغ  |  Amount: `${req['amount_usd']}`\n"
+                f" {method_label}\n"
+                f"\n"
                 f"_للاستفسار تواصل مع الأدمن_\n"
                 f"_Contact admin for more info_"
             ),
@@ -321,6 +321,6 @@ async def admin_reject_charge(update: Update, context: ContextTypes.DEFAULT_TYPE
         pass
 
     try:
-        await query.edit_message_caption(f"🔴 Rejected #{req_id}")
+        await query.edit_message_caption(f" Rejected #{req_id}")
     except:
-        await query.edit_message_text(f"🔴 Rejected `#{req_id}`", parse_mode=ParseMode.MARKDOWN)
+        await query.edit_message_text(f" Rejected `#{req_id}`", parse_mode=ParseMode.MARKDOWN)
