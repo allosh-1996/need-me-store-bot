@@ -26,6 +26,9 @@ _إيميلات جاهزة_
 📄 Survey Accounts
 _حسابات استبيانات_
 
+🔌 Proxies — HTTP / SOCKS5 / Residential / Mobile
+_بروكسيات بجميع الأنواع_
+
 ▬▬▬▬▬▬▬▬▬▬▬▬▬▬
 
 _Choose from the menu below_ 👇
