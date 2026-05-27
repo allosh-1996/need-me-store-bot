@@ -423,11 +423,12 @@ async def proxy_admin_done(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await context.bot.send_message(
             chat_id=user_id,
             text=(
-                "✅ *Proxies Ready!  |  البروكسيات جاهزة!*\n\n"
-                "▬▬▬▬▬▬▬▬▬▬▬▬▬▬\n"
-                "تم تجهيز طلبك، راجع رسائلك\n"
-                "_Your order is ready, check your messages_\n"
-                "▬▬▬▬▬▬▬▬▬▬▬▬▬▬"
+                f"✅ *تم قبول طلب البروكسي!  |  Proxy Order Accepted!*\n\n"
+                f"━━━━━━━━━━━━━━━━\n"
+                f"🔖 Order ID: `#{order_id}`\n"
+                f"━━━━━━━━━━━━━━━━\n"
+                f"⏳ _سيتم التواصل معك وإرسال البروكسيات قريباً_\n"
+                f"_We'll send your proxies shortly_ 🚀"
             ),
             parse_mode=ParseMode.MARKDOWN,
             reply_markup=kb.main_menu()
@@ -452,11 +453,15 @@ async def proxy_admin_reject(update: Update, context: ContextTypes.DEFAULT_TYPE)
         await context.bot.send_message(
             chat_id=user_id,
             text=(
-                "🔴 *Order Rejected  |  تم رفض طلبك*\n\n"
-                "_للاستفسار تواصل مع الأدمن_\n"
-                "_Contact admin for more info_"
+                f"🔴 *تم رفض طلب البروكسي  |  Proxy Order Rejected*\n\n"
+                f"━━━━━━━━━━━━━━━━\n"
+                f"🔖 Order ID: `#{order_id}`\n"
+                f"━━━━━━━━━━━━━━━━\n"
+                f"_للاستفسار تواصل مع الأدمن_\n"
+                f"_Contact admin for more info_"
             ),
-            parse_mode=ParseMode.MARKDOWN
+            parse_mode=ParseMode.MARKDOWN,
+            reply_markup=kb.main_menu()
         )
         await query.edit_message_text(f"🔴 تم رفض طلب `{user_id}`", parse_mode=ParseMode.MARKDOWN)
     except Exception as e:

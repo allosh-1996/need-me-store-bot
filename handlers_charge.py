@@ -290,15 +290,21 @@ async def admin_reject_charge(update: Update, context: ContextTypes.DEFAULT_TYPE
     db.reject_charge(req_id)
 
     try:
+        method_label = "USDT BEP-20" if req['method'] == 'usdt' else "Syriatel Cash"
         await context.bot.send_message(
             chat_id=req['user_id'],
             text=(
-                f"🔴 *Top Up Rejected  |  تم رفض طلب الشحن*\n\n"
-                f"🔖 Request ID: `#{req_id}`\n\n"
+                f"🔴 *تم رفض طلب الشحن  |  Top Up Rejected*\n\n"
+                f"━━━━━━━━━━━━━━━━\n"
+                f"🔖 Request ID: `#{req_id}`\n"
+                f"💵 المبلغ  |  Amount: `${req['amount_usd']}`\n"
+                f"💳 {method_label}\n"
+                f"━━━━━━━━━━━━━━━━\n"
                 f"_للاستفسار تواصل مع الأدمن_\n"
                 f"_Contact admin for more info_"
             ),
-            parse_mode=ParseMode.MARKDOWN
+            parse_mode=ParseMode.MARKDOWN,
+            reply_markup=kb.main_menu()
         )
     except:
         pass

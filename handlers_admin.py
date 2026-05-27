@@ -225,12 +225,17 @@ async def reject_order(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await context.bot.send_message(
             chat_id=order['user_id'],
             text=(
-                f"🔴 *Order Rejected  |  تم رفض طلبك*\n\n"
-                f"🔖 Order ID: `#{order_id}`\n\n"
+                f"🔴 *تم رفض طلبك  |  Order Rejected*\n\n"
+                f"━━━━━━━━━━━━━━━━\n"
+                f"🔖 Order ID: `#{order_id}`\n"
+                f"📦 {order['product_name']}\n"
+                f"💵 ${order['price_usd']}\n"
+                f"━━━━━━━━━━━━━━━━\n"
                 f"_للاستفسار تواصل مع الأدمن_\n"
                 f"_Contact admin for more info_"
             ),
-            parse_mode=ParseMode.MARKDOWN
+            parse_mode=ParseMode.MARKDOWN,
+            reply_markup=kb.main_menu()
         )
     except:
         pass
