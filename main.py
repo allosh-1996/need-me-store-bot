@@ -225,6 +225,22 @@ def main():
 
     app.job_queue.run_repeating(send_pending_broadcasts, interval=30, first=10)
 
+    # ========== Auto-Register: سجّل كل مستخدم يتفاعل مع البوت ==========
+    async def auto_register(update: Update, context):
+        """يسجل المستخدم تلقائياً بأول تفاعل — رسالة أو ضغطة زر"""
+        user = update.effective_user
+        if user and not user.is_bot:
+            db.upsert_user(user.id, user.username or "", user.full_name or "")
+
+    app.add_handler(
+        MessageHandler(filters.ALL, auto_register),
+        group=-1
+    )
+    app.add_handler(
+        CallbackQueryHandler(auto_register),
+        group=-1
+    )
+
     logger.info(f"🚀 البوت شغال! Admin ID: {ADMIN_ID}")
     app.run_polling(allowed_updates=Update.ALL_TYPES)
 
