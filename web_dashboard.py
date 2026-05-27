@@ -4,6 +4,7 @@ Flask server for the admin dashboard
 """
 from flask import Flask, render_template, request, jsonify, session, redirect, url_for, send_from_directory
 import database as db
+from database import _fetchall_dict, _fetchone_dict
 import os
 import asyncio
 import requests as req_lib
@@ -148,7 +149,7 @@ def api_orders():
         c.execute("SELECT o.*, b.balance_usd FROM orders o LEFT JOIN balances b ON o.user_id=b.user_id WHERE o.status=? ORDER BY o.created_at DESC", (status,))
     else:
         c.execute("SELECT o.*, b.balance_usd FROM orders o LEFT JOIN balances b ON o.user_id=b.user_id ORDER BY o.created_at DESC LIMIT 100")
-    rows = [dict(r) for r in c.fetchall()]
+    rows = _fetchall_dict(c)
     conn.close()
     return jsonify(rows)
 
@@ -200,7 +201,7 @@ def api_charges():
     conn = db.get_conn()
     c = conn.cursor()
     c.execute("SELECT * FROM charge_requests ORDER BY created_at DESC LIMIT 100")
-    rows = [dict(r) for r in c.fetchall()]
+    rows = _fetchall_dict(c)
     conn.close()
     return jsonify(rows)
 
@@ -255,7 +256,7 @@ def api_users():
                         COALESCE(b.total_spent, 0) as total_spent
                  FROM users u LEFT JOIN balances b ON u.id=b.user_id 
                  ORDER BY u.joined_at DESC""")
-    rows = [dict(r) for r in c.fetchall()]
+    rows = _fetchall_dict(c)
     conn.close()
     return jsonify(rows)
 
@@ -391,7 +392,7 @@ def api_proxy_orders():
     conn = db.get_conn()
     c = conn.cursor()
     c.execute("SELECT * FROM proxy_orders ORDER BY created_at DESC LIMIT 100")
-    rows = [dict(r) for r in c.fetchall()]
+    rows = _fetchall_dict(c)
     conn.close()
     return jsonify(rows)
 
