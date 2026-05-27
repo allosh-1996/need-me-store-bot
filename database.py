@@ -1,7 +1,10 @@
 import sqlite3
 import os
 
-DB_PATH = os.path.join(os.path.dirname(__file__), "store.db")
+# يحفظ الـ DB على Volume لو موجود، وإلا على نفس المجلد
+_data_dir = os.environ.get("DB_DIR", os.path.dirname(__file__))
+os.makedirs(_data_dir, exist_ok=True)
+DB_PATH = os.path.join(_data_dir, "store.db")
 
 def get_conn():
     conn = sqlite3.connect(DB_PATH)
