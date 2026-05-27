@@ -59,7 +59,8 @@ def init_db():
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         message TEXT,
         sent_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        sent_count INTEGER DEFAULT 0
+        sent_count INTEGER DEFAULT 0,
+        is_sent INTEGER DEFAULT 0
     )''')
 
     # جدول الرصيد
@@ -309,5 +310,22 @@ def reject_charge(req_id):
     conn = get_conn()
     c = conn.cursor()
     c.execute("UPDATE charge_requests SET status='rejected' WHERE id=?", (req_id,))
+    conn.commit()
+    conn.close()
+
+
+# ============ الرسائل الجماعية ============
+def get_pending_broadcasts():
+    conn = get_conn()
+    c = conn.cursor()
+    c.execute("SELECT * FROM broadcasts WHERE is_sent=0 ORDER BY sent_at ASC")
+    rows = c.fetchall()
+    conn.close()
+    return rows
+
+def mark_broadcast_sent(broadcast_id, sent_count):
+    conn = get_conn()
+    c = conn.cursor()
+    c.execute("UPDATE broadcasts SET is_sent=1, sent_count=? WHERE id=?", (sent_count, broadcast_id))
     conn.commit()
     conn.close()
