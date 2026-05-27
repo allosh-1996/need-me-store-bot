@@ -7,11 +7,34 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
-body{font-family:'Inter',sans-serif;background:#0f0f13;display:flex;align-items:center;justify-content:center;min-height:100vh}
-.box{background:#1a1a24;border:1px solid #2a2a3a;border-radius:16px;padding:40px;width:360px;text-align:center}
-.logo{font-size:3rem;margin-bottom:12px}
-h2{color:#e8e8f0;font-size:1.2rem;font-weight:700;margin-bottom:4px}
-.sub{color:#6b6b85;font-size:.8rem;margin-bottom:28px}
+body{
+  font-family:'Inter',sans-serif;
+  background:#0d0d11;
+  display:flex;align-items:center;justify-content:center;min-height:100vh;
+  position:relative;overflow:hidden;
+}
+body::before{
+  content:'';position:fixed;inset:0;
+  background:
+    radial-gradient(ellipse at 20% 80%, rgba(120,40,140,.2) 0%, transparent 60%),
+    radial-gradient(ellipse at 80% 20%, rgba(180,30,30,.15) 0%, transparent 55%);
+  pointer-events:none;
+}
+body::after{
+  content:'𝒜';position:fixed;bottom:-80px;left:-60px;
+  font-size:500px;font-family:Georgia,serif;
+  color:rgba(180,20,20,.05);pointer-events:none;line-height:1;
+}
+.box{
+  background:rgba(22,22,30,.95);
+  border:1px solid #252532;border-radius:16px;padding:40px;
+  width:340px;max-width:92vw;text-align:center;
+  position:relative;z-index:1;
+  backdrop-filter:blur(10px);
+}
+.logo{font-size:2.8rem;margin-bottom:10px;font-family:Georgia,serif;font-style:italic}
+h2{color:#e2e2ee;font-size:1.15rem;font-weight:700;margin-bottom:4px}
+.sub{color:#5a5a72;font-size:.78rem;margin-bottom:24px}
 input{width:100%;padding:11px 14px;border-radius:8px;border:1px solid #2a2a3a;background:#22222f;color:#e8e8f0;font-size:.9rem;margin-bottom:14px;outline:none;font-family:'Inter',sans-serif;text-align:center}
 input:focus{border-color:#7c5cfc}
 button{width:100%;padding:12px;background:#7c5cfc;color:#fff;border:none;border-radius:8px;font-size:.9rem;font-weight:600;cursor:pointer;transition:background .15s}
@@ -21,8 +44,8 @@ button:hover{background:#5b4bd4}
 </head>
 <body>
 <div class="box">
-  <div class="logo">🌙</div>
-  <h2>Need Me Store</h2>
+  <div class="logo"><span style="color:#cc2020">A</span>llosh</div>
+  <h2 style="color:#e2e2ee">Need Me Store</h2>
   <p class="sub">Admin Dashboard</p>
   {% if error %}<p class="error">{{ error }}</p>{% endif %}
   <form method="POST">
