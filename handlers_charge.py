@@ -50,8 +50,8 @@ async def charge_method_selected(update: Update, context: ContextTypes.DEFAULT_T
             f"`{USDT_WALLET}`\n\n"
             f"⚠️ *BEP-20 Network Only*\n"
             f"━━━━━━━━━━━━━━━━\n"
-            f"💵 كم دولار تريد تشحن؟ (min $1)\n"
-            f"_How much USD to top up? (min $1)_"
+            f"💵 كم دولار تريد تشحن؟ \n"
+            f"_How much USD to top up? _"
         )
     else:
         from config import SYRIATEL_CASH
@@ -61,8 +61,8 @@ async def charge_method_selected(update: Update, context: ContextTypes.DEFAULT_T
             f"📞 Number  |  الرقم:\n"
             f"`{SYRIATEL_CASH}`\n"
             f"━━━━━━━━━━━━━━━━\n"
-            f"💴 كم ليرة تريد تشحن؟ (min 50,000)\n"
-            f"_How much SYP? (min 50,000)_"
+            f"💴 كم ليرة تريد تشحن؟ \n"
+            f"_How much SYP? _"
         )
 
     await query.edit_message_text(text, parse_mode=ParseMode.MARKDOWN)
@@ -79,17 +79,11 @@ async def charge_amount(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return WAITING_AMOUNT
 
     if method == "usdt":
-        if amount < 1:
-            await update.message.reply_text("🔴 الحد الأدنى $1  |  Minimum $1")
-            return WAITING_AMOUNT
         if amount > 10000:
             await update.message.reply_text("🔴 الحد الأقصى $10,000  |  Maximum $10,000")
             return WAITING_AMOUNT
         display = f"${amount}"
     else:
-        if amount < 50000:
-            await update.message.reply_text("🔴 الحد الأدنى 50,000 ل.س  |  Minimum 50,000 SYP")
-            return WAITING_AMOUNT
         display = f"{amount:,.0f} ل.س"
 
     context.user_data["charge_amount"] = amount
