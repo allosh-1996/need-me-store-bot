@@ -321,7 +321,7 @@ tr:hover td{background:var(--surface2)}
   <div class="page-header"><div class="page-title"><h2>👥 المستخدمين</h2><p>قائمة المستخدمين</p></div></div>
   <div class="card">
     <div class="table-wrap">
-      <table><thead><tr><th>الاسم</th><th>يوزر</th><th>الرصيد</th><th>تاريخ التسجيل</th></tr></thead>
+      <table><thead><tr><th>الاسم</th><th>يوزر</th><th>الرصيد</th><th>تاريخ التسجيل</th><th>إجراء</th></tr></thead>
       <tbody id="users-table"><tr><td colspan="4" class="empty">جاري التحميل...</td></tr></tbody></table>
     </div>
   </div>
@@ -540,7 +540,22 @@ async function loadUsers(){
       <td>@${u.username||'—'}</td>
       <td style="color:var(--green)"><strong>$${Number(u.balance||0).toFixed(2)}</strong></td>
       <td><small style="color:var(--muted)">${(u.joined_at||'').substring(0,10)}</small></td>
+      <td>
+        <button class="btn btn-sm btn-success" onclick="addBalance(${u.id}, '${u.full_name||u.username||u.id}')">➕ رصيد</button>
+      </td>
     </tr>`).join('')
+}
+
+async function addBalance(uid, name) {
+  const amount = prompt(`إضافة رصيد لـ ${name} (بالدولار $):`)
+  if (!amount || isNaN(amount) || Number(amount) <= 0) return
+  const res = await api(`/api/users/${uid}/add_balance`, 'POST', {amount: Number(amount)})
+  if (res.ok) {
+    toast(`✅ تم إضافة $${amount} — الرصيد الجديد: $${res.new_balance.toFixed(2)}`)
+    loadUsers()
+  } else {
+    toast('🔴 خطأ في الإضافة', false)
+  }
 }
 
 async function sendBroadcast(){
