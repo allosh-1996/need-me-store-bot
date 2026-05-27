@@ -316,7 +316,6 @@ def confirm_charge(req_id):
         c.execute("UPDATE charge_requests SET status='confirmed' WHERE id=?", (req_id,))
         conn.commit()
         conn.close()
-        add_balance(req['user_id'], req['amount_usd'])
         return req
     conn.close()
     return None
