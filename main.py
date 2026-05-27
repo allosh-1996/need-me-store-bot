@@ -177,7 +177,7 @@ def main():
     app.add_handler(CallbackQueryHandler(hu.show_category,       pattern=r'^cat_'))
     app.add_handler(CallbackQueryHandler(hu.show_product_detail, pattern=r'^prod_\d+$'))
     app.add_handler(CallbackQueryHandler(hu.initiate_buy,        pattern=r'^buy_\d+_\w+$'))
-    app.add_handler(CallbackQueryHandler(hu.my_orders,           pattern='^my_orders$'))
+    app.add_handler(CallbackQueryHandler(hu.emails_menu,         pattern='^emails_menu$'))
     app.add_handler(CallbackQueryHandler(hu.payment_info,        pattern='^payment_info$'))
     app.add_handler(CallbackQueryHandler(hu.contact,             pattern='^contact$'))
     app.add_handler(CallbackQueryHandler(hu.back_main,           pattern='^back_main$'))

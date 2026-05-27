@@ -5,7 +5,7 @@ def main_menu():
     keyboard = [
         [
             InlineKeyboardButton("🛍️ المنتجات  |  Shop", callback_data="products"),
-            InlineKeyboardButton("🛒 طلباتي  |  Orders", callback_data="my_orders"),
+            InlineKeyboardButton("📧 إيميلات  |  Emails", callback_data="emails_menu"),
         ],
         [
             InlineKeyboardButton("💰 رصيدي  |  Balance", callback_data="show_balance"),

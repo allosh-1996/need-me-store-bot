@@ -475,3 +475,25 @@ async def confirm_buy(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
     except:
         pass
+
+# ═══════════════════════════════════════
+# إيميلات
+# ═══════════════════════════════════════
+async def emails_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+
+    kb_emails = InlineKeyboardMarkup([
+        [InlineKeyboardButton("🔵 Outlook", callback_data="cat_Outlook")],
+        [InlineKeyboardButton("🔴 Gmail", callback_data="cat_Gmail")],
+        [InlineKeyboardButton("🟠 Hotmail", callback_data="cat_Hotmail")],
+        [InlineKeyboardButton("🔙 Back  |  رجوع", callback_data="back_main")],
+    ])
+
+    await query.edit_message_text(
+        "📧 *إيميلات  |  Emails*\n\n"
+        "━━━━━━━━━━━━━━━━\n"
+        "_اختر النوع  |  Choose type:_",
+        parse_mode="Markdown",
+        reply_markup=kb_emails
+    )
