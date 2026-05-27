@@ -4,6 +4,7 @@ from telegram.constants import ParseMode
 import database as db
 import keyboards as kb
 from config import ADMIN_ID, PROXY_TYPES
+from lang import t, get_user_lang
 
 # حالات المحادثة
 PROXY_TYPE, PROXY_QTY, PROXY_QTY_CUSTOM, PROXY_COUNTRY, PROXY_COUNTRY_CUSTOM, PROXY_NOTES, PROXY_CONFIRM = range(30, 37)

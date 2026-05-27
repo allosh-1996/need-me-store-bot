@@ -4,6 +4,7 @@ from telegram.constants import ParseMode
 import database as db
 import keyboards as kb
 from config import ADMIN_ID, USDT_WALLET
+from lang import t, get_user_lang
 
 WAITING_METHOD, WAITING_AMOUNT, WAITING_TXHASH = range(20, 23)
 
@@ -206,6 +207,7 @@ async def show_balance(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await query.answer()
 
     user = update.effective_user
+    lang = get_user_lang(context)
     balance = db.get_balance(user.id)
 
     conn = db.get_conn()
