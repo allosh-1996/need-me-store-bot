@@ -272,7 +272,45 @@ def api_add_balance(uid):
         return jsonify({"ok": False, "error": "Invalid amount"}), 400
     db.add_balance(uid, amount)
     new_balance = db.get_balance(uid)
+    tg_send(uid,
+        f"✅ *تم إضافة رصيد إلى حسابك!*\n\n"
+        f"💵 المبلغ المضاف: `${amount:.2f}`\n"
+        f"💰 رصيدك الحالي: `${new_balance:.2f}`"
+    )
     return jsonify({"ok": True, "new_balance": new_balance})
+
+@app.route('/api/users/<int:uid>/deduct_balance', methods=['POST'])
+@auth_required
+def api_deduct_balance(uid):
+    amount = float(request.json.get('amount', 0))
+    if amount <= 0:
+        return jsonify({"ok": False, "error": "Invalid amount"}), 400
+    current = db.get_balance(uid)
+    if amount > current:
+        return jsonify({"ok": False, "error": f"الرصيد غير كافي — الرصيد الحالي: ${current:.2f}"}), 400
+    db.add_balance(uid, -amount)
+    new_balance = db.get_balance(uid)
+    tg_send(uid,
+        f"🔴 *تم خصم رصيد من حسابك*\n\n"
+        f"💵 المبلغ المخصوم: `${amount:.2f}`\n"
+        f"💰 رصيدك الحالي: `${new_balance:.2f}`"
+    )
+    return jsonify({"ok": True, "new_balance": new_balance})
+
+@app.route('/api/users/<int:uid>/balance', methods=['GET'])
+@auth_required
+def api_get_balance(uid):
+    balance = db.get_balance(uid)
+    conn = db.get_conn()
+    c = conn.cursor()
+    c.execute("SELECT total_charged, total_spent FROM balances WHERE user_id=?", (uid,))
+    row = c.fetchone()
+    conn.close()
+    return jsonify({
+        "balance": balance,
+        "total_charged": row['total_charged'] if row else 0,
+        "total_spent": row['total_spent'] if row else 0
+    })
 
 @app.route('/api/notifications')
 @auth_required
