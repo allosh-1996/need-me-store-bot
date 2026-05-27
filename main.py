@@ -27,8 +27,21 @@ logger = logging.getLogger(__name__)
 
 def main():
     keep_alive()  # منع النوم | Prevent sleeping
-    db.init_db()
-    logger.info("✅ قاعدة البيانات جاهزة")
+    
+    # محاولة الاتصال بالـ DB مع retry
+    import time
+    for attempt in range(10):
+        try:
+            db.init_db()
+            logger.info("✅ قاعدة البيانات جاهزة")
+            break
+        except Exception as e:
+            logger.error(f"❌ DB connection failed (attempt {attempt+1}/10): {e}")
+            if attempt < 9:
+                time.sleep(5)
+            else:
+                logger.critical("❌ فشل الاتصال بقاعدة البيانات بعد 10 محاولات")
+                raise
 
     app = Application.builder().token(BOT_TOKEN).build()
 
