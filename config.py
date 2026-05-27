@@ -11,27 +11,15 @@ SYRIATEL_CASH = os.environ.get("SYRIATEL_CASH", "ضع_رقم_سيريتيل_كا
 # رسالة الترحيب | Welcome Message
 # ═══════════════════════════════════════
 WELCOME_MSG = """
- *NexVault*
+*اهلا بك في NexVault*
 
-_Welcome to your trusted digital store_
+نوفر لك كل ما تحتاجه من منتجات رقمية
+باسعار تنافسية وتسليم فوري.
 
+حسابات Apple  |  ايميلات جاهزة
+بروكسيات  |  Survey Accounts  |  Games
 
-
- Apple iCloud Accounts
-_حسابات آبل آي كلاود_
-
- Ready-made Emails
-_إيميلات جاهزة_
-
- Survey Accounts
-_حسابات استبيانات_
-
- Proxies — HTTP / SOCKS5 / Residential / Mobile
-_بروكسيات بجميع الأنواع_
-
-
-
-_Choose from the menu below_ 
+اختر ما تريد من القائمة ادناه.
 """
 
 # ═══════════════════════════════════════
