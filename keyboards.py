@@ -9,11 +9,7 @@ def main_menu():
         ],
         [
             InlineKeyboardButton("💰 رصيدي  |  Balance", callback_data="show_balance"),
-            InlineKeyboardButton("⚡ شحن  |  Top Up", callback_data="charge_start"),
-        ],
-        [
             InlineKeyboardButton("📞 تواصل  |  Contact", callback_data="contact"),
-            InlineKeyboardButton("💳 الدفع  |  Payment", callback_data="payment_info"),
         ],
     ]
     return InlineKeyboardMarkup(keyboard)
