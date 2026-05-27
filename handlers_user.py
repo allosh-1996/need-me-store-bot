@@ -46,7 +46,6 @@ async def toggle_lang(update: Update, context: ContextTypes.DEFAULT_TYPE):
     current = get_user_lang(context)
     new_lang = "en" if current == "ar" else "ar"
     context.user_data["lang"] = new_lang
-    msg = t("lang_changed_en", new_lang) if new_lang == "en" else t("lang_changed_ar", new_lang)
     await query.edit_message_text(
         t("welcome", new_lang),
         parse_mode=ParseMode.MARKDOWN,
@@ -102,7 +101,6 @@ async def show_category(update: Update, context: ContextTypes.DEFAULT_TYPE):
     category = query.data.replace("cat_", "")
     platform = context.user_data.get('selected_platform', '')
 
-    # احفظ مصدر القائمة عشان زر الرجوع يرجع للمكان الصح
     EMAIL_CATS = ['Outlook', 'Gmail', 'Hotmail']
     GAME_CATS = ['Coin Master', 'Domino Dream', 'Disney Dream', 'Screw Guru', 'Travel Town', 'Dice Dream']
     if category in EMAIL_CATS:
@@ -145,8 +143,9 @@ async def show_product_detail(update: Update, context: ContextTypes.DEFAULT_TYPE
         await query.edit_message_text(t("error_not_found", lang))
         return
 
-    has_stock = bool(product['stock'])
-    stock_status = t("in_stock", lang) if has_stock else t("out_of_stock", lang)
+    # FIX: استخدم get_stock_count لعرض العدد الحقيقي
+    stock_count = db.get_stock_count(product_id)
+    has_stock = stock_count > 0
     platform = product.get('platform', '') or ''
 
     text = (
@@ -156,7 +155,18 @@ async def show_product_detail(update: Update, context: ContextTypes.DEFAULT_TYPE
         f"Platform: `{platform}`\n\n"
         f"USD: `${product['price_usd']}`\n"
         f"SYP: `{product['price_syp']:,.0f}`\n\n"
-        f"{t('in_stock', lang) if has_stock else t('out_of_stock', lang)}\n"
+        f"{t('in_stock', lang)} ({stock_count} units)" if has_stock else f"{t('out_of_stock', lang)}"
+    )
+    # بناء النص بشكل صحيح
+    stock_line = f"{t('in_stock', lang)} ({stock_count} units)" if has_stock else t('out_of_stock', lang)
+    text = (
+        f"*{product['name']}*\n\n"
+        f"━━━━━━━━━━━━━━━━\n"
+        f"{product['description'] or t('no_desc', lang)}\n"
+        f"Platform: `{platform}`\n\n"
+        f"USD: `${product['price_usd']}`\n"
+        f"SYP: `{product['price_syp']:,.0f}`\n\n"
+        f"{stock_line}\n"
         f"━━━━━━━━━━━━━━━━"
     )
     back_cb = context.user_data.get('cat_source', 'products')
@@ -174,7 +184,10 @@ async def initiate_buy(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     user = update.effective_user
     product = db.get_product(product_id)
-    if not product or not product["stock"]:
+
+    # FIX: تحقق من المخزون بـ get_stock_count
+    stock_count = db.get_stock_count(product_id)
+    if not product or stock_count == 0:
         await query.edit_message_text(t("no_products_category", lang), parse_mode=ParseMode.MARKDOWN)
         return
 
@@ -415,6 +428,9 @@ async def handle_persistent_menu(update: Update, context: ContextTypes.DEFAULT_T
         )
 
 async def confirm_buy(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """
+    FIX: الحين يستخدم pop_stock_item() لسحب وحدة واحدة فريدة لكل مشتري.
+    """
     query = update.callback_query
     await query.answer()
     lang = get_user_lang(context)
@@ -423,7 +439,9 @@ async def confirm_buy(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
     product = db.get_product(product_id)
 
-    if not product or not product['stock']:
+    # تحقق من المخزون أولاً قبل الخصم
+    stock_count = db.get_stock_count(product_id)
+    if not product or stock_count == 0:
         await query.edit_message_text(t("no_products_category", lang), parse_mode=ParseMode.MARKDOWN)
         return
 
@@ -444,13 +462,20 @@ async def confirm_buy(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         return
 
+    # FIX: سحب وحدة فريدة من المخزون
+    item, remaining = db.pop_stock_item(product_id)
+    if not item:
+        # نادر: نفد المخزون بين التحقق والسحب (race condition)
+        await query.edit_message_text(t("no_products_category", lang), parse_mode=ParseMode.MARKDOWN)
+        return
+
     db.deduct_balance(user.id, price)
     order_id = db.create_order(
         user_id=user.id, username=user.username or "",
         full_name=user.full_name or "", product_id=product_id,
         product_name=product['name'], price_usd=price,
         price_syp=product['price_syp'], currency="USD",
-        payment_method="balance"
+        payment_method="balance", delivered_item=item
     )
     db.update_order_status(order_id, 'completed', 'balance')
     new_balance = db.get_balance(user.id)
@@ -462,7 +487,7 @@ async def confirm_buy(update: Update, context: ContextTypes.DEFAULT_TYPE):
         f"{product['name']}\n"
         f"{t('amount', lang)}: `${price}`\n"
         f"{t('balance', lang)}: `${new_balance:.2f}`\n\n"
-        f"*{t('product_details', lang)}:*\n`{product['stock']}`\n"
+        f"*{t('product_details', lang)}:*\n`{item}`\n"
         f"━━━━━━━━━━━━━━━━\n"
         f"_{t('thank_you', lang)}_",
         parse_mode=ParseMode.MARKDOWN,
@@ -471,7 +496,7 @@ async def confirm_buy(update: Update, context: ContextTypes.DEFAULT_TYPE):
     try:
         await context.bot.send_message(
             chat_id=ADMIN_ID,
-            text=f"*New Sale #{order_id}*\n{user.full_name}\n{product['name']}\n${price} (Balance)",
+            text=f"*New Sale #{order_id}*\n{user.full_name}\n{product['name']}\n${price} (Balance)\nStock remaining: {remaining}",
             parse_mode=ParseMode.MARKDOWN
         )
     except:

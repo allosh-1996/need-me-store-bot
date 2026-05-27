@@ -190,6 +190,10 @@ async def show_pending_orders(update: Update, context: ContextTypes.DEFAULT_TYPE
                                    reply_markup=kb.admin_main_menu())
 
 async def confirm_order(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """
+    FIX: يستخدم pop_stock_item() لسحب وحدة واحدة فريدة من المخزون.
+    كل مستخدم يحصل على وحدة مختلفة — لا تكرار.
+    """
     query = update.callback_query
     await query.answer()
     if not is_admin(query.from_user.id):
@@ -203,9 +207,23 @@ async def confirm_order(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     product = db.get_product(order['product_id'])
-    if not product or not product['stock']:
-        await query.edit_message_text(" المنتج لا يحتوي على مخزون  |  Product has no stock")
+    if not product:
+        await query.edit_message_text(" المنتج غير موجود  |  Product not found")
         return
+
+    # FIX: سحب وحدة فريدة من المخزون
+    item, remaining = db.pop_stock_item(order['product_id'])
+    if not item:
+        await query.edit_message_text(
+            " المنتج لا يحتوي على مخزون  |  Product has no stock\n"
+            "_أضف مخزون جديد من لوحة التحكم_",
+            parse_mode=ParseMode.MARKDOWN,
+            reply_markup=kb.admin_main_menu()
+        )
+        return
+
+    # احفظ الوحدة المُرسلة في الطلب
+    db.update_order_delivered_item(order_id, item)
 
     try:
         await context.bot.send_message(
@@ -215,7 +233,7 @@ async def confirm_order(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 f"\n"
                 f" {order['product_name']}\n\n"
                 f" *Product Details:*\n"
-                f"`{product['stock']}`\n"
+                f"`{item}`\n"
                 f"\n"
                 f"شكراً لثقتك   |  _Thank you!_\n"
                 f"_For support contact admin_"
@@ -224,13 +242,15 @@ async def confirm_order(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
 
         db.update_order_status(order_id, 'completed', 'تم الإرسال')
-        await query.edit_message_caption(
-            f" Order `#{order_id}` confirmed & sent to {order['full_name']}"
-        ) if query.message.caption else await query.edit_message_text(
-            f" *Order `#{order_id}` Confirmed!*\n_Sent to {order['full_name']}_",
-            parse_mode=ParseMode.MARKDOWN,
-            reply_markup=kb.admin_main_menu()
-        )
+        confirm_text = f" *Order `#{order_id}` Confirmed!*\n_Sent to {order['full_name']}_ | Stock remaining: {remaining}"
+        try:
+            await query.edit_message_caption(confirm_text)
+        except:
+            await query.edit_message_text(
+                confirm_text,
+                parse_mode=ParseMode.MARKDOWN,
+                reply_markup=kb.admin_main_menu()
+            )
     except Exception as e:
         await query.edit_message_text(f" Error: {e}", reply_markup=kb.admin_main_menu())
 

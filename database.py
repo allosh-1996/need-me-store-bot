@@ -1,10 +1,28 @@
 import sqlite3
 import os
 
-# /tmp يبقى طول فترة تشغيل البوت
-DB_PATH = os.environ.get("DB_PATH", "/tmp/store.db")
+# ═══════════════════════════════════════════════════════════════
+# DB_PATH — استخدم متغير البيئة أو /data/store.db كافتراضي
+#
+# ⚠️  على Railway: أضف Volume على /data عشان البيانات ما تُفقد
+#      Settings → Volumes → Mount Path: /data
+#
+# ⚠️  على Render/VPS: تأكد أن المجلد موجود ومكتوب عليه
+# ═══════════════════════════════════════════════════════════════
+DB_PATH = os.environ.get("DB_PATH", "/data/store.db")
 
 def get_conn():
+    global DB_PATH
+    # تأكد المجلد موجود
+    db_dir = os.path.dirname(DB_PATH)
+    if db_dir and not os.path.exists(db_dir):
+        try:
+            os.makedirs(db_dir, exist_ok=True)
+        except Exception as e:
+            # fallback لـ /tmp لو ما قدرنا نعمل المجلد (dev environment)
+            import warnings
+            warnings.warn(f"⚠️  Cannot create {db_dir}, falling back to /tmp/store.db — DATA WILL BE LOST ON RESTART! Error: {e}")
+            DB_PATH = "/tmp/store.db"
     conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
     return conn
@@ -46,8 +64,15 @@ def init_db():
         payment_proof TEXT,
         status TEXT DEFAULT 'pending',
         notes TEXT,
+        delivered_item TEXT,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )''')
+
+    # أضف عمود delivered_item لو ما موجود (migration للقاعدة القديمة)
+    try:
+        c.execute("ALTER TABLE orders ADD COLUMN delivered_item TEXT")
+    except:
+        pass
 
     c.execute('''CREATE TABLE IF NOT EXISTS users (
         id INTEGER PRIMARY KEY,
@@ -146,13 +171,61 @@ def delete_product(product_id):
     conn.commit()
     conn.close()
 
-def create_order(user_id, username, full_name, product_id, product_name, price_usd, price_syp, currency, payment_method):
+# ═══════════════════════════════════════════════════════════════
+# FIX: pop_stock_item — يسحب أول وحدة من المخزون ويحذفها
+#
+# المخزون مخزون كـ سطر لكل وحدة:
+#   account1@email.com:pass1
+#   account2@email.com:pass2
+#
+# كل مستخدم يشتري يحصل على وحدة مختلفة — لا تكرار.
+# لو المخزون فارغ يرجع None.
+# ═══════════════════════════════════════════════════════════════
+def pop_stock_item(product_id):
+    """
+    يسحب أول وحدة من مخزون المنتج ويحذفها.
+    يرجع: (item_text, remaining_count) أو (None, 0) لو فارغ.
+    """
+    conn = get_conn()
+    c = conn.cursor()
+    c.execute("SELECT stock FROM products WHERE id=?", (product_id,))
+    row = c.fetchone()
+    if not row or not row['stock']:
+        conn.close()
+        return None, 0
+
+    lines = [line.strip() for line in row['stock'].strip().splitlines() if line.strip()]
+    if not lines:
+        conn.close()
+        return None, 0
+
+    item = lines[0]
+    remaining = lines[1:]
+    new_stock = "\n".join(remaining)
+    c.execute("UPDATE products SET stock=? WHERE id=?", (new_stock, product_id))
+    conn.commit()
+    conn.close()
+    return item, len(remaining)
+
+def get_stock_count(product_id):
+    """يرجع عدد الوحدات المتبقية في المخزون"""
+    conn = get_conn()
+    c = conn.cursor()
+    c.execute("SELECT stock FROM products WHERE id=?", (product_id,))
+    row = c.fetchone()
+    conn.close()
+    if not row or not row['stock']:
+        return 0
+    lines = [l.strip() for l in row['stock'].strip().splitlines() if l.strip()]
+    return len(lines)
+
+def create_order(user_id, username, full_name, product_id, product_name, price_usd, price_syp, currency, payment_method, delivered_item=None):
     conn = get_conn()
     c = conn.cursor()
     c.execute("""INSERT INTO orders 
-        (user_id, username, full_name, product_id, product_name, price_usd, price_syp, currency, payment_method)
-        VALUES (?,?,?,?,?,?,?,?,?)""",
-        (user_id, username, full_name, product_id, product_name, price_usd, price_syp, currency, payment_method))
+        (user_id, username, full_name, product_id, product_name, price_usd, price_syp, currency, payment_method, delivered_item)
+        VALUES (?,?,?,?,?,?,?,?,?,?)""",
+        (user_id, username, full_name, product_id, product_name, price_usd, price_syp, currency, payment_method, delivered_item))
     conn.commit()
     oid = c.lastrowid
     conn.close()
@@ -169,6 +242,13 @@ def update_order_proof(order_id, proof):
     conn = get_conn()
     c = conn.cursor()
     c.execute("UPDATE orders SET payment_proof=? WHERE id=?", (proof, order_id))
+    conn.commit()
+    conn.close()
+
+def update_order_delivered_item(order_id, item):
+    conn = get_conn()
+    c = conn.cursor()
+    c.execute("UPDATE orders SET delivered_item=? WHERE id=?", (item, order_id))
     conn.commit()
     conn.close()
 

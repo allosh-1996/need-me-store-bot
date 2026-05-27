@@ -24,13 +24,41 @@ def tg_send(chat_id, text):
 
 
 import secrets as _secrets
-_default_secret = _secrets.token_hex(32)  # عشوائي في كل مرة تشغيل لو ما في متغير
-app.secret_key = os.environ.get("DASHBOARD_SECRET") or _default_secret
+
+# ═══════════════════════════════════════════════════════════════
+# FIX: أمان الداشبورد
+#
+# DASHBOARD_SECRET  — مفتاح تشفير الجلسات. لو ما تحدد:
+#   - في dev: يستخدم مفتاح عشوائي (sessions تنكسر مع كل restart)
+#   - في production: يرفع خطأ واضح
+#
+# DASHBOARD_PASSWORD — كلمة سر الداشبورد. الافتراضي "admin123" خطر!
+# ═══════════════════════════════════════════════════════════════
+_is_production = os.environ.get("RAILWAY_ENVIRONMENT") or os.environ.get("RENDER") or os.environ.get("PRODUCTION")
+_dashboard_secret = os.environ.get("DASHBOARD_SECRET")
 DASHBOARD_PASSWORD = os.environ.get("DASHBOARD_PASSWORD", "admin123")
-if not os.environ.get("DASHBOARD_SECRET"):
-    print("⚠️  WARNING: DASHBOARD_SECRET not set! Sessions will reset on restart.")
+
+if not _dashboard_secret:
+    if _is_production:
+        raise RuntimeError(
+            "❌ DASHBOARD_SECRET is not set!\n"
+            "Set it in Railway Variables: DASHBOARD_SECRET=<random_64_char_string>\n"
+            "Generate one with: python3 -c \"import secrets; print(secrets.token_hex(32))\""
+        )
+    else:
+        _dashboard_secret = _secrets.token_hex(32)
+        print("⚠️  WARNING: DASHBOARD_SECRET not set — using random key (sessions reset on restart)")
+
+app.secret_key = _dashboard_secret
+
 if DASHBOARD_PASSWORD == "admin123":
-    print("⚠️  WARNING: DASHBOARD_PASSWORD is default 'admin123'! Change it in env vars.")
+    if _is_production:
+        raise RuntimeError(
+            "❌ DASHBOARD_PASSWORD is still 'admin123'!\n"
+            "Set a strong password in Railway Variables: DASHBOARD_PASSWORD=<your_password>"
+        )
+    else:
+        print("⚠️  WARNING: DASHBOARD_PASSWORD is default 'admin123'! Change it before deploying.")
 
 # ═══ Auth ═══
 @app.route('/login', methods=['GET', 'POST'])
@@ -127,34 +155,42 @@ def api_orders():
 @app.route('/api/orders/<int:oid>/status', methods=['POST'])
 @auth_required
 def api_order_status(oid):
+    """
+    FIX: عند التأكيد يستخدم pop_stock_item() لسحب وحدة فريدة.
+    """
     status = request.json.get('status')
     order = db.get_order(oid)
-    db.update_order_status(oid, status)
 
-    if order:
-        if status == 'completed':
-            product = db.get_product(order['product_id'])
-            stock_text = f"\n✅ *تفاصيل المنتج:*\n`{product['stock']}`" if product and product['stock'] else ""
-            tg_send(order['user_id'],
-                f"🎉 *تم تأكيد طلبك!  |  Order Confirmed!*\n\n"
-                f"━━━━━━━━━━━━━━━━\n"
-                f"🔖 Order ID: `#{oid}`\n"
-                f"📦 {order['product_name']}\n"
-                f"💵 ${order['price_usd']}"
-                + stock_text +
-                f"\n━━━━━━━━━━━━━━━━\n"
-                f"شكراً لثقتك 🙏  |  _Thank you!_"
-            )
-        elif status == 'rejected':
-            tg_send(order['user_id'],
-                f"🔴 *تم رفض طلبك  |  Order Rejected*\n\n"
-                f"━━━━━━━━━━━━━━━━\n"
-                f"🔖 Order ID: `#{oid}`\n"
-                f"📦 {order['product_name']}\n"
-                f"💵 ${order['price_usd']}\n"
-                f"━━━━━━━━━━━━━━━━\n"
-                f"_للاستفسار تواصل مع الأدمن_"
-            )
+    if order and status == 'completed':
+        # FIX: سحب وحدة فريدة من المخزون
+        item, remaining = db.pop_stock_item(order['product_id'])
+        if not item:
+            return jsonify({"ok": False, "error": "No stock available for this product"}), 400
+        db.update_order_delivered_item(oid, item)
+        db.update_order_status(oid, status)
+        tg_send(order['user_id'],
+            f"🎉 *تم تأكيد طلبك!  |  Order Confirmed!*\n\n"
+            f"━━━━━━━━━━━━━━━━\n"
+            f"🔖 Order ID: `#{oid}`\n"
+            f"📦 {order['product_name']}\n"
+            f"💵 ${order['price_usd']}\n\n"
+            f"✅ *تفاصيل المنتج:*\n`{item}`\n"
+            f"━━━━━━━━━━━━━━━━\n"
+            f"شكراً لثقتك 🙏  |  _Thank you!_"
+        )
+    elif order and status == 'rejected':
+        db.update_order_status(oid, status)
+        tg_send(order['user_id'],
+            f"🔴 *تم رفض طلبك  |  Order Rejected*\n\n"
+            f"━━━━━━━━━━━━━━━━\n"
+            f"🔖 Order ID: `#{oid}`\n"
+            f"📦 {order['product_name']}\n"
+            f"💵 ${order['price_usd']}\n"
+            f"━━━━━━━━━━━━━━━━\n"
+            f"_للاستفسار تواصل مع الأدمن_"
+        )
+    else:
+        db.update_order_status(oid, status)
 
     return jsonify({"ok": True})
 
@@ -233,8 +269,9 @@ def api_broadcast():
     # احفظ بقاعدة البيانات
     conn = db.get_conn()
     c = conn.cursor()
-    c.execute("INSERT INTO broadcasts (message) VALUES (?) RETURNING id", (msg,))
+    c.execute("INSERT INTO broadcasts (message) VALUES (?)", (msg,))
     broadcast_id = c.lastrowid
+    # FIX: نحدد is_sent=1 مباشرة — الإرسال يصير هنا، الـ job_queue ما يحتاج يعيده
     conn.commit()
 
     # ارسل مباشرة لكل المستخدمين عبر Bot API
