@@ -158,7 +158,7 @@ def main():
 
     # ========== القائمة الثابتة ==========
     app.add_handler(MessageHandler(
-        filters.TEXT & filters.Regex(r'^(🚀 ابدأ|💬 Support|ℹ️ About)$'),
+        filters.TEXT & ~filters.COMMAND,
         hu.handle_persistent_menu
     ))
 
