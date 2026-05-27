@@ -3,7 +3,7 @@ from telegram.ext import ContextTypes, ConversationHandler
 from telegram.constants import ParseMode
 import database as db
 import keyboards as kb
-from config import ADMIN_ID, USDT_WALLET
+from config import ADMIN_ID, USDT_WALLET, SYP_RATE
 from lang import t, get_user_lang
 
 WAITING_METHOD, WAITING_AMOUNT, WAITING_TXHASH = range(20, 23)
@@ -60,8 +60,9 @@ async def charge_method_selected(update: Update, context: ContextTypes.DEFAULT_T
             f" *Syriatel Cash Top Up*\n\n"
             f"\n"
             f" Number  |  الرقم:\n"
-            f"`{SYRIATEL_CASH}`\n"
-            f"\n"
+            f"`{SYRIATEL_CASH}`\n\n"
+            f"💱 سعر الصرف: `{SYP_RATE:,.0f} ل.س = $1`\n"
+            f"_Exchange rate: {SYP_RATE:,.0f} SYP = $1_\n\n"
             f" كم ليرة تريد تشحن؟\n"
             f"_How much SYP?_"
         )
@@ -87,7 +88,12 @@ async def charge_amount(update: Update, context: ContextTypes.DEFAULT_TYPE):
             return WAITING_AMOUNT
         display = f"${amount}"
     else:
-        display = f"{amount:,.0f} ل.س"
+        amount_usd = round(amount / SYP_RATE, 2)
+        display = f"{amount:,.0f} ل.س (≈ ${amount_usd:.2f})"
+        context.user_data["charge_amount"] = amount_usd
+        context.user_data["charge_display"] = display
+        context.user_data["charge_amount_syp"] = amount
+        amount = amount_usd  # نحفظ بالدولار
 
     context.user_data["charge_amount"] = amount
     context.user_data["charge_display"] = display

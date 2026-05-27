@@ -7,6 +7,9 @@ ADMIN_ID = int(os.environ.get("ADMIN_TELEGRAM_ID", "0"))
 USDT_WALLET = os.environ.get("USDT_WALLET", "ضع_محفظة_USDT_هنا")
 SYRIATEL_CASH = os.environ.get("SYRIATEL_CASH", "ضع_رقم_سيريتيل_كاش_هنا")
 
+# سعر صرف الليرة السورية | SYP Exchange Rate (SYP per 1 USD)
+SYP_RATE = float(os.environ.get("SYP_RATE", "140"))
+
 # ═══════════════════════════════════════
 # رسالة الترحيب | Welcome Message
 # ═══════════════════════════════════════
