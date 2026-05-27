@@ -167,5 +167,31 @@ def api_add_balance(uid):
     new_balance = db.get_balance(uid)
     return jsonify({"ok": True, "new_balance": new_balance})
 
+@app.route('/api/notifications')
+@auth_required
+def api_notifications():
+    conn = db.get_conn()
+    c = conn.cursor()
+
+    # طلبات شحن معلقة
+    c.execute("SELECT id, full_name, amount_usd, method, created_at FROM charge_requests WHERE status='pending' ORDER BY created_at DESC LIMIT 20")
+    charges = [{"type": "charge", "id": r["id"], "name": r["full_name"],
+                "amount": r["amount_usd"], "method": r["method"],
+                "time": r["created_at"]} for r in c.fetchall()]
+
+    # طلبات شراء معلقة
+    c.execute("SELECT id, full_name, product_name, price_usd, created_at FROM orders WHERE status='pending' ORDER BY created_at DESC LIMIT 20")
+    orders = [{"type": "order", "id": r["id"], "name": r["full_name"],
+               "product": r["product_name"], "amount": r["price_usd"],
+               "time": r["created_at"]} for r in c.fetchall()]
+
+    conn.close()
+
+    notifications = sorted(charges + orders, key=lambda x: x["time"], reverse=True)
+    return jsonify({
+        "notifications": notifications,
+        "count": len(notifications)
+    })
+
 def run_dashboard():
     app.run(host='0.0.0.0', port=5000, debug=False, use_reloader=False)
