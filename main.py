@@ -181,6 +181,27 @@ def main():
         hu.handle_persistent_menu
     ))
 
+    # ========== Broadcast Job ==========
+    async def send_pending_broadcasts(context):
+        broadcasts = db.get_pending_broadcasts()
+        for bc in broadcasts:
+            users = db.get_all_users()
+            sent = 0
+            for user in users:
+                try:
+                    await context.bot.send_message(
+                        chat_id=user["id"],
+                        text=bc["message"],
+                        parse_mode="Markdown"
+                    )
+                    sent += 1
+                except:
+                    pass
+            db.mark_broadcast_sent(bc["id"], sent)
+            logger.info(f"📢 Broadcast #{bc['id']} sent to {sent} users")
+
+    app.job_queue.run_repeating(send_pending_broadcasts, interval=30, first=10)
+
     logger.info(f"🚀 البوت شغال! Admin ID: {ADMIN_ID}")
     app.run_polling(allowed_updates=Update.ALL_TYPES)
 
