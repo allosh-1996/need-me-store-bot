@@ -157,5 +157,15 @@ def api_broadcast():
     conn.close()
     return jsonify({"ok": True})
 
+@app.route('/api/users/<int:uid>/add_balance', methods=['POST'])
+@auth_required
+def api_add_balance(uid):
+    amount = float(request.json.get('amount', 0))
+    if amount <= 0:
+        return jsonify({"ok": False, "error": "Invalid amount"}), 400
+    db.add_balance(uid, amount)
+    new_balance = db.get_balance(uid)
+    return jsonify({"ok": True, "new_balance": new_balance})
+
 def run_dashboard():
     app.run(host='0.0.0.0', port=5000, debug=False, use_reloader=False)
