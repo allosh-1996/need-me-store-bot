@@ -1,23 +1,20 @@
-import sqlite3
 import os
+import psycopg2
+from psycopg2.extras import RealDictCursor
 
-# يحفظ الـ DB على Volume لو موجود، وإلا على نفس المجلد
-_data_dir = os.environ.get("DB_DIR", os.path.dirname(__file__))
-os.makedirs(_data_dir, exist_ok=True)
-DB_PATH = os.path.join(_data_dir, "store.db")
+# ===== الاتصال =====
+DATABASE_URL = os.environ.get("DATABASE_URL", "")
 
 def get_conn():
-    conn = sqlite3.connect(DB_PATH)
-    conn.row_factory = sqlite3.Row
+    conn = psycopg2.connect(DATABASE_URL, cursor_factory=RealDictCursor)
     return conn
 
 def init_db():
     conn = get_conn()
     c = conn.cursor()
 
-    # جدول المنتجات
     c.execute('''CREATE TABLE IF NOT EXISTS products (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        id SERIAL PRIMARY KEY,
         name TEXT NOT NULL,
         description TEXT,
         price_usd REAL,
@@ -29,16 +26,9 @@ def init_db():
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )''')
 
-    # إضافة عمود platform للجداول القديمة
-    try:
-        c.execute("ALTER TABLE products ADD COLUMN platform TEXT DEFAULT 'iOS'")
-    except:
-        pass
-
-    # جدول الطلبات
     c.execute('''CREATE TABLE IF NOT EXISTS orders (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        user_id INTEGER NOT NULL,
+        id SERIAL PRIMARY KEY,
+        user_id BIGINT NOT NULL,
         username TEXT,
         full_name TEXT,
         product_id INTEGER,
@@ -51,41 +41,36 @@ def init_db():
         payment_proof TEXT,
         status TEXT DEFAULT 'pending',
         notes TEXT,
-        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-        FOREIGN KEY(product_id) REFERENCES products(id)
+        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )''')
 
-    # جدول المستخدمين
     c.execute('''CREATE TABLE IF NOT EXISTS users (
-        id INTEGER PRIMARY KEY,
+        id BIGINT PRIMARY KEY,
         username TEXT,
         full_name TEXT,
         joined_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         is_blocked INTEGER DEFAULT 0
     )''')
 
-    # جدول الرسائل الجماعية
     c.execute('''CREATE TABLE IF NOT EXISTS broadcasts (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        id SERIAL PRIMARY KEY,
         message TEXT,
         sent_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
         sent_count INTEGER DEFAULT 0,
         is_sent INTEGER DEFAULT 0
     )''')
 
-    # جدول الرصيد
     c.execute('''CREATE TABLE IF NOT EXISTS balances (
-        user_id INTEGER PRIMARY KEY,
+        user_id BIGINT PRIMARY KEY,
         balance_usd REAL DEFAULT 0.0,
         total_charged REAL DEFAULT 0.0,
         total_spent REAL DEFAULT 0.0,
         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )''')
 
-    # جدول طلبات الشحن
     c.execute('''CREATE TABLE IF NOT EXISTS charge_requests (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        user_id INTEGER NOT NULL,
+        id SERIAL PRIMARY KEY,
+        user_id BIGINT NOT NULL,
         username TEXT,
         full_name TEXT,
         amount_usd REAL NOT NULL,
@@ -96,10 +81,9 @@ def init_db():
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )''')
 
-    # جدول طلبات البروكسي
     c.execute('''CREATE TABLE IF NOT EXISTS proxy_orders (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-        user_id INTEGER NOT NULL,
+        id SERIAL PRIMARY KEY,
+        user_id BIGINT NOT NULL,
         username TEXT,
         full_name TEXT,
         proxy_type TEXT,
@@ -129,7 +113,7 @@ def get_all_products(active_only=True):
 def get_product(product_id):
     conn = get_conn()
     c = conn.cursor()
-    c.execute("SELECT * FROM products WHERE id=?", (product_id,))
+    c.execute("SELECT * FROM products WHERE id=%s", (product_id,))
     row = c.fetchone()
     conn.close()
     return row
@@ -137,24 +121,24 @@ def get_product(product_id):
 def add_product(name, description, price_usd, price_syp, category, stock, platform='iOS'):
     conn = get_conn()
     c = conn.cursor()
-    c.execute("INSERT INTO products (name, description, price_usd, price_syp, category, platform, stock) VALUES (?,?,?,?,?,?,?)",
+    c.execute("INSERT INTO products (name, description, price_usd, price_syp, category, platform, stock) VALUES (%s,%s,%s,%s,%s,%s,%s) RETURNING id",
               (name, description, price_usd, price_syp, category, platform, stock))
+    pid = c.fetchone()['id']
     conn.commit()
-    pid = c.lastrowid
     conn.close()
     return pid
 
 def update_product_stock(product_id, stock):
     conn = get_conn()
     c = conn.cursor()
-    c.execute("UPDATE products SET stock=? WHERE id=?", (stock, product_id))
+    c.execute("UPDATE products SET stock=%s WHERE id=%s", (stock, product_id))
     conn.commit()
     conn.close()
 
 def delete_product(product_id):
     conn = get_conn()
     c = conn.cursor()
-    c.execute("UPDATE products SET active=0 WHERE id=?", (product_id,))
+    c.execute("UPDATE products SET active=0 WHERE id=%s", (product_id,))
     conn.commit()
     conn.close()
 
@@ -164,24 +148,24 @@ def create_order(user_id, username, full_name, product_id, product_name, price_u
     c = conn.cursor()
     c.execute("""INSERT INTO orders 
         (user_id, username, full_name, product_id, product_name, price_usd, price_syp, currency, payment_method)
-        VALUES (?,?,?,?,?,?,?,?,?)""",
+        VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s) RETURNING id""",
         (user_id, username, full_name, product_id, product_name, price_usd, price_syp, currency, payment_method))
+    oid = c.fetchone()['id']
     conn.commit()
-    oid = c.lastrowid
     conn.close()
     return oid
 
 def update_order_status(order_id, status, notes=None):
     conn = get_conn()
     c = conn.cursor()
-    c.execute("UPDATE orders SET status=?, notes=? WHERE id=?", (status, notes, order_id))
+    c.execute("UPDATE orders SET status=%s, notes=%s WHERE id=%s", (status, notes, order_id))
     conn.commit()
     conn.close()
 
 def update_order_proof(order_id, proof):
     conn = get_conn()
     c = conn.cursor()
-    c.execute("UPDATE orders SET payment_proof=? WHERE id=?", (proof, order_id))
+    c.execute("UPDATE orders SET payment_proof=%s WHERE id=%s", (proof, order_id))
     conn.commit()
     conn.close()
 
@@ -196,7 +180,7 @@ def get_pending_orders():
 def get_order(order_id):
     conn = get_conn()
     c = conn.cursor()
-    c.execute("SELECT * FROM orders WHERE id=?", (order_id,))
+    c.execute("SELECT * FROM orders WHERE id=%s", (order_id,))
     row = c.fetchone()
     conn.close()
     return row
@@ -204,7 +188,7 @@ def get_order(order_id):
 def get_user_orders(user_id):
     conn = get_conn()
     c = conn.cursor()
-    c.execute("SELECT * FROM orders WHERE user_id=? ORDER BY created_at DESC LIMIT 10", (user_id,))
+    c.execute("SELECT * FROM orders WHERE user_id=%s ORDER BY created_at DESC LIMIT 10", (user_id,))
     rows = c.fetchall()
     conn.close()
     return rows
@@ -213,8 +197,8 @@ def get_user_orders(user_id):
 def upsert_user(user_id, username, full_name):
     conn = get_conn()
     c = conn.cursor()
-    c.execute("""INSERT INTO users (id, username, full_name) VALUES (?,?,?)
-                 ON CONFLICT(id) DO UPDATE SET username=excluded.username, full_name=excluded.full_name""",
+    c.execute("""INSERT INTO users (id, username, full_name) VALUES (%s,%s,%s)
+                 ON CONFLICT(id) DO UPDATE SET username=EXCLUDED.username, full_name=EXCLUDED.full_name""",
               (user_id, username, full_name))
     conn.commit()
     conn.close()
@@ -231,16 +215,11 @@ def get_stats():
     conn = get_conn()
     c = conn.cursor()
     stats = {}
-    c.execute("SELECT COUNT(*) FROM users")
-    stats['users'] = c.fetchone()[0]
-    c.execute("SELECT COUNT(*) FROM orders")
-    stats['total_orders'] = c.fetchone()[0]
-    c.execute("SELECT COUNT(*) FROM orders WHERE status='pending'")
-    stats['pending_orders'] = c.fetchone()[0]
-    c.execute("SELECT COUNT(*) FROM orders WHERE status='completed'")
-    stats['completed_orders'] = c.fetchone()[0]
-    c.execute("SELECT COUNT(*) FROM products WHERE active=1")
-    stats['products'] = c.fetchone()[0]
+    c.execute("SELECT COUNT(*) as n FROM users"); stats['users'] = c.fetchone()['n']
+    c.execute("SELECT COUNT(*) as n FROM orders"); stats['total_orders'] = c.fetchone()['n']
+    c.execute("SELECT COUNT(*) as n FROM orders WHERE status='pending'"); stats['pending_orders'] = c.fetchone()['n']
+    c.execute("SELECT COUNT(*) as n FROM orders WHERE status='completed'"); stats['completed_orders'] = c.fetchone()['n']
+    c.execute("SELECT COUNT(*) as n FROM products WHERE active=1"); stats['products'] = c.fetchone()['n']
     conn.close()
     return stats
 
@@ -248,7 +227,7 @@ def get_stats():
 def get_balance(user_id):
     conn = get_conn()
     c = conn.cursor()
-    c.execute("SELECT balance_usd FROM balances WHERE user_id=?", (user_id,))
+    c.execute("SELECT balance_usd FROM balances WHERE user_id=%s", (user_id,))
     row = c.fetchone()
     conn.close()
     return row['balance_usd'] if row else 0.0
@@ -256,13 +235,20 @@ def get_balance(user_id):
 def add_balance(user_id, amount):
     conn = get_conn()
     c = conn.cursor()
-    c.execute("""INSERT INTO balances (user_id, balance_usd, total_charged)
-                 VALUES (?, ?, ?)
-                 ON CONFLICT(user_id) DO UPDATE SET
-                 balance_usd = balance_usd + excluded.balance_usd,
-                 total_charged = total_charged + excluded.total_charged,
-                 updated_at = CURRENT_TIMESTAMP""",
-              (user_id, amount, amount))
+    if amount >= 0:
+        c.execute("""INSERT INTO balances (user_id, balance_usd, total_charged)
+                     VALUES (%s, %s, %s)
+                     ON CONFLICT(user_id) DO UPDATE SET
+                     balance_usd = balances.balance_usd + EXCLUDED.balance_usd,
+                     total_charged = balances.total_charged + EXCLUDED.total_charged,
+                     updated_at = CURRENT_TIMESTAMP""",
+                  (user_id, amount, amount))
+    else:
+        c.execute("""UPDATE balances SET
+                     balance_usd = balance_usd + %s,
+                     total_spent = total_spent + %s,
+                     updated_at = CURRENT_TIMESTAMP
+                     WHERE user_id=%s""", (amount, abs(amount), user_id))
     conn.commit()
     conn.close()
 
@@ -270,10 +256,10 @@ def deduct_balance(user_id, amount):
     conn = get_conn()
     c = conn.cursor()
     c.execute("""UPDATE balances SET
-                 balance_usd = balance_usd - ?,
-                 total_spent = total_spent + ?,
+                 balance_usd = balance_usd - %s,
+                 total_spent = total_spent + %s,
                  updated_at = CURRENT_TIMESTAMP
-                 WHERE user_id=?""", (amount, amount, user_id))
+                 WHERE user_id=%s""", (amount, amount, user_id))
     conn.commit()
     conn.close()
 
@@ -285,17 +271,17 @@ def create_charge_request(user_id, username, full_name, amount_usd, tx_hash="", 
     conn = get_conn()
     c = conn.cursor()
     c.execute("""INSERT INTO charge_requests (user_id, username, full_name, amount_usd, method, tx_hash)
-                 VALUES (?,?,?,?,?,?)""",
+                 VALUES (%s,%s,%s,%s,%s,%s) RETURNING id""",
               (user_id, username, full_name, amount_usd, method, tx_hash))
+    rid = c.fetchone()['id']
     conn.commit()
-    rid = c.lastrowid
     conn.close()
     return rid
 
 def update_charge_proof(req_id, proof):
     conn = get_conn()
     c = conn.cursor()
-    c.execute("UPDATE charge_requests SET proof=? WHERE id=?", (proof, req_id))
+    c.execute("UPDATE charge_requests SET proof=%s WHERE id=%s", (proof, req_id))
     conn.commit()
     conn.close()
 
@@ -310,25 +296,20 @@ def get_pending_charges():
 def get_charge_request(req_id):
     conn = get_conn()
     c = conn.cursor()
-    c.execute("SELECT * FROM charge_requests WHERE id=?", (req_id,))
+    c.execute("SELECT * FROM charge_requests WHERE id=%s", (req_id,))
     row = c.fetchone()
     conn.close()
     return row
 
 def confirm_charge(req_id):
-    """
-    FIX: كانت تغير الحالة بس بدون إضافة رصيد.
-    الحين تغير الحالة وتضيف الرصيد تلقائياً.
-    """
     conn = get_conn()
     c = conn.cursor()
-    c.execute("SELECT * FROM charge_requests WHERE id=?", (req_id,))
+    c.execute("SELECT * FROM charge_requests WHERE id=%s", (req_id,))
     req = c.fetchone()
     if req and req['status'] == 'pending':
-        c.execute("UPDATE charge_requests SET status='confirmed' WHERE id=?", (req_id,))
+        c.execute("UPDATE charge_requests SET status='confirmed' WHERE id=%s", (req_id,))
         conn.commit()
         conn.close()
-        # أضف الرصيد تلقائياً
         add_balance(req['user_id'], req['amount_usd'])
         return req
     conn.close()
@@ -337,7 +318,7 @@ def confirm_charge(req_id):
 def reject_charge(req_id):
     conn = get_conn()
     c = conn.cursor()
-    c.execute("UPDATE charge_requests SET status='rejected' WHERE id=?", (req_id,))
+    c.execute("UPDATE charge_requests SET status='rejected' WHERE id=%s", (req_id,))
     conn.commit()
     conn.close()
 
@@ -353,7 +334,7 @@ def get_pending_broadcasts():
 def mark_broadcast_sent(broadcast_id, sent_count):
     conn = get_conn()
     c = conn.cursor()
-    c.execute("UPDATE broadcasts SET is_sent=1, sent_count=? WHERE id=?", (sent_count, broadcast_id))
+    c.execute("UPDATE broadcasts SET is_sent=1, sent_count=%s WHERE id=%s", (sent_count, broadcast_id))
     conn.commit()
     conn.close()
 
@@ -362,10 +343,10 @@ def create_proxy_order(user_id, username, full_name, proxy_type, proxy_type_labe
     conn = get_conn()
     c = conn.cursor()
     c.execute("""INSERT INTO proxy_orders (user_id, username, full_name, proxy_type, proxy_type_label, quantity, country, notes)
-                 VALUES (?,?,?,?,?,?,?,?)""",
+                 VALUES (%s,%s,%s,%s,%s,%s,%s,%s) RETURNING id""",
               (user_id, username, full_name, proxy_type, proxy_type_label, quantity, country, notes))
+    oid = c.fetchone()['id']
     conn.commit()
-    oid = c.lastrowid
     conn.close()
     return oid
 
@@ -380,6 +361,6 @@ def get_pending_proxy_orders():
 def update_proxy_order_status(order_id, status):
     conn = get_conn()
     c = conn.cursor()
-    c.execute("UPDATE proxy_orders SET status=? WHERE id=?", (status, order_id))
+    c.execute("UPDATE proxy_orders SET status=%s WHERE id=%s", (status, order_id))
     conn.commit()
     conn.close()
