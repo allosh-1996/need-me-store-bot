@@ -124,12 +124,63 @@ tr:hover td{background:var(--surface2)}
 @media(max-width:768px){
   .sidebar{display:none}
   .topbar{display:flex}
-  .main{margin-right:0;padding:14px;padding-bottom:80px}
+  .main{margin-right:0;padding:10px;padding-bottom:75px}
   .bottom-nav{display:block}
-  .toast{bottom:90px}
-  .stats-grid{grid-template-columns:repeat(2,1fr)}
+  .toast{bottom:85px;font-size:.72rem;padding:7px 14px}
+
+  /* Stats */
+  .stats-grid{grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:14px}
+  .stat-card{padding:12px 8px;border-radius:8px}
+  .stat-icon{font-size:1.2rem;margin-bottom:6px}
+  .stat-val{font-size:1.4rem}
+  .stat-lbl{font-size:.65rem}
+
+  /* Cards & Tables */
+  .card{padding:12px;border-radius:8px;margin-bottom:10px}
+  table{min-width:360px;font-size:.72rem}
+  th{padding:6px 8px;font-size:.65rem}
+  td{padding:7px 8px;font-size:.72rem}
+
+  /* Buttons */
+  .btn{padding:6px 10px;font-size:.72rem}
+  .btn-sm{padding:3px 7px;font-size:.65rem}
+  .btn-group{gap:4px}
+
+  /* Header */
+  .page-header{flex-direction:column;align-items:flex-start;gap:8px;margin-bottom:14px}
+  .page-title h2{font-size:1rem}
+  .page-title p{font-size:.7rem}
+
+  /* Tabs */
+  .tabs{gap:2px;padding:2px}
+  .tab{padding:5px 10px;font-size:.7rem}
+
+  /* Forms */
   .form-row{grid-template-columns:1fr}
-  .page-header{flex-direction:column;align-items:flex-start}
+  .form-group input,.form-group textarea,.form-group select{font-size:.8rem;padding:7px 10px}
+
+  /* Modal */
+  .modal{padding:10px}
+  .modal-box{padding:16px;border-radius:10px}
+  .modal-box h3{font-size:.9rem}
+
+  /* Bottom Nav */
+  .bnav-item{font-size:.55rem;min-width:40px;padding:3px 4px}
+  .bnav-icon{font-size:1.1rem}
+
+  /* Topbar */
+  .topbar{padding:10px 12px}
+  .topbar-logo{font-size:.85rem}
+}
+
+/* شاشات صغيرة جداً */
+@media(max-width:360px){
+  .stats-grid{grid-template-columns:repeat(2,1fr);gap:6px}
+  .stat-card{padding:10px 6px}
+  .stat-val{font-size:1.2rem}
+  .main{padding:8px;padding-bottom:72px}
+  .bnav-item{font-size:.5rem;min-width:36px}
+  .bnav-icon{font-size:1rem}
 }
 </style>
 </head>
