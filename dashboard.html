@@ -619,7 +619,9 @@ async function loadUsers(){
   grid.innerHTML = data.map(u => {
     const initials = (u.full_name||'?').charAt(0).toUpperCase()
     const name = (u.full_name||'—').split(' ').slice(0,2).join(' ')
-    return `<div class="user-card" onclick="openDrawer(${u.id},'${(u.full_name||'—').replace(/'/g,"\'")}','${(u.username||'').replace(/'/g,"\'")}',${Number(u.balance||0)},${Number(u.total_charged||0)},${Number(u.total_spent||0)},'${(u.joined_at||'').substring(0,10)}')">
+    const _b=Number(u.balance||0), _c=Number(u.total_charged||0), _s=Number(u.total_spent||0)
+    const _n=(u.full_name||'—').replace(/'/g,"\'"), _u=(u.username||'').replace(/'/g,"\'"), _j=(u.joined_at||'').substring(0,10)
+    return `<div class="user-card" onclick="openDrawer(${u.id},'${_n}','${_u}',${_b},${_c},${_s},'${_j}')">
       <div class="uc-avatar">${initials}</div>
       <div class="uc-name">${name}</div>
       <div class="uc-id">${u.id}</div>

@@ -213,7 +213,10 @@ def api_reject_charge(cid):
 def api_users():
     conn = db.get_conn()
     c = conn.cursor()
-    c.execute("""SELECT u.*, COALESCE(b.balance_usd, 0) as balance 
+    c.execute("""SELECT u.*, 
+                        COALESCE(b.balance_usd, 0) as balance,
+                        COALESCE(b.total_charged, 0) as total_charged,
+                        COALESCE(b.total_spent, 0) as total_spent
                  FROM users u LEFT JOIN balances b ON u.id=b.user_id 
                  ORDER BY u.joined_at DESC""")
     rows = [dict(r) for r in c.fetchall()]
