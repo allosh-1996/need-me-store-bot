@@ -117,7 +117,7 @@ def api_orders():
     conn = db.get_conn()
     c = conn.cursor()
     if status:
-        c.execute("SELECT o.*, b.balance_usd FROM orders o LEFT JOIN balances b ON o.user_id=b.user_id WHERE o.status=%s ORDER BY o.created_at DESC", (status,))
+        c.execute("SELECT o.*, b.balance_usd FROM orders o LEFT JOIN balances b ON o.user_id=b.user_id WHERE o.status=? ORDER BY o.created_at DESC", (status,))
     else:
         c.execute("SELECT o.*, b.balance_usd FROM orders o LEFT JOIN balances b ON o.user_id=b.user_id ORDER BY o.created_at DESC LIMIT 100")
     rows = [dict(r) for r in c.fetchall()]
@@ -233,9 +233,8 @@ def api_broadcast():
     # احفظ بقاعدة البيانات
     conn = db.get_conn()
     c = conn.cursor()
-    c.execute("INSERT INTO broadcasts (message) VALUES (%s) RETURNING id", (msg,))
-    row = c.fetchone()
-    broadcast_id = row['id'] if row else 0
+    c.execute("INSERT INTO broadcasts (message) VALUES (?) RETURNING id", (msg,))
+    broadcast_id = c.lastrowid
     conn.commit()
 
     # ارسل مباشرة لكل المستخدمين عبر Bot API
@@ -262,7 +261,7 @@ def api_broadcast():
     # حدث السجل
     conn2 = db.get_conn()
     c2 = conn2.cursor()
-    c2.execute("UPDATE broadcasts SET is_sent=1, sent_count=%s WHERE id=%s", (sent, broadcast_id))
+    c2.execute("UPDATE broadcasts SET is_sent=1, sent_count=? WHERE id=?", (sent, broadcast_id))
     conn2.commit()
     conn2.close()
 
@@ -307,7 +306,7 @@ def api_get_balance(uid):
     balance = db.get_balance(uid)
     conn = db.get_conn()
     c = conn.cursor()
-    c.execute("SELECT total_charged, total_spent FROM balances WHERE user_id=%s", (uid,))
+    c.execute("SELECT total_charged, total_spent FROM balances WHERE user_id=?", (uid,))
     row = c.fetchone()
     conn.close()
     return jsonify({
@@ -365,7 +364,7 @@ def api_proxy_order_status(oid):
     status = request.json.get('status')
     conn = db.get_conn()
     c = conn.cursor()
-    c.execute("SELECT * FROM proxy_orders WHERE id=%s", (oid,))
+    c.execute("SELECT * FROM proxy_orders WHERE id=?", (oid,))
     proxy = c.fetchone()
     conn.close()
     db.update_proxy_order_status(oid, status)
