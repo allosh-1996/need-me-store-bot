@@ -20,10 +20,17 @@ def init_db():
         price_usd REAL,
         price_syp REAL,
         category TEXT,
+        platform TEXT DEFAULT 'iOS',
         stock TEXT,
         active INTEGER DEFAULT 1,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )''')
+
+    # إضافة عمود platform للجداول القديمة
+    try:
+        c.execute("ALTER TABLE products ADD COLUMN platform TEXT DEFAULT 'iOS'")
+    except:
+        pass
 
     # جدول الطلبات
     c.execute('''CREATE TABLE IF NOT EXISTS orders (
@@ -124,11 +131,11 @@ def get_product(product_id):
     conn.close()
     return row
 
-def add_product(name, description, price_usd, price_syp, category, stock):
+def add_product(name, description, price_usd, price_syp, category, stock, platform='iOS'):
     conn = get_conn()
     c = conn.cursor()
-    c.execute("INSERT INTO products (name, description, price_usd, price_syp, category, stock) VALUES (?,?,?,?,?,?)",
-              (name, description, price_usd, price_syp, category, stock))
+    c.execute("INSERT INTO products (name, description, price_usd, price_syp, category, platform, stock) VALUES (?,?,?,?,?,?,?)",
+              (name, description, price_usd, price_syp, category, platform, stock))
     conn.commit()
     pid = c.lastrowid
     conn.close()

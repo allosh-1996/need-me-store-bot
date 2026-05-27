@@ -85,11 +85,15 @@ async def show_product_detail(update: Update, context: ContextTypes.DEFAULT_TYPE
     has_stock = bool(product['stock'])
     stock_status = "✅ متوفر  |  In Stock" if has_stock else "🔴 غير متوفر  |  Out of Stock"
 
+    platform = product.get('platform', '') or ''
+    platform_icon = '🍎' if 'iOS' in platform and 'Android' not in platform else ('🤖' if platform == 'Android' else '📱')
+    platform_line = f"\n{platform_icon} *Platform:* `{platform}`" if platform else ""
+
     text = (
         f"🏷️ *{product['name']}*\n\n"
         f"━━━━━━━━━━━━━━━━\n"
-        f"📝 {product['description'] or '_لا يوجد وصف  |  No description_'}\n\n"
-        f"💵 *USD:* `${product['price_usd']}`\n"
+        f"📝 {product['description'] or '_لا يوجد وصف  |  No description_'}"        + platform_line +
+        f"\n\n💵 *USD:* `${product['price_usd']}`\n"
         f"💴 *SYP:* `{product['price_syp']:,.0f} ل.س`\n\n"
         f"📦 *Status:* {stock_status}\n"
         f"━━━━━━━━━━━━━━━━"

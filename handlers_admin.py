@@ -6,8 +6,8 @@ import keyboards as kb
 from config import ADMIN_ID
 
 (ADM_PROD_NAME, ADM_PROD_DESC, ADM_PROD_PRICE_USD, ADM_PROD_PRICE_SYP,
- ADM_PROD_CATEGORY, ADM_PROD_STOCK, ADM_BROADCAST_MSG, ADM_STOCK_UPDATE,
- ADM_CONFIRM_DELIVERY) = range(10, 19)
+ ADM_PROD_CATEGORY, ADM_PROD_PLATFORM, ADM_PROD_STOCK, ADM_BROADCAST_MSG, ADM_STOCK_UPDATE,
+ ADM_CONFIRM_DELIVERY) = range(10, 20)
 
 def is_admin(user_id):
     return user_id == ADMIN_ID
@@ -106,11 +106,33 @@ async def add_product_price_syp(update: Update, context: ContextTypes.DEFAULT_TY
 
 async def add_product_category(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data['new_product']['category'] = update.message.text
+
+    from telegram import InlineKeyboardButton, InlineKeyboardMarkup
+    platform_kb = InlineKeyboardMarkup([
+        [InlineKeyboardButton("🍎 iOS", callback_data="adm_platform_iOS"),
+         InlineKeyboardButton("🤖 Android", callback_data="adm_platform_Android")],
+        [InlineKeyboardButton("📱 iOS & Android", callback_data="adm_platform_iOS & Android")],
+    ])
     await update.message.reply_text(
-        "📦 *المخزون  |  Stock*\n\n"
-        "_المحتوى الذي سيُرسل للعميل_\n"
-        "_Content to be sent to the customer_\n\n"
-        "مثال:\n`account@email.com:password`\n`or download link`",
+        "📱 *المنظومة  |  Platform*\n\n"
+        "_اختر منظومة المنتج:_",
+        parse_mode=ParseMode.MARKDOWN,
+        reply_markup=platform_kb
+    )
+    return ADM_PROD_PLATFORM
+
+async def add_product_platform(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+    platform = query.data.replace("adm_platform_", "")
+    context.user_data['new_product']['platform'] = platform
+
+    await query.edit_message_text(
+        f"✅ المنظومة  |  Platform: *{platform}*\n\n"
+        f"📦 *المخزون  |  Stock*\n\n"
+        f"_المحتوى الذي سيُرسل للعميل_\n"
+        f"_Content to be sent to the customer_\n\n"
+        f"مثال:\n`account@email.com:password`\n`or download link`",
         parse_mode=ParseMode.MARKDOWN
     )
     return ADM_PROD_STOCK
@@ -122,7 +144,8 @@ async def add_product_stock(update: Update, context: ContextTypes.DEFAULT_TYPE):
     product_id = db.add_product(
         name=p['name'], description=p['description'],
         price_usd=p['price_usd'], price_syp=p['price_syp'],
-        category=p['category'], stock=p['stock']
+        category=p['category'], stock=p['stock'],
+        platform=p.get('platform', 'iOS')
     )
 
     await update.message.reply_text(
