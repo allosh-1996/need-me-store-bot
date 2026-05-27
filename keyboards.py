@@ -12,6 +12,9 @@ def main_menu():
             InlineKeyboardButton("🔒 بروكسي  |  Proxy", callback_data="proxy_menu"),
         ],
         [
+            InlineKeyboardButton("🍎 Win AppsFlyer", callback_data="win_appsflyer"),
+        ],
+        [
             InlineKeyboardButton("📞 تواصل  |  Contact", callback_data="contact"),
         ],
     ]

@@ -503,3 +503,28 @@ async def emails_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
         parse_mode="Markdown",
         reply_markup=kb_emails
     )
+
+# ═══════════════════════════════════════
+# Win AppsFlyer
+# ═══════════════════════════════════════
+async def win_appsflyer(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+
+    games_kb = InlineKeyboardMarkup([
+        [InlineKeyboardButton("🍎 Coin Master", callback_data="cat_Coin Master")],
+        [InlineKeyboardButton("🍎 Domino Dream", callback_data="cat_Domino Dream")],
+        [InlineKeyboardButton("🍎 Disney Dream", callback_data="cat_Disney Dream")],
+        [InlineKeyboardButton("🍎 Screw Guru", callback_data="cat_Screw Guru")],
+        [InlineKeyboardButton("🍎 Travel Town", callback_data="cat_Travel Town")],
+        [InlineKeyboardButton("🍎 Dice Dream", callback_data="cat_Dice Dream")],
+        [InlineKeyboardButton("🔙 Back  |  رجوع", callback_data="back_main")],
+    ])
+
+    await query.edit_message_text(
+        "🍎 *Win AppsFlyer*\n\n"
+        "━━━━━━━━━━━━━━━━\n"
+        "_اختر اللعبة  |  Choose a game:_",
+        parse_mode="Markdown",
+        reply_markup=games_kb
+    )
