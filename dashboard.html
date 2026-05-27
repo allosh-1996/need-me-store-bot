@@ -1,97 +1,139 @@
 <!DOCTYPE html>
-<html class="light" lang="ar" dir="rtl">
+<html lang="ar" dir="rtl">
 <head>
-<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Need Me Store — لوحة التحكم</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/styles.css">
-<script src="/theme.js"></script>
 <style>
 *{box-sizing:border-box;margin:0;padding:0}
-body{font-family:var(--font-sans);background:var(--surface-base);color:var(--text-primary);min-height:100vh}
-.sidebar{position:fixed;top:0;right:0;width:220px;height:100vh;background:var(--surface-primary);box-shadow:var(--shadow-lifted-card);display:flex;flex-direction:column;padding:20px 0;z-index:100}
-.logo{padding:0 20px 20px;border-bottom:1px solid var(--border-subtle);text-align:center}
-.logo h1{font-size:1.1rem;font-weight:700;color:var(--text-primary)}
-.logo p{font-size:.75rem;color:var(--text-muted);margin-top:2px}
-nav{flex:1;padding:12px 0}
-.nav-item{display:flex;align-items:center;gap:10px;padding:10px 20px;cursor:pointer;color:var(--text-secondary);font-size:.9rem;transition:all .15s;border-right:3px solid transparent}
-.nav-item:hover{background:var(--surface-hover);color:var(--text-primary)}
-.nav-item.active{background:var(--surface-active);color:var(--text-primary);border-right-color:var(--blue-800);font-weight:600}
-.nav-item span:first-child{font-size:1.1rem}
-.sidebar-footer{padding:12px 20px;border-top:1px solid var(--border-subtle);display:flex;gap:8px}
-.main{margin-right:220px;padding:28px;min-height:100vh}
+:root{
+  --bg:#0f0f13;--surface:#1a1a24;--surface2:#22222f;--border:#2a2a3a;
+  --text:#e8e8f0;--muted:#6b6b85;--accent:#7c5cfc;--accent2:#5b4bd4;
+  --green:#22c55e;--red:#ef4444;--orange:#f97316;--blue:#3b82f6;
+  --green-dim:#14532d;--red-dim:#450a0a;--orange-dim:#431407;
+}
+body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;display:flex}
+
+/* Sidebar */
+.sidebar{width:230px;min-height:100vh;background:var(--surface);border-left:1px solid var(--border);display:flex;flex-direction:column;position:fixed;right:0;top:0;z-index:100}
+.logo{padding:24px 20px;border-bottom:1px solid var(--border)}
+.logo h1{font-size:1rem;font-weight:700;color:var(--text)}
+.logo p{font-size:.75rem;color:var(--muted);margin-top:3px}
+.logo .dot{display:inline-block;width:8px;height:8px;background:var(--green);border-radius:50%;margin-left:6px;animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+nav{flex:1;padding:12px 10px}
+.nav-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:8px;cursor:pointer;color:var(--muted);font-size:.875rem;transition:all .15s;margin-bottom:2px}
+.nav-item:hover{background:var(--surface2);color:var(--text)}
+.nav-item.active{background:var(--accent);color:#fff;font-weight:600}
+.nav-item .icon{font-size:1rem;width:20px;text-align:center}
+.sidebar-footer{padding:16px 10px;border-top:1px solid var(--border)}
+.logout-btn{width:100%;padding:9px;background:var(--red-dim);color:var(--red);border:1px solid var(--red);border-radius:8px;cursor:pointer;font-size:.8rem;font-weight:500}
+.logout-btn:hover{background:var(--red);color:#fff}
+
+/* Main */
+.main{margin-right:230px;flex:1;padding:28px;min-height:100vh}
 .page{display:none}.page.active{display:block}
-.page-header{margin-bottom:24px}
-.page-header h2{font-size:1.4rem;font-weight:700;color:var(--text-primary)}
-.page-header p{color:var(--text-muted);font-size:.875rem;margin-top:4px}
-.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:16px;margin-bottom:28px}
-.stat-card{background:var(--surface-primary);box-shadow:var(--shadow-lifted-card);border-radius:var(--radius-lg);padding:20px}
-.stat-card .icon{font-size:1.8rem;margin-bottom:8px}
-.stat-card .val{font-size:1.8rem;font-weight:700;color:var(--text-primary)}
-.stat-card .lbl{font-size:.8rem;color:var(--text-muted);margin-top:2px}
-.card{background:var(--surface-primary);box-shadow:var(--shadow-lifted-card);border-radius:var(--radius-lg);padding:20px;margin-bottom:20px}
-.card h3{font-size:1rem;font-weight:600;margin-bottom:16px;color:var(--text-primary)}
+.page-header{margin-bottom:24px;display:flex;align-items:center;justify-content:space-between}
+.page-header-left h2{font-size:1.3rem;font-weight:700}
+.page-header-left p{color:var(--muted);font-size:.8rem;margin-top:3px}
+
+/* Stats */
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:14px;margin-bottom:24px}
+.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px}
+.stat-card .icon{font-size:1.6rem;margin-bottom:10px}
+.stat-card .val{font-size:1.8rem;font-weight:700}
+.stat-card .lbl{font-size:.75rem;color:var(--muted);margin-top:3px}
+
+/* Cards */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:20px;margin-bottom:16px}
+.card h3{font-size:.95rem;font-weight:600;margin-bottom:16px;color:var(--muted)}
+
+/* Table */
+.table-wrap{overflow-x:auto}
 table{width:100%;border-collapse:collapse}
-th{text-align:right;padding:10px 12px;font-size:.8rem;color:var(--text-muted);font-weight:500;border-bottom:1px solid var(--border-subtle)}
-td{padding:10px 12px;font-size:.875rem;color:var(--text-secondary);border-bottom:1px solid var(--border-subtle)}
+th{text-align:right;padding:10px 14px;font-size:.75rem;color:var(--muted);font-weight:500;border-bottom:1px solid var(--border)}
+td{padding:10px 14px;font-size:.8rem;color:var(--text);border-bottom:1px solid var(--border)}
 tr:last-child td{border-bottom:none}
-tr:hover td{background:var(--surface-hover)}
-.badge{display:inline-flex;align-items:center;padding:2px 8px;border-radius:20px;font-size:.75rem;font-weight:500}
-.badge-success{background:var(--green-100);color:var(--green-700)}
-.badge-error{background:var(--red-100);color:var(--red-700)}
-.badge-warning{background:var(--orange-100);color:var(--orange-800)}
-.badge-info{background:var(--blue-100);color:var(--blue-900)}
-.btn{padding:7px 14px;border-radius:var(--radius-md);border:none;cursor:pointer;font-size:.8rem;font-weight:500;transition:all .15s}
-.btn-primary{background:var(--button-primary-bg);color:var(--button-primary-fg)}
-.btn-success{background:var(--green-600);color:#fff}
-.btn-danger{background:var(--red-600);color:#fff}
-.btn-sm{padding:4px 10px;font-size:.75rem}
+tr:hover td{background:var(--surface2)}
+
+/* Badges */
+.badge{display:inline-flex;align-items:center;padding:3px 10px;border-radius:20px;font-size:.7rem;font-weight:600}
+.badge-success{background:var(--green-dim);color:var(--green)}
+.badge-error{background:var(--red-dim);color:var(--red)}
+.badge-warning{background:var(--orange-dim);color:var(--orange)}
+.badge-info{background:#1e3a5f;color:var(--blue)}
+
+/* Buttons */
+.btn{padding:7px 14px;border-radius:8px;border:none;cursor:pointer;font-size:.8rem;font-weight:500;transition:all .15s}
+.btn-primary{background:var(--accent);color:#fff}
+.btn-primary:hover{background:var(--accent2)}
+.btn-success{background:var(--green-dim);color:var(--green);border:1px solid var(--green)}
+.btn-success:hover{background:var(--green);color:#fff}
+.btn-danger{background:var(--red-dim);color:var(--red);border:1px solid var(--red)}
+.btn-danger:hover{background:var(--red);color:#fff}
+.btn-sm{padding:4px 10px;font-size:.72rem}
+
+/* Tabs */
+.tabs{display:flex;gap:4px;margin-bottom:16px;background:var(--surface2);padding:4px;border-radius:8px;width:fit-content}
+.tab{padding:6px 16px;border-radius:6px;cursor:pointer;font-size:.8rem;color:var(--muted);transition:all .15s}
+.tab.active{background:var(--surface);color:var(--text);font-weight:500}
+
+/* Forms */
 .form-group{margin-bottom:14px}
-.form-group label{display:block;font-size:.8rem;font-weight:500;color:var(--text-secondary);margin-bottom:5px}
-.form-group input,.form-group textarea,.form-group select{width:100%;padding:9px 12px;border-radius:var(--radius-md);border:none;box-shadow:var(--shadow-lifted-card);background:var(--surface-secondary);color:var(--text-primary);font-size:.875rem;font-family:var(--font-sans)}
+.form-group label{display:block;font-size:.78rem;font-weight:500;color:var(--muted);margin-bottom:5px}
+.form-group input,.form-group textarea,.form-group select{
+  width:100%;padding:9px 12px;border-radius:8px;border:1px solid var(--border);
+  background:var(--surface2);color:var(--text);font-size:.875rem;font-family:'Inter',sans-serif;outline:none
+}
+.form-group input:focus,.form-group textarea:focus{border-color:var(--accent)}
 .form-group textarea{resize:vertical;min-height:80px}
 .form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
-.modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:200;align-items:center;justify-content:center}
+
+/* Modal */
+.modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:200;align-items:center;justify-content:center}
 .modal.open{display:flex}
-.modal-box{background:var(--surface-primary);border-radius:var(--radius-xl);padding:24px;width:480px;max-width:95vw;max-height:90vh;overflow-y:auto}
-.modal-box h3{font-size:1.1rem;font-weight:600;margin-bottom:16px}
+.modal-box{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:24px;width:480px;max-width:95vw;max-height:90vh;overflow-y:auto}
+.modal-box h3{font-size:1rem;font-weight:600;margin-bottom:16px}
 .modal-footer{display:flex;gap:8px;justify-content:flex-end;margin-top:16px}
-.tabs{display:flex;gap:4px;margin-bottom:16px;background:var(--surface-secondary);padding:4px;border-radius:var(--radius-md)}
-.tab{padding:7px 16px;border-radius:var(--radius-sm);cursor:pointer;font-size:.85rem;color:var(--text-muted);transition:all .15s}
-.tab.active{background:var(--surface-primary);color:var(--text-primary);font-weight:500;box-shadow:var(--shadow-lifted-card)}
-.empty{text-align:center;padding:40px;color:var(--text-muted);font-size:.9rem}
-.toast{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);background:var(--neutral-1100);color:#fff;padding:10px 20px;border-radius:var(--radius-md);font-size:.875rem;z-index:999;opacity:0;transition:opacity .3s;pointer-events:none}
+
+/* Empty */
+.empty{text-align:center;padding:40px;color:var(--muted);font-size:.875rem}
+
+/* Toast */
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);padding:10px 20px;border-radius:8px;font-size:.8rem;font-weight:500;z-index:999;opacity:0;transition:opacity .3s;pointer-events:none}
 .toast.show{opacity:1}
 </style>
 </head>
 <body>
 
-<!-- Sidebar -->
 <aside class="sidebar">
   <div class="logo">
-    <h1>🛍️ Need Me Store</h1>
-    <p>لوحة التحكم</p>
+    <h1>🌙 Need Me Store <span class="dot"></span></h1>
+    <p>Admin Dashboard</p>
   </div>
   <nav>
-    <div class="nav-item active" onclick="showPage('stats')"><span>📊</span><span>الإحصائيات</span></div>
-    <div class="nav-item" onclick="showPage('products')"><span>📦</span><span>المنتجات</span></div>
-    <div class="nav-item" onclick="showPage('orders')"><span>📋</span><span>الطلبات</span></div>
-    <div class="nav-item" onclick="showPage('charges')"><span>💰</span><span>طلبات الشحن</span></div>
-    <div class="nav-item" onclick="showPage('users')"><span>👥</span><span>المستخدمين</span></div>
-    <div class="nav-item" onclick="showPage('broadcast')"><span>📢</span><span>رسالة جماعية</span></div>
+    <div class="nav-item active" onclick="showPage('stats',this)"><span class="icon">📊</span><span>الإحصائيات</span></div>
+    <div class="nav-item" onclick="showPage('products',this)"><span class="icon">📦</span><span>المنتجات</span></div>
+    <div class="nav-item" onclick="showPage('orders',this)"><span class="icon">📋</span><span>الطلبات</span></div>
+    <div class="nav-item" onclick="showPage('charges',this)"><span class="icon">💰</span><span>طلبات الشحن</span></div>
+    <div class="nav-item" onclick="showPage('users',this)"><span class="icon">👥</span><span>المستخدمين</span></div>
+    <div class="nav-item" onclick="showPage('broadcast',this)"><span class="icon">📢</span><span>رسالة جماعية</span></div>
   </nav>
   <div class="sidebar-footer">
-    <button class="btn btn-sm theme-toggle" style="flex:1">🌙 الوضع</button>
-    <a href="/logout"><button class="btn btn-sm btn-danger">خروج</button></a>
+    <a href="/logout"><button class="logout-btn">🚪 تسجيل الخروج</button></a>
   </div>
 </aside>
 
 <main class="main">
 
-<!-- ===== إحصائيات ===== -->
+<!-- Stats -->
 <div id="page-stats" class="page active">
-  <div class="page-header"><h2>📊 الإحصائيات</h2><p>نظرة عامة على المتجر</p></div>
-  <div class="stats-grid" id="stats-grid">
+  <div class="page-header">
+    <div class="page-header-left"><h2>📊 الإحصائيات</h2><p>نظرة عامة على المتجر</p></div>
+    <button class="btn btn-primary" onclick="loadStats()">🔄 تحديث</button>
+  </div>
+  <div class="stats-grid">
     <div class="stat-card"><div class="icon">👥</div><div class="val" id="s-users">—</div><div class="lbl">مستخدم</div></div>
     <div class="stat-card"><div class="icon">📦</div><div class="val" id="s-products">—</div><div class="lbl">منتج نشط</div></div>
     <div class="stat-card"><div class="icon">📋</div><div class="val" id="s-total">—</div><div class="lbl">إجمالي الطلبات</div></div>
@@ -100,59 +142,67 @@ tr:hover td{background:var(--surface-hover)}
   </div>
 </div>
 
-<!-- ===== المنتجات ===== -->
+<!-- Products -->
 <div id="page-products" class="page">
-  <div class="page-header" style="display:flex;align-items:center;justify-content:space-between">
-    <div><h2>📦 المنتجات</h2><p>إدارة المنتجات</p></div>
+  <div class="page-header">
+    <div class="page-header-left"><h2>📦 المنتجات</h2><p>إدارة المنتجات والمخزون</p></div>
     <button class="btn btn-primary" onclick="openModal('add-product-modal')">➕ إضافة منتج</button>
   </div>
   <div class="card">
-    <table><thead><tr><th>الاسم</th><th>الفئة</th><th>USD</th><th>SYP</th><th>الحالة</th><th>إجراء</th></tr></thead>
-    <tbody id="products-table"><tr><td colspan="6" class="empty">جاري التحميل...</td></tr></tbody></table>
+    <div class="table-wrap">
+      <table><thead><tr><th>الاسم</th><th>الفئة</th><th>USD</th><th>SYP</th><th>الحالة</th><th>إجراء</th></tr></thead>
+      <tbody id="products-table"><tr><td colspan="6" class="empty">جاري التحميل...</td></tr></tbody></table>
+    </div>
   </div>
 </div>
 
-<!-- ===== الطلبات ===== -->
+<!-- Orders -->
 <div id="page-orders" class="page">
-  <div class="page-header"><h2>📋 الطلبات</h2><p>إدارة الطلبات</p></div>
+  <div class="page-header"><div class="page-header-left"><h2>📋 الطلبات</h2><p>إدارة طلبات العملاء</p></div></div>
   <div class="tabs">
-    <div class="tab active" onclick="loadOrders('')">الكل</div>
-    <div class="tab" onclick="loadOrders('pending')">⏳ معلقة</div>
-    <div class="tab" onclick="loadOrders('completed')">✅ مكتملة</div>
-    <div class="tab" onclick="loadOrders('rejected')">❌ مرفوضة</div>
+    <div class="tab active" onclick="loadOrders('',this)">الكل</div>
+    <div class="tab" onclick="loadOrders('pending',this)">⏳ معلقة</div>
+    <div class="tab" onclick="loadOrders('completed',this)">✅ مكتملة</div>
+    <div class="tab" onclick="loadOrders('rejected',this)">❌ مرفوضة</div>
   </div>
   <div class="card">
-    <table><thead><tr><th>#</th><th>العميل</th><th>المنتج</th><th>المبلغ</th><th>الدفع</th><th>الحالة</th><th>إجراء</th></tr></thead>
-    <tbody id="orders-table"><tr><td colspan="7" class="empty">جاري التحميل...</td></tr></tbody></table>
+    <div class="table-wrap">
+      <table><thead><tr><th>#</th><th>العميل</th><th>المنتج</th><th>المبلغ</th><th>الدفع</th><th>الحالة</th><th>إجراء</th></tr></thead>
+      <tbody id="orders-table"><tr><td colspan="7" class="empty">جاري التحميل...</td></tr></tbody></table>
+    </div>
   </div>
 </div>
 
-<!-- ===== الشحن ===== -->
+<!-- Charges -->
 <div id="page-charges" class="page">
-  <div class="page-header"><h2>💰 طلبات الشحن</h2><p>تأكيد أو رفض طلبات شحن الرصيد</p></div>
+  <div class="page-header"><div class="page-header-left"><h2>💰 طلبات الشحن</h2><p>تأكيد أو رفض طلبات شحن الرصيد</p></div></div>
   <div class="card">
-    <table><thead><tr><th>#</th><th>العميل</th><th>المبلغ</th><th>الطريقة</th><th>TXID</th><th>الحالة</th><th>إجراء</th></tr></thead>
-    <tbody id="charges-table"><tr><td colspan="7" class="empty">جاري التحميل...</td></tr></tbody></table>
+    <div class="table-wrap">
+      <table><thead><tr><th>#</th><th>العميل</th><th>المبلغ</th><th>الطريقة</th><th>TXID</th><th>الحالة</th><th>إجراء</th></tr></thead>
+      <tbody id="charges-table"><tr><td colspan="7" class="empty">جاري التحميل...</td></tr></tbody></table>
+    </div>
   </div>
 </div>
 
-<!-- ===== المستخدمين ===== -->
+<!-- Users -->
 <div id="page-users" class="page">
-  <div class="page-header"><h2>👥 المستخدمين</h2><p>قائمة المستخدمين المسجلين</p></div>
+  <div class="page-header"><div class="page-header-left"><h2>👥 المستخدمين</h2><p>قائمة المستخدمين المسجلين</p></div></div>
   <div class="card">
-    <table><thead><tr><th>الاسم</th><th>يوزر</th><th>الرصيد</th><th>تاريخ التسجيل</th></tr></thead>
-    <tbody id="users-table"><tr><td colspan="4" class="empty">جاري التحميل...</td></tr></tbody></table>
+    <div class="table-wrap">
+      <table><thead><tr><th>الاسم</th><th>يوزر</th><th>الرصيد</th><th>تاريخ التسجيل</th></tr></thead>
+      <tbody id="users-table"><tr><td colspan="4" class="empty">جاري التحميل...</td></tr></tbody></table>
+    </div>
   </div>
 </div>
 
-<!-- ===== رسالة جماعية ===== -->
+<!-- Broadcast -->
 <div id="page-broadcast" class="page">
-  <div class="page-header"><h2>📢 رسالة جماعية</h2><p>إرسال رسالة لكل المستخدمين</p></div>
+  <div class="page-header"><div class="page-header-left"><h2>📢 رسالة جماعية</h2><p>إرسال رسالة لكل المستخدمين</p></div></div>
   <div class="card" style="max-width:500px">
     <div class="form-group"><label>نص الرسالة</label>
       <textarea id="broadcast-msg" rows="5" placeholder="اكتب رسالتك هنا..."></textarea>
     </div>
-    <button class="btn btn-primary" onclick="sendBroadcast()">📢 حفظ وإرسال</button>
+    <button class="btn btn-primary" onclick="sendBroadcast()">📢 إرسال للكل</button>
   </div>
 </div>
 
@@ -163,7 +213,7 @@ tr:hover td{background:var(--surface-hover)}
   <div class="modal-box">
     <h3>➕ إضافة منتج جديد</h3>
     <div class="form-group"><label>الاسم</label><input id="p-name" placeholder="اسم المنتج"></div>
-    <div class="form-group"><label>الوصف</label><input id="p-desc" placeholder="وصف مختصر"></div>
+    <div class="form-group"><label>الوصف</label><input id="p-desc" placeholder="وصف مختصر (اختياري)"></div>
     <div class="form-row">
       <div class="form-group"><label>السعر USD</label><input id="p-usd" type="number" placeholder="5.00"></div>
       <div class="form-group"><label>السعر SYP</label><input id="p-syp" type="number" placeholder="50000"></div>
@@ -178,34 +228,34 @@ tr:hover td{background:var(--surface-hover)}
       <textarea id="p-stock" placeholder="account@example.com:password&#10;أو رابط تحميل&#10;أو كود تفعيل"></textarea>
     </div>
     <div class="modal-footer">
-      <button class="btn" onclick="closeModal('add-product-modal')">إلغاء</button>
-      <button class="btn btn-primary" onclick="addProduct()">إضافة</button>
+      <button class="btn" onclick="closeModal('add-product-modal')" style="background:var(--surface2);color:var(--text)">إلغاء</button>
+      <button class="btn btn-primary" onclick="addProduct()">➕ إضافة</button>
     </div>
   </div>
 </div>
 
-<!-- Toast -->
 <div class="toast" id="toast"></div>
 
 <script>
 const $ = id => document.getElementById(id)
 
-function showPage(name) {
+function showPage(name, el) {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'))
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'))
   $('page-' + name).classList.add('active')
-  event.currentTarget.classList.add('active')
-  if (name === 'stats') loadStats()
-  if (name === 'products') loadProducts()
-  if (name === 'orders') loadOrders('')
-  if (name === 'charges') loadCharges()
-  if (name === 'users') loadUsers()
+  el.classList.add('active')
+  if (name==='stats') loadStats()
+  if (name==='products') loadProducts()
+  if (name==='orders') loadOrders('')
+  if (name==='charges') loadCharges()
+  if (name==='users') loadUsers()
 }
 
 function toast(msg, ok=true) {
   const t = $('toast')
   t.textContent = msg
-  t.style.background = ok ? '#16a34a' : '#dc2626'
+  t.style.background = ok ? '#166534' : '#991b1b'
+  t.style.color = '#fff'
   t.classList.add('show')
   setTimeout(() => t.classList.remove('show'), 2500)
 }
@@ -215,13 +265,12 @@ function closeModal(id) { $(id).classList.remove('open') }
 
 async function api(url, method='GET', body=null) {
   const r = await fetch(url, {
-    method, headers: {'Content-Type':'application/json'},
+    method, headers:{'Content-Type':'application/json'},
     body: body ? JSON.stringify(body) : null
   })
   return r.json()
 }
 
-// ===== Stats =====
 async function loadStats() {
   const d = await api('/api/stats')
   $('s-users').textContent = d.users
@@ -231,108 +280,104 @@ async function loadStats() {
   $('s-done').textContent = d.completed_orders
 }
 
-// ===== Products =====
 async function loadProducts() {
   const data = await api('/api/products')
   const tb = $('products-table')
   if (!data.length) { tb.innerHTML = '<tr><td colspan="6" class="empty">لا يوجد منتجات</td></tr>'; return }
   tb.innerHTML = data.map(p => `
     <tr>
-      <td><strong>${p.name}</strong><br><small style="color:var(--text-muted)">${p.description||''}</small></td>
+      <td><strong>${p.name}</strong><br><small style="color:var(--muted)">${p.description||''}</small></td>
       <td>${p.category||'—'}</td>
       <td>$${p.price_usd}</td>
       <td>${Number(p.price_syp).toLocaleString()} ل.س</td>
-      <td><span class="badge ${p.active ? 'badge-success':'badge-error'}">${p.active ? 'نشط':'محذوف'}</span></td>
+      <td><span class="badge ${p.active ? 'badge-success':'badge-error'}">${p.active ? '✅ نشط':'🔴 محذوف'}</span></td>
       <td style="display:flex;gap:6px;flex-wrap:wrap">
-        <button class="btn btn-sm" onclick="editStock(${p.id}, \`${(p.stock||'').replace(/`/g,"'")}\`)">✏️ مخزون</button>
+        <button class="btn btn-sm btn-primary" onclick="editStock(${p.id}, \`${(p.stock||'').replace(/\`/g,"'")}\`)">✏️ مخزون</button>
         ${p.active ? `<button class="btn btn-sm btn-danger" onclick="deleteProduct(${p.id})">🗑️</button>` : ''}
       </td>
     </tr>`).join('')
 }
 
 async function addProduct() {
-  const d = { name: $('p-name').value, description: $('p-desc').value,
-    price_usd: $('p-usd').value, price_syp: $('p-syp').value,
-    category: $('p-cat').value, stock: $('p-stock').value }
+  const d = {name:$('p-name').value, description:$('p-desc').value,
+    price_usd:$('p-usd').value, price_syp:$('p-syp').value,
+    category:$('p-cat').value, stock:$('p-stock').value}
   if (!d.name || !d.price_usd) { toast('الاسم والسعر مطلوبان', false); return }
-  await api('/api/products/add', 'POST', d)
-  closeModal('add-product-modal')
-  loadProducts(); toast('✅ تم إضافة المنتج')
+  await api('/api/products/add','POST',d)
+  closeModal('add-product-modal'); loadProducts(); toast('✅ تم إضافة المنتج')
 }
 
 async function deleteProduct(id) {
   if (!confirm('حذف المنتج؟')) return
-  await api(`/api/products/${id}/delete`, 'POST')
+  await api(`/api/products/${id}/delete`,'POST')
   loadProducts(); toast('🗑️ تم الحذف')
 }
 
 function editStock(id, current) {
   const s = prompt('المخزون الجديد:', current)
-  if (s === null) return
-  api(`/api/products/${id}/stock`, 'POST', {stock: s}).then(() => { loadProducts(); toast('✅ تم تحديث المخزون') })
+  if (s===null) return
+  api(`/api/products/${id}/stock`,'POST',{stock:s}).then(()=>{loadProducts();toast('✅ تم تحديث المخزون')})
 }
 
-// ===== Orders =====
 let currentOrderFilter = ''
-async function loadOrders(status) {
+async function loadOrders(status, el) {
   currentOrderFilter = status
-  document.querySelectorAll('.tab').forEach((t,i) => {
-    t.classList.toggle('active', ['','pending','completed','rejected'][i] === status)
-  })
-  const data = await api('/api/orders?status=' + status)
+  if (el) {
+    document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'))
+    el.classList.add('active')
+  }
+  const data = await api('/api/orders?status='+status)
   const tb = $('orders-table')
   if (!data.length) { tb.innerHTML = '<tr><td colspan="7" class="empty">لا يوجد طلبات</td></tr>'; return }
   const badges = {pending:'badge-warning',completed:'badge-success',rejected:'badge-error'}
-  const labels = {pending:'معلق',completed:'مكتمل',rejected:'مرفوض'}
+  const labels = {pending:'⏳ معلق',completed:'✅ مكتمل',rejected:'❌ مرفوض'}
   tb.innerHTML = data.map(o => `
     <tr>
       <td>#${o.id}</td>
-      <td>${o.full_name||''}<br><small>@${o.username||'—'}</small></td>
+      <td>${o.full_name||''}<br><small style="color:var(--muted)">@${o.username||'—'}</small></td>
       <td>${o.product_name}</td>
       <td>$${o.price_usd}</td>
       <td>${o.payment_method||'—'}</td>
       <td><span class="badge ${badges[o.status]||''}">${labels[o.status]||o.status}</span></td>
-      <td>${o.status==='pending' ? `
+      <td>${o.status==='pending'?`
         <button class="btn btn-sm btn-success" onclick="orderAction(${o.id},'completed')">✅</button>
-        <button class="btn btn-sm btn-danger" onclick="orderAction(${o.id},'rejected')">❌</button>` : '—'}
+        <button class="btn btn-sm btn-danger" onclick="orderAction(${o.id},'rejected')">❌</button>`:'—'}
       </td>
     </tr>`).join('')
 }
 
 async function orderAction(id, status) {
-  await api(`/api/orders/${id}/status`, 'POST', {status})
-  loadOrders(currentOrderFilter); toast(status==='completed' ? '✅ تم التأكيد' : '❌ تم الرفض')
+  await api(`/api/orders/${id}/status`,'POST',{status})
+  loadOrders(currentOrderFilter); toast(status==='completed'?'✅ تم التأكيد':'❌ تم الرفض')
 }
 
-// ===== Charges =====
 async function loadCharges() {
   const data = await api('/api/charges')
   const tb = $('charges-table')
   if (!data.length) { tb.innerHTML = '<tr><td colspan="7" class="empty">لا يوجد طلبات شحن</td></tr>'; return }
   const badges = {pending:'badge-warning',confirmed:'badge-success',rejected:'badge-error'}
-  const labels = {pending:'معلق',confirmed:'مؤكد',rejected:'مرفوض'}
+  const labels = {pending:'⏳ معلق',confirmed:'✅ مؤكد',rejected:'❌ مرفوض'}
   const methods = {usdt:'USDT BEP-20',syriatel:'Syriatel Cash'}
   tb.innerHTML = data.map(c => `
     <tr>
       <td>#${c.id}</td>
-      <td>${c.full_name||''}<br><small>@${c.username||'—'}</small></td>
+      <td>${c.full_name||''}<br><small style="color:var(--muted)">@${c.username||'—'}</small></td>
       <td><strong>$${c.amount_usd}</strong></td>
       <td>${methods[c.method]||c.method||'—'}</td>
-      <td><small style="word-break:break-all">${(c.tx_hash||'—').substring(0,20)}...</small></td>
+      <td><small style="word-break:break-all;color:var(--muted)">${(c.tx_hash||'—').substring(0,25)}...</small></td>
       <td><span class="badge ${badges[c.status]||''}">${labels[c.status]||c.status}</span></td>
-      <td>${c.status==='pending' ? `
+      <td>${c.status==='pending'?`
         <button class="btn btn-sm btn-success" onclick="chargeAction(${c.id},'confirm')">✅</button>
-        <button class="btn btn-sm btn-danger" onclick="chargeAction(${c.id},'reject')">❌</button>` : '—'}
+        <button class="btn btn-sm btn-danger" onclick="chargeAction(${c.id},'reject')">❌</button>`:'—'}
       </td>
     </tr>`).join('')
 }
 
 async function chargeAction(id, action) {
-  await api(`/api/charges/${id}/${action}`, 'POST')
-  loadCharges(); toast(action==='confirm' ? '✅ تم تأكيد الشحن' : '❌ تم الرفض')
+  await api(`/api/charges/${id}/${action}`,'POST')
+  loadCharges(); toast(action==='confirm'?'✅ تم تأكيد الشحن':'❌ تم الرفض')
 }
 
-// ===== Users =====
 async function loadUsers() {
   const data = await api('/api/users')
   const tb = $('users-table')
@@ -341,21 +386,19 @@ async function loadUsers() {
     <tr>
       <td>${u.full_name||'—'}</td>
       <td>@${u.username||'—'}</td>
-      <td><strong>$${Number(u.balance||0).toFixed(2)}</strong></td>
-      <td><small>${(u.joined_at||'').substring(0,10)}</small></td>
+      <td><strong style="color:var(--green)">$${Number(u.balance||0).toFixed(2)}</strong></td>
+      <td><small style="color:var(--muted)">${(u.joined_at||'').substring(0,10)}</small></td>
     </tr>`).join('')
 }
 
-// ===== Broadcast =====
 async function sendBroadcast() {
   const msg = $('broadcast-msg').value.trim()
   if (!msg) { toast('اكتب رسالة أولاً', false); return }
-  await api('/api/broadcast', 'POST', {message: msg})
+  await api('/api/broadcast','POST',{message:msg})
   $('broadcast-msg').value = ''
-  toast('✅ تم حفظ الرسالة')
+  toast('✅ تم إرسال الرسالة')
 }
 
-// تحميل الإحصائيات عند البداية
 loadStats()
 </script>
 </body></html>
