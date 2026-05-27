@@ -241,26 +241,25 @@ async def admin_confirm_charge(update: Update, context: ContextTypes.DEFAULT_TYP
             await query.edit_message_text("🔴 Not found")
         return
 
-    # ✅ بس غير الحالة لـ pending_manual — بدون ما يضيف رصيد
-    db.reject_charge(req_id)  # نغلق الطلب
-    # نعيد فتحه بحالة جديدة
+    # تغيير الحالة لـ accepted بدون إضافة رصيد
     conn = db.get_conn()
     c = conn.cursor()
     c.execute("UPDATE charge_requests SET status='accepted' WHERE id=?", (req_id,))
     conn.commit()
     conn.close()
 
-    # إشعار المستخدم إن الطلب قُبل وبانتظار الإضافة
+    # إشعار العميل
     try:
         await context.bot.send_message(
             chat_id=req['user_id'],
             text=(
-                f"✅ *Request Accepted!  |  تم قبول طلبك!*\n\n"
-                f"▬▬▬▬▬▬▬▬▬▬▬▬▬▬\n"
-                f"💵 Amount: `${req['amount_usd']}`\n\n"
-                f"⏳ _سيتم إضافة الرصيد قريباً_\n"
-                f"_Balance will be added shortly_ 🚀\n"
-                f"▬▬▬▬▬▬▬▬▬▬▬▬▬▬"
+                f"✅ *تم قبول طلب الشحن!  |  Top Up Accepted!*\n\n"
+                f"━━━━━━━━━━━━━━━━\n"
+                f"💵 المبلغ  |  Amount: `${req['amount_usd']}`\n"
+                f"💳 {('USDT BEP-20' if req['method'] == 'usdt' else 'Syriatel Cash')}\n"
+                f"━━━━━━━━━━━━━━━━\n"
+                f"⏳ _سيتم إضافة الرصيد لحسابك قريباً_\n"
+                f"_Your balance will be added shortly_ 🚀"
             ),
             parse_mode=ParseMode.MARKDOWN,
             reply_markup=kb.main_menu()
@@ -270,13 +269,13 @@ async def admin_confirm_charge(update: Update, context: ContextTypes.DEFAULT_TYP
 
     try:
         await query.edit_message_caption(
-            f"✅ Accepted #{req_id} — ${req['amount_usd']} for {req['full_name']}\n"
-            f"⚠️ أضف الرصيد يدوياً من الداشبورد → المستخدمين"
+            f"✅ Accepted #{req_id} — ${req['amount_usd']} | {req['full_name']}\n"
+            f"⚠️ أضف الرصيد يدوياً من الداشبورد"
         )
     except:
         await query.edit_message_text(
-            f"✅ Accepted `#{req_id}` — `${req['amount_usd']}` for {req['full_name']}\n"
-            f"⚠️ أضف الرصيد يدوياً من الداشبورد → المستخدمين",
+            f"✅ Accepted `#{req_id}` — `${req['amount_usd']}` | {req['full_name']}\n"
+            f"⚠️ أضف الرصيد يدوياً من الداشبورد",
             parse_mode=ParseMode.MARKDOWN
         )
 
