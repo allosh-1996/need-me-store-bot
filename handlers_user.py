@@ -102,14 +102,27 @@ async def show_category(update: Update, context: ContextTypes.DEFAULT_TYPE):
     category = query.data.replace("cat_", "")
     platform = context.user_data.get('selected_platform', '')
 
+    # احفظ مصدر القائمة عشان زر الرجوع يرجع للمكان الصح
+    EMAIL_CATS = ['Outlook', 'Gmail', 'Hotmail']
+    GAME_CATS = ['Coin Master', 'Domino Dream', 'Disney Dream', 'Screw Guru', 'Travel Town', 'Dice Dream']
+    if category in EMAIL_CATS:
+        context.user_data['cat_source'] = 'emails_menu'
+    elif category in GAME_CATS:
+        context.user_data['cat_source'] = 'win_appsflyer'
+    elif platform:
+        context.user_data['cat_source'] = f'platform_{platform}'
+    else:
+        context.user_data['cat_source'] = 'products'
+
     products = db.get_all_products()
-    if platform:
+    if platform and category not in EMAIL_CATS and category not in GAME_CATS:
         cat_products = [p for p in products if p['category'] == category and platform in (p.get('platform') or 'iOS')]
     else:
         cat_products = [p for p in products if p['category'] == category]
 
+    back_cb = context.user_data['cat_source']
+
     if not cat_products:
-        back_cb = f"platform_{platform}" if platform else "products"
         await query.edit_message_text(
             t("no_products_category", lang),
             parse_mode=ParseMode.MARKDOWN,
@@ -119,7 +132,7 @@ async def show_category(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     text = f"*{category}*\n\n_{t('choose_product', lang)}_"
     await query.edit_message_text(text, parse_mode=ParseMode.MARKDOWN,
-                                   reply_markup=kb.products_menu(cat_products, lang=lang))
+                                   reply_markup=kb.products_menu(cat_products, lang=lang, back_cb=back_cb))
 
 async def show_product_detail(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
@@ -146,8 +159,9 @@ async def show_product_detail(update: Update, context: ContextTypes.DEFAULT_TYPE
         f"{t('in_stock', lang) if has_stock else t('out_of_stock', lang)}\n"
         f"━━━━━━━━━━━━━━━━"
     )
+    back_cb = context.user_data.get('cat_source', 'products')
     await query.edit_message_text(text, parse_mode=ParseMode.MARKDOWN,
-                                   reply_markup=kb.product_detail_menu(product_id, has_stock, lang=lang))
+                                   reply_markup=kb.product_detail_menu(product_id, has_stock, lang=lang, back_cb=back_cb))
 
 async def initiate_buy(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query

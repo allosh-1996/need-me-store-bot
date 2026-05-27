@@ -37,7 +37,7 @@ def categories_menu(categories, back_cb="products", lang="ar"):
     return InlineKeyboardMarkup(keyboard)
 
 # ============ Products Menu ============
-def products_menu(products, lang="ar"):
+def products_menu(products, lang="ar", back_cb="products"):
     keyboard = []
     for p in products:
         status = t("in_stock", lang) if p['stock'] else t("out_of_stock", lang)
@@ -46,18 +46,18 @@ def products_menu(products, lang="ar"):
             f"{p['name']}  —  {price_text}  ({status})",
             callback_data=f"prod_{p['id']}"
         )])
-    keyboard.append([InlineKeyboardButton(t("back", lang), callback_data="products")])
+    keyboard.append([InlineKeyboardButton(t("back", lang), callback_data=back_cb)])
     return InlineKeyboardMarkup(keyboard)
 
 # ============ Product Detail Menu ============
-def product_detail_menu(product_id, has_stock=True, lang="ar"):
+def product_detail_menu(product_id, has_stock=True, lang="ar", back_cb="products"):
     keyboard = []
     if has_stock:
         keyboard.append([
             InlineKeyboardButton(t("buy_usd", lang), callback_data=f"buy_{product_id}_USD"),
             InlineKeyboardButton(t("buy_syp", lang), callback_data=f"buy_{product_id}_SYP"),
         ])
-    keyboard.append([InlineKeyboardButton(t("back", lang), callback_data="products")])
+    keyboard.append([InlineKeyboardButton(t("back", lang), callback_data=back_cb)])
     return InlineKeyboardMarkup(keyboard)
 
 # ============ Payment Method Menu ============
