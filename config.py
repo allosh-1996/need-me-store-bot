@@ -13,7 +13,6 @@ SYRIATEL_CASH = os.environ.get("SYRIATEL_CASH", "ضع_رقم_سيريتيل_كا
 WELCOME_MSG = """
 🌑 *Need Me Store*
 
-مرحباً بك في متجرنا الرقمي الموثوق
 _Welcome to your trusted digital store_
 
 ▬▬▬▬▬▬▬▬▬▬▬▬▬▬
@@ -27,12 +26,8 @@ _إيميلات جاهزة_
 📄 Survey Accounts
 _حسابات استبيانات_
 
-📖 Exclusive Methods & Guides
-_شروحات وطرق حصرية_
-
 ▬▬▬▬▬▬▬▬▬▬▬▬▬▬
 
-اختر من القائمة أدناه
 _Choose from the menu below_ 👇
 """
 
