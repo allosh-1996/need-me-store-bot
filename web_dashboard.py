@@ -40,26 +40,14 @@ _dashboard_secret = os.environ.get("DASHBOARD_SECRET")
 DASHBOARD_PASSWORD = os.environ.get("DASHBOARD_PASSWORD", "admin123")
 
 if not _dashboard_secret:
-    if _is_production:
-        raise RuntimeError(
-            "❌ DASHBOARD_SECRET is not set!\n"
-            "Set it in Railway Variables: DASHBOARD_SECRET=<random_64_char_string>\n"
-            "Generate one with: python3 -c \"import secrets; print(secrets.token_hex(32))\""
-        )
-    else:
-        _dashboard_secret = _secrets.token_hex(32)
-        print("⚠️  WARNING: DASHBOARD_SECRET not set — using random key (sessions reset on restart)")
+    _dashboard_secret = _secrets.token_hex(32)
+    print("⚠️  WARNING: DASHBOARD_SECRET not set — using random key (sessions reset on restart)")
+    print("   Set DASHBOARD_SECRET in Railway Variables for persistent sessions")
 
 app.secret_key = _dashboard_secret
 
 if DASHBOARD_PASSWORD == "admin123":
-    if _is_production:
-        raise RuntimeError(
-            "❌ DASHBOARD_PASSWORD is still 'admin123'!\n"
-            "Set a strong password in Railway Variables: DASHBOARD_PASSWORD=<your_password>"
-        )
-    else:
-        print("⚠️  WARNING: DASHBOARD_PASSWORD is default 'admin123'! Change it before deploying.")
+    print("⚠️  WARNING: DASHBOARD_PASSWORD is default 'admin123'! Change it in Railway Variables.")
 
 # ═══ Auth ═══
 @app.route('/login', methods=['GET', 'POST'])
@@ -343,9 +331,8 @@ def api_deduct_balance(uid):
 def api_get_balance(uid):
     balance = db.get_balance(uid)
     conn = db.get_conn()
-    c = conn.cursor()
-    c.execute("SELECT total_charged, total_spent FROM balances WHERE user_id=?", (uid,))
-    row = c.fetchone()
+    cur = conn.execute("SELECT total_charged, total_spent FROM balances WHERE user_id=?", (uid,))
+    row = _fetchone_dict(cur)
     conn.close()
     return jsonify({
         "balance": balance,

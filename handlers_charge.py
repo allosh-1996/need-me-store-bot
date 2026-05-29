@@ -217,9 +217,8 @@ async def show_balance(update: Update, context: ContextTypes.DEFAULT_TYPE):
     balance = db.get_balance(user.id)
 
     conn = db.get_conn()
-    c = conn.cursor()
-    c.execute("SELECT total_charged, total_spent FROM balances WHERE user_id=?", (user.id,))
-    row = c.fetchone()
+    cur = conn.execute("SELECT total_charged, total_spent FROM balances WHERE user_id=?", (user.id,))
+    row = db._fetchone_dict(cur)
     conn.close()
 
     total_charged = row['total_charged'] if row else 0
@@ -281,7 +280,7 @@ async def admin_confirm_charge(update: Update, context: ContextTypes.DEFAULT_TYP
                 f"_You can now shop from the store_"
             ),
             parse_mode=ParseMode.MARKDOWN,
-            reply_markup=kb.main_menu()
+            reply_markup=kb.main_menu("ar")
         )
     except Exception as e:
         print(f"Notify error: {e}")
@@ -323,7 +322,7 @@ async def admin_reject_charge(update: Update, context: ContextTypes.DEFAULT_TYPE
                 f"_Contact admin for more info_"
             ),
             parse_mode=ParseMode.MARKDOWN,
-            reply_markup=kb.main_menu()
+            reply_markup=kb.main_menu("ar")
         )
     except:
         pass

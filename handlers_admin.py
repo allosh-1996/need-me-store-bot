@@ -278,7 +278,7 @@ async def reject_order(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 f"_Contact admin for more info_"
             ),
             parse_mode=ParseMode.MARKDOWN,
-            reply_markup=kb.main_menu()
+            reply_markup=kb.main_menu("ar")
         )
     except:
         pass
