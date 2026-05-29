@@ -340,6 +340,16 @@ def api_get_balance(uid):
         "total_spent": row['total_spent'] if row else 0
     })
 
+@app.route('/api/users/<int:uid>/delete', methods=['POST'])
+@auth_required
+def api_delete_user(uid):
+    conn = db.get_conn()
+    conn.execute("DELETE FROM users WHERE id=?", (uid,))
+    conn.execute("DELETE FROM balances WHERE user_id=?", (uid,))
+    conn.commit()
+    conn.close()
+    return jsonify({"ok": True})
+
 @app.route('/api/notifications')
 @auth_required
 def api_notifications():

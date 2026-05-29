@@ -692,6 +692,9 @@ function selectUser(uid){
         <button class="ud-btn btn-add" onclick="udAddBalance()">➕ إضافة رصيد</button>
         <button class="ud-btn btn-deduct" onclick="udDeductBalance()">➖ سحب رصيد</button>
       </div>
+      <div style="margin-top:10px">
+        <button class="ud-btn" style="width:100%;background:rgba(239,68,68,.1);color:#f87171;border:1px solid rgba(239,68,68,.25);font-size:.75rem" onclick="udDeleteUser()">🗑️ حذف المستخدم</button>
+      </div>
     </div>
   `
 }
@@ -721,6 +724,20 @@ async function udDeductBalance(){
     await loadUsers()
     selectUser(_currentUid)
   } else { toast(`🔴 ${res?.error||'خطأ'}`, false) }
+}
+
+async function udDeleteUser(){
+  if(!_currentUid) return
+  const u = _usersData.find(x => x.id === _currentUid)
+  if(!confirm(`🗑️ حذف المستخدم "${u?.full_name||_currentUid}"؟\nهاد الإجراء لا يمكن التراجع عنه.`)) return
+  const res = await api(`/api/users/${_currentUid}/delete`, 'POST')
+  if(res && res.ok){
+    toast(`🗑️ تم حذف ${u?.full_name||'المستخدم'}`)
+    _currentUid = null
+    _currentBalance = 0
+    $('user-detail-panel').innerHTML = '<div class="user-detail-empty"><div class="empty-icon">👤</div><div>اختر مستخدماً من القائمة</div></div>'
+    await loadUsers()
+  } else { toast('🔴 خطأ في الحذف', false) }
 }
 
 // legacy stubs
