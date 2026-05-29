@@ -5,7 +5,7 @@ from lang import t
 def main_menu(lang="ar"):
     keyboard = [
         [
-            InlineKeyboardButton(t("btn_products", lang), callback_data="products"),
+            InlineKeyboardButton(t("btn_icloud", lang), callback_data="icloud_menu"),
             InlineKeyboardButton(t("btn_emails", lang), callback_data="emails_menu"),
         ],
         [
