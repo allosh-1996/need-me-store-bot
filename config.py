@@ -57,3 +57,31 @@ PROXY_TYPES = {
     "mobile": " Mobile 4G/5G",
     "modem": " Modem Private",
 }
+
+
+# ══════════════════════════════════════════════════════
+# AppsFlyer Games Config
+# السعر بالدولار — قابل للتغيير من Railway Variables
+# ══════════════════════════════════════════════════════
+APPSFLYER_GAMES = {
+    "pubg": {
+        "name": "🎮 PUBG Mobile",
+        "price_usd": float(os.environ.get("AF_PRICE_PUBG", "5.0")),
+    },
+    "free_fire": {
+        "name": "🔥 Free Fire",
+        "price_usd": float(os.environ.get("AF_PRICE_FREE_FIRE", "5.0")),
+    },
+    "mobile_legends": {
+        "name": "⚔️ Mobile Legends",
+        "price_usd": float(os.environ.get("AF_PRICE_ML", "5.0")),
+    },
+    "clash_of_clans": {
+        "name": "🏰 Clash of Clans",
+        "price_usd": float(os.environ.get("AF_PRICE_COC", "5.0")),
+    },
+    "clash_royale": {
+        "name": "👑 Clash Royale",
+        "price_usd": float(os.environ.get("AF_PRICE_CR", "5.0")),
+    },
+}
