@@ -13,6 +13,7 @@ def main_menu(lang="ar"):
             InlineKeyboardButton(t("btn_proxy", lang), callback_data="proxy_menu"),
         ],
         [
+            InlineKeyboardButton(t("btn_surveys", lang), callback_data="surveys_menu"),
             InlineKeyboardButton(t("btn_appsflyer", lang), callback_data="win_appsflyer"),
         ],
         [

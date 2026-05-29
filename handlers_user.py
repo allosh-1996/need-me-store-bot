@@ -107,13 +107,17 @@ async def show_category(update: Update, context: ContextTypes.DEFAULT_TYPE):
         context.user_data['cat_source'] = 'emails_menu'
     elif category in GAME_CATS:
         context.user_data['cat_source'] = 'win_appsflyer'
+    elif platform == 'Surveys':
+        context.user_data['cat_source'] = 'surveys_menu'
     elif platform:
         context.user_data['cat_source'] = f'platform_{platform}'
     else:
         context.user_data['cat_source'] = 'products'
 
     products = db.get_all_products()
-    if platform and category not in EMAIL_CATS and category not in GAME_CATS:
+    if platform == 'Surveys':
+        cat_products = [p for p in products if p['category'] == category and (p.get('platform') or '') == 'Surveys']
+    elif platform and category not in EMAIL_CATS and category not in GAME_CATS:
         cat_products = [p for p in products if p['category'] == category and platform in (p.get('platform') or 'iOS')]
     else:
         cat_products = [p for p in products if p['category'] == category]
@@ -558,6 +562,43 @@ async def proxy_menu_simple(update: Update, context: ContextTypes.DEFAULT_TYPE):
         reply_markup=InlineKeyboardMarkup([
             [InlineKeyboardButton("💬 تواصل مع الأدمن", url="https://t.me/Allosh96ha")],
         ])
+    )
+
+
+# ═══════════════════════════════════════
+# Surveys
+# ═══════════════════════════════════════
+async def surveys_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """قائمة Surveys — يجيب الفئات من DB تلقائياً (category حيث platform='Surveys')"""
+    query = update.callback_query
+    await query.answer()
+    lang = get_user_lang(context)
+
+    context.user_data['selected_platform'] = 'Surveys'
+    context.user_data['cat_source'] = 'surveys_menu'
+
+    products = db.get_all_products()
+    survey_products = [p for p in products if (p.get('platform') or '') == 'Surveys']
+
+    if not survey_products:
+        await query.edit_message_text(
+            f"*Surveys*\n\n_{t('no_surveys', lang)}_",
+            parse_mode=ParseMode.MARKDOWN,
+            reply_markup=InlineKeyboardMarkup([[
+                InlineKeyboardButton(t("back", lang), callback_data="back_main")
+            ]])
+        )
+        return
+
+    # جيب الفئات الفريدة بالترتيب
+    categories = list(dict.fromkeys(
+        p['category'] for p in survey_products if p.get('category')
+    ))
+
+    await query.edit_message_text(
+        f"*Surveys*\n\n_{t('choose_survey_category', lang)}_",
+        parse_mode=ParseMode.MARKDOWN,
+        reply_markup=kb.categories_menu(categories, back_cb="back_main", lang=lang)
     )
 
 # ═══════════════════════════════════════
