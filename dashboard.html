@@ -627,16 +627,13 @@ function getToken() {
 
 async function api(url, method='GET', body=null, silent=false) {
   const token = getToken()
-  showDebug('📡 ' + method + ' ' + url + (token ? ' ✓token' : ' ✗NO TOKEN'))
   try {
     const r = await fetch(url, {
       method,
       headers: {'Content-Type':'application/json', 'X-Auth-Token': token},
       body: body ? JSON.stringify(body) : null
     })
-    showDebug('→ ' + r.status + (r.redirected ? ' (redirected)' : ''))
     if (r.status === 401 || r.redirected) {
-      showDebug('🔴 401 — token invalid or session expired')
       if (!silent) window.location='/login'
       return null
     }
@@ -644,31 +641,15 @@ async function api(url, method='GET', body=null, silent=false) {
       let errMsg = '❌ خطأ في السيرفر'
       try { const e = await r.json(); if(e.error) errMsg = '❌ ' + e.error } catch(_){}
       toast(errMsg, false)
-      showDebug('🔴 ' + errMsg)
       return null
     }
     return await r.json()
   } catch(e) {
-    showDebug('🔴 EXCEPTION: ' + e.message)
     toast('❌ تعذر الاتصال بالسيرفر', false)
     return null
   }
 }
 
-// Debug bar — يظهر آخر 5 رسائل على الشاشة
-const _dbgMsgs = []
-function showDebug(msg) {
-  _dbgMsgs.unshift(new Date().toTimeString().slice(0,8) + ' ' + msg)
-  if (_dbgMsgs.length > 5) _dbgMsgs.pop()
-  let el = document.getElementById('_debug_bar')
-  if (!el) {
-    el = document.createElement('div')
-    el.id = '_debug_bar'
-    el.style.cssText = 'position:fixed;bottom:60px;left:0;right:0;background:rgba(0,0,0,.92);color:#0f0;font-size:10px;font-family:monospace;padding:6px 10px;z-index:9999;max-height:90px;overflow:hidden;direction:ltr'
-    document.body.appendChild(el)
-  }
-  el.innerHTML = _dbgMsgs.map(m => '<div>' + m + '</div>').join('')
-}
 
 async function loadStats() {
   const d = await api('/api/stats')
