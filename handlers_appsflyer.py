@@ -176,6 +176,9 @@ async def af_confirm_send(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         return ConversationHandler.END
 
+    # خصم الرصيد فوراً عند الإرسال
+    db.add_balance(user.id, -ud["af_price"])
+
     order_id = db.create_appsflyer_order(
         user_id=user.id,
         username=user.username or "",
@@ -189,12 +192,18 @@ async def af_confirm_send(update: Update, context: ContextTypes.DEFAULT_TYPE):
         appsflyer_id=ud["af_af_id"],
     )
 
+    new_balance = db.get_balance(user.id)
+
     await query.edit_message_text(
-        f"⏳ *طلبك قيد المعالجة*\n\n"
+        f"✅ *تم إرسال طلبك بنجاح!*\n\n"
         f"🎮 *اللعبة:* {ud['af_game_name']}\n"
-        f"🔢 *رقم الطلب:* `#{order_id}`\n\n"
-        f"سيتم مراجعة طلبك والرد عليك قريباً ✨\n"
-        f"_Your order is being processed. We\'ll reply shortly._",
+        f"🔢 *رقم الطلب:* `#{order_id}`\n"
+        f"💵 *المبلغ المخصوم:* `${ud['af_price']:.2f}`\n"
+        f"💰 *رصيدك الحالي:* `${new_balance:.2f}`\n\n"
+        f"━━━━━━━━━━━━━━━━\n"
+        f"📩 للمتابعة تواصل مع الأدمن:\n"
+        f"👤 @Allosh96ha\n"
+        f"━━━━━━━━━━━━━━━━",
         parse_mode=ParseMode.MARKDOWN
     )
 
@@ -205,7 +214,7 @@ async def af_confirm_send(update: Update, context: ContextTypes.DEFAULT_TYPE):
         f"👤 *المستخدم:* {user.full_name} (@{user.username or 'N/A'})\n"
         f"🆔 *User ID:* `{user.id}`\n"
         f"🕹 *اللعبة:* {ud['af_game_name']}\n"
-        f"💵 *السعر:* `${ud['af_price']:.2f}`\n"
+        f"💵 *السعر:* `${ud['af_price']:.2f}` ✅ *خُصم*\n"
         f"━━━━━━━━━━━━━━━━\n"
         f"📱 *IDFA:* `{ud['af_idfa']}`\n"
         f"📱 *IDFV:* `{ud['af_idfv']}`\n"
@@ -213,19 +222,11 @@ async def af_confirm_send(update: Update, context: ContextTypes.DEFAULT_TYPE):
         f"📱 *AF ID:* `{ud['af_af_id']}`"
     )
 
-    admin_kb = InlineKeyboardMarkup([
-        [
-            InlineKeyboardButton("✅ قبول", callback_data=f"af_accept_{order_id}"),
-            InlineKeyboardButton("❌ رفض", callback_data=f"af_reject_{order_id}"),
-        ]
-    ])
-
     try:
         await context.bot.send_message(
             chat_id=ADMIN_ID,
             text=admin_text,
-            parse_mode=ParseMode.MARKDOWN,
-            reply_markup=admin_kb
+            parse_mode=ParseMode.MARKDOWN
         )
     except Exception:
         pass
