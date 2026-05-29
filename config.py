@@ -66,34 +66,34 @@ PROXY_TYPES = {
 APPSFLYER_GAMES = {
     "domino_dream": {
         "name": "🎲 Domino Dreams",
-        "price_usd": float(os.environ.get("AF_PRICE_DOMINO", "5.0")),
+        "price_usd": float(os.environ.get("AF_PRICE_DOMINO", "4.0")),
     },
     "disney_dream": {
-        "name": "✨ Disney Dreamlight Valley",
-        "price_usd": float(os.environ.get("AF_PRICE_DISNEY", "5.0")),
+        "name": "✨ Disney Dream",
+        "price_usd": float(os.environ.get("AF_PRICE_DISNEY", "4.0")),
     },
     "coin_master": {
         "name": "🪙 Coin Master",
-        "price_usd": float(os.environ.get("AF_PRICE_COIN", "5.0")),
+        "price_usd": float(os.environ.get("AF_PRICE_COIN", "4.0")),
     },
     "travel_town": {
         "name": "🏖️ Travel Town",
-        "price_usd": float(os.environ.get("AF_PRICE_TRAVEL", "5.0")),
+        "price_usd": float(os.environ.get("AF_PRICE_TRAVEL", "4.0")),
     },
     "yarn_loop": {
         "name": "🧶 Yarn Loop",
-        "price_usd": float(os.environ.get("AF_PRICE_YARN", "5.0")),
+        "price_usd": float(os.environ.get("AF_PRICE_YARN", "4.0")),
     },
     "dice_dream": {
         "name": "🎯 Dice Dreams",
-        "price_usd": float(os.environ.get("AF_PRICE_DICE", "5.0")),
+        "price_usd": float(os.environ.get("AF_PRICE_DICE", "4.0")),
     },
     "toy_blast": {
         "name": "🧸 Toy Blast",
-        "price_usd": float(os.environ.get("AF_PRICE_TOY", "5.0")),
+        "price_usd": float(os.environ.get("AF_PRICE_TOY", "4.0")),
     },
     "toon_blast": {
         "name": "🎮 Toon Blast",
-        "price_usd": float(os.environ.get("AF_PRICE_TOON", "5.0")),
+        "price_usd": float(os.environ.get("AF_PRICE_TOON", "4.0")),
     },
 }
