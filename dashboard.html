@@ -641,7 +641,7 @@ async function loadStats() {
 async function loadProducts() {
   const data = await api('/api/products')
   const tb = $('products-table')
-  if (!data.length) { tb.innerHTML = '<tr><td colspan="5" class="empty">لا يوجد منتجات</td></tr>'; return }
+  if (!data || !data.length) { tb.innerHTML = '<tr><td colspan="5" class="empty">لا يوجد منتجات</td></tr>'; return }
   tb.innerHTML = data.map(p => `
     <tr>
       <td><strong>${p.name}</strong><br><small style="color:var(--muted)">${p.description||''}</small></td>
@@ -685,7 +685,7 @@ async function loadOrders(status, el) {
   if(el){document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));el.classList.add('active')}
   const data = await api('/api/orders?status='+status)
   const tb = $('orders-table')
-  if (!data.length){tb.innerHTML='<tr><td colspan="6" class="empty">لا يوجد طلبات</td></tr>';return}
+  if (!data || !data.length){tb.innerHTML='<tr><td colspan="6" class="empty">لا يوجد طلبات</td></tr>';return}
   const badges={pending:'badge-warning',completed:'badge-success',rejected:'badge-error'}
   const labels={pending:'⏳ معلق',completed:'✅ مكتمل',rejected:'❌ مرفوض'}
   tb.innerHTML = data.map(o=>`
@@ -712,7 +712,7 @@ async function orderAction(id,status){
 async function loadCharges(){
   const data=await api('/api/charges')
   const tb=$('charges-table')
-  if(!data.length){tb.innerHTML='<tr><td colspan="6" class="empty">لا يوجد طلبات شحن</td></tr>';return}
+  if(!data || !data.length){tb.innerHTML='<tr><td colspan="6" class="empty">لا يوجد طلبات شحن</td></tr>';return}
   const badges={pending:'badge-warning',confirmed:'badge-success',rejected:'badge-error'}
   const labels={pending:'⏳ معلق',confirmed:'✅ مؤكد',rejected:'❌ مرفوض'}
   const methods={usdt:'USDT',syriatel:'Syriatel'}
@@ -1074,7 +1074,7 @@ async function loadNotifications() {
   const count = document.getElementById('notif-count')
   const list = document.getElementById('notif-list')
 
-  if (data.count > 0) {
+  if (data && data.count > 0) {
     badge.style.display = 'flex'
     badge.textContent = data.count
     count.textContent = data.count + ' معلق'
@@ -1083,7 +1083,7 @@ async function loadNotifications() {
     count.textContent = ''
   }
 
-  if (!data.notifications.length) {
+  if (!data || !data.notifications || !data.notifications.length) {
     list.innerHTML = '<div class="notif-empty">✅ لا يوجد إشعارات معلقة</div>'
     return
   }
@@ -1116,7 +1116,7 @@ async function loadNotifications() {
 setInterval(async () => {
   const data = await api('/api/notifications')
   const badge = document.getElementById('notif-badge')
-  if (data.count > 0) {
+  if (data && data.count > 0) {
     badge.style.display = 'flex'
     badge.textContent = data.count
   } else {
