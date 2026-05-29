@@ -132,12 +132,11 @@ def api_update_stock(pid):
 def api_orders():
     status = request.args.get('status', '')
     conn = db.get_conn()
-    c = conn.cursor()
     if status:
-        c.execute("SELECT o.*, b.balance_usd FROM orders o LEFT JOIN balances b ON o.user_id=b.user_id WHERE o.status=? ORDER BY o.created_at DESC", (status,))
+        cur = conn.execute("SELECT o.*, b.balance_usd FROM orders o LEFT JOIN balances b ON o.user_id=b.user_id WHERE o.status=? ORDER BY o.created_at DESC", (status,))
     else:
-        c.execute("SELECT o.*, b.balance_usd FROM orders o LEFT JOIN balances b ON o.user_id=b.user_id ORDER BY o.created_at DESC LIMIT 100")
-    rows = _fetchall_dict(c)
+        cur = conn.execute("SELECT o.*, b.balance_usd FROM orders o LEFT JOIN balances b ON o.user_id=b.user_id ORDER BY o.created_at DESC LIMIT 100")
+    rows = _fetchall_dict(cur)
     conn.close()
     return jsonify(rows)
 
@@ -187,9 +186,8 @@ def api_order_status(oid):
 @auth_required
 def api_charges():
     conn = db.get_conn()
-    c = conn.cursor()
-    c.execute("SELECT * FROM charge_requests ORDER BY created_at DESC LIMIT 100")
-    rows = _fetchall_dict(c)
+    cur = conn.execute("SELECT * FROM charge_requests ORDER BY created_at DESC LIMIT 100")
+    rows = _fetchall_dict(cur)
     conn.close()
     return jsonify(rows)
 
@@ -237,14 +235,13 @@ def api_reject_charge(cid):
 @auth_required
 def api_users():
     conn = db.get_conn()
-    c = conn.cursor()
-    c.execute("""SELECT u.*, 
+    cur = conn.execute("""SELECT u.*, 
                         COALESCE(b.balance_usd, 0) as balance,
                         COALESCE(b.total_charged, 0) as total_charged,
                         COALESCE(b.total_spent, 0) as total_spent
                  FROM users u LEFT JOIN balances b ON u.id=b.user_id 
                  ORDER BY u.joined_at DESC""")
-    rows = _fetchall_dict(c)
+    rows = _fetchall_dict(cur)
     conn.close()
     return jsonify(rows)
 
@@ -353,25 +350,24 @@ def api_delete_user(uid):
 @auth_required
 def api_notifications():
     conn = db.get_conn()
-    c = conn.cursor()
 
     # طلبات شحن معلقة
-    c.execute("SELECT id, full_name, amount_usd, method, created_at FROM charge_requests WHERE status='pending' ORDER BY created_at DESC LIMIT 20")
+    cur1 = conn.execute("SELECT id, full_name, amount_usd, method, created_at FROM charge_requests WHERE status='pending' ORDER BY created_at DESC LIMIT 20")
     charges = [{"type": "charge", "id": r["id"], "name": r["full_name"],
                 "amount": r["amount_usd"], "method": r["method"],
-                "time": r["created_at"]} for r in c.fetchall()]
+                "time": r["created_at"]} for r in _fetchall_dict(cur1)]
 
     # طلبات شراء معلقة
-    c.execute("SELECT id, full_name, product_name, price_usd, created_at FROM orders WHERE status='pending' ORDER BY created_at DESC LIMIT 20")
+    cur2 = conn.execute("SELECT id, full_name, product_name, price_usd, created_at FROM orders WHERE status='pending' ORDER BY created_at DESC LIMIT 20")
     orders = [{"type": "order", "id": r["id"], "name": r["full_name"],
                "product": r["product_name"], "amount": r["price_usd"],
-               "time": r["created_at"]} for r in c.fetchall()]
+               "time": r["created_at"]} for r in _fetchall_dict(cur2)]
 
     # طلبات بروكسي معلقة
-    c.execute("SELECT id, full_name, proxy_type_label, quantity, country, created_at FROM proxy_orders WHERE status='pending' ORDER BY created_at DESC LIMIT 20")
+    cur3 = conn.execute("SELECT id, full_name, proxy_type_label, quantity, country, created_at FROM proxy_orders WHERE status='pending' ORDER BY created_at DESC LIMIT 20")
     proxies = [{"type": "proxy", "id": r["id"], "name": r["full_name"],
                 "product": f"{r['proxy_type_label']} x{r['quantity']} ({r['country']})",
-                "amount": 0, "time": r["created_at"]} for r in c.fetchall()]
+                "amount": 0, "time": r["created_at"]} for r in _fetchall_dict(cur3)]
 
     conn.close()
 
@@ -386,9 +382,8 @@ def api_notifications():
 @auth_required
 def api_proxy_orders():
     conn = db.get_conn()
-    c = conn.cursor()
-    c.execute("SELECT * FROM proxy_orders ORDER BY created_at DESC LIMIT 100")
-    rows = _fetchall_dict(c)
+    cur = conn.execute("SELECT * FROM proxy_orders ORDER BY created_at DESC LIMIT 100")
+    rows = _fetchall_dict(cur)
     conn.close()
     return jsonify(rows)
 
@@ -397,9 +392,8 @@ def api_proxy_orders():
 def api_proxy_order_status(oid):
     status = request.json.get('status')
     conn = db.get_conn()
-    c = conn.cursor()
-    c.execute("SELECT * FROM proxy_orders WHERE id=?", (oid,))
-    proxy = c.fetchone()
+    cur = conn.execute("SELECT * FROM proxy_orders WHERE id=?", (oid,))
+    proxy = _fetchone_dict(cur)
     conn.close()
     db.update_proxy_order_status(oid, status)
     if proxy:
