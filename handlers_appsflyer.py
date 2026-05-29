@@ -222,11 +222,19 @@ async def af_confirm_send(update: Update, context: ContextTypes.DEFAULT_TYPE):
         f"📱 *AF ID:* `{ud['af_af_id']}`"
     )
 
+    admin_kb = InlineKeyboardMarkup([
+        [
+            InlineKeyboardButton("✅ قبول", callback_data=f"af_accept_{order_id}"),
+            InlineKeyboardButton("❌ رفض", callback_data=f"af_reject_{order_id}"),
+        ]
+    ])
+
     try:
         await context.bot.send_message(
             chat_id=ADMIN_ID,
             text=admin_text,
-            parse_mode=ParseMode.MARKDOWN
+            parse_mode=ParseMode.MARKDOWN,
+            reply_markup=admin_kb
         )
     except Exception:
         pass
