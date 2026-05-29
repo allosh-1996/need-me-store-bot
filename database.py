@@ -23,8 +23,27 @@ if not TURSO_URL or not TURSO_TOKEN:
         "أضفهم في Railway Variables."
     )
 
+# Persistent connection — بدل فتح اتصال جديد مع كل query
+import threading
+_conn_lock = threading.Lock()
+_persistent_conn = None
+
 def get_conn():
-    """يفتح اتصال جديد بـ Turso — thread-safe"""
+    """يرجع اتصال دائم — يعيد الاتصال تلقائياً لو انقطع"""
+    global _persistent_conn
+    with _conn_lock:
+        try:
+            if _persistent_conn is not None:
+                # تحقق إن الاتصال لازال شغال
+                _persistent_conn.execute("SELECT 1")
+                return _persistent_conn
+        except Exception:
+            _persistent_conn = None
+        _persistent_conn = libsql.connect(database=TURSO_URL, auth_token=TURSO_TOKEN)
+        return _persistent_conn
+
+def get_fresh_conn():
+    """اتصال جديد للعمليات الحساسة (transactions)"""
     return libsql.connect(database=TURSO_URL, auth_token=TURSO_TOKEN)
 
 def _row_to_dict(description, row):
@@ -199,7 +218,7 @@ def pop_stock_item(product_id):
     يسحب أول وحدة من المخزون بشكل atomic — لا يمكن لمستخدمين الحصول على نفس الوحدة.
     يرجع: (item_text, remaining_count) أو (None, 0) لو فارغ.
     """
-    conn = get_conn()
+    conn = get_fresh_conn()
     try:
         # BEGIN IMMEDIATE يقفل الجدول للكتابة فوراً — يمنع race condition
         conn.execute("BEGIN IMMEDIATE")
@@ -358,7 +377,7 @@ def buy_with_balance(user_id, product_id, price):
     FIX: Atomic purchase — خصم الرصيد وسحب المنتج في transaction واحدة.
     يرجع: (item_text, new_balance) أو يرفع ValueError لو فشل.
     """
-    conn = get_conn()
+    conn = get_fresh_conn()
     try:
         conn.execute("BEGIN IMMEDIATE")
 
@@ -541,7 +560,7 @@ def claim_broadcast_for_job(broadcast_id):
     FIX: Atomic claim — يمنع job_queue من إرسال broadcast سبق للداشبورد إرساله.
     يرجع True لو نجح الـ claim، False لو سبق أحد.
     """
-    conn = get_conn()
+    conn = get_fresh_conn()
     try:
         conn.execute("BEGIN IMMEDIATE")
         cur = conn.execute("SELECT is_sent FROM broadcasts WHERE id=?", (broadcast_id,))
