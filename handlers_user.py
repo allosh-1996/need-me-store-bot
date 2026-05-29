@@ -559,21 +559,19 @@ async def surveys_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # iCloud
 # ═══════════════════════════════════════
 async def icloud_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """يفتح قائمة منتجات iCloud — نفس نظام المنتجات الحالي"""
+    """يفتح منتجات iCloud مباشرة بدون فئة"""
     query = update.callback_query
     await query.answer()
     lang = get_user_lang(context)
 
-    # حدد platform iOS تلقائياً
-    context.user_data['selected_platform'] = 'iOS'
-    context.user_data['cat_source'] = 'icloud_menu'
+    context.user_data['cat_source'] = 'back_main'
 
     products = db.get_all_products()
-    ios_products = [p for p in products if 'iOS' in (p.get('platform') or 'iOS')]
+    icloud_products = [p for p in products if p.get('category') == 'Apple iCloud']
 
-    if not ios_products:
+    if not icloud_products:
         await query.edit_message_text(
-            t("no_products_platform", lang),
+            t("no_products_category", lang),
             parse_mode=ParseMode.MARKDOWN,
             reply_markup=InlineKeyboardMarkup([[
                 InlineKeyboardButton(t("back", lang), callback_data="back_main")
@@ -581,15 +579,11 @@ async def icloud_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         return
 
-    # جيب الفئات
-    categories = list(dict.fromkeys(
-        p['category'] for p in ios_products if p.get('category')
-    ))
-
+    text = f"*iCloud*\n\n_{t('choose_product', lang)}_"
     await query.edit_message_text(
-        f"*iCloud*\n\n_{t('choose_category', lang)}_",
+        text,
         parse_mode=ParseMode.MARKDOWN,
-        reply_markup=kb.categories_menu(categories, back_cb="back_main", lang=lang)
+        reply_markup=kb.products_menu(icloud_products, lang=lang, back_cb="back_main")
     )
 
 # ═══════════════════════════════════════
