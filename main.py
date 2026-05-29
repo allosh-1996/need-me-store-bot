@@ -273,7 +273,14 @@ def main():
     )
 
     logger.info(f"🚀 البوت شغال! Admin ID: {ADMIN_ID}")
-    app.run_polling(allowed_updates=Update.ALL_TYPES)
+    app.run_polling(
+        allowed_updates=Update.ALL_TYPES,
+        read_timeout=10,
+        write_timeout=10,
+        connect_timeout=10,
+        pool_timeout=5,
+        drop_pending_updates=True,
+    )
 
 if __name__ == '__main__':
     main()
