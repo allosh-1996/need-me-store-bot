@@ -248,6 +248,7 @@ def main():
     app.add_handler(CallbackQueryHandler(hu.initiate_buy,        pattern=r'^buy_\d+_\w+$'))
     app.add_handler(CallbackQueryHandler(hu.toggle_lang,         pattern='^toggle_lang$'))
     app.add_handler(CallbackQueryHandler(hu.emails_menu,         pattern='^emails_menu$'))
+    app.add_handler(CallbackQueryHandler(hu.icloud_menu,          pattern='^icloud_menu$'))
     app.add_handler(CallbackQueryHandler(hu.payment_info,        pattern='^payment_info$'))
     app.add_handler(CallbackQueryHandler(hu.contact,             pattern='^contact$'))
     app.add_handler(CallbackQueryHandler(hu.back_main,           pattern='^back_main$'))
