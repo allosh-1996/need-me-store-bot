@@ -556,41 +556,47 @@ tr:hover td{background:var(--surface2)}
 
 <!-- Modal: إضافة منتج — محسّن -->
 <div class="modal" id="add-product-modal">
-  <div class="modal-box" style="max-width:520px">
-    <h3>➕ إضافة منتج جديد</h3>
+  <div class="modal-box" style="max-width:480px">
+    <h3>➕ إضافة منتج</h3>
 
-    <!-- Step 1: النوع / Platform -->
+    <!-- القسم الرئيسي -->
     <div class="form-group">
-      <label>النوع | Platform</label>
-      <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:6px;margin-top:4px" id="platform-btns">
-        <button type="button" class="ptype-btn active" data-val="iOS" onclick="selectPlatform(this)">🍏 iCloud / iOS</button>
-        <button type="button" class="ptype-btn" data-val="Android" onclick="selectPlatform(this)">🤖 Android</button>
-        <button type="button" class="ptype-btn" data-val="Surveys" onclick="selectPlatform(this)">📊 Surveys</button>
-        <button type="button" class="ptype-btn" data-val="iOS & Android" onclick="selectPlatform(this)">📱 iOS & Android</button>
+      <label>القسم</label>
+      <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:6px;margin-top:4px">
+        <button type="button" class="ptype-btn active" data-section="icloud" onclick="selectSection(this)">🍏 iCloud</button>
+        <button type="button" class="ptype-btn" data-section="emails" onclick="selectSection(this)">📧 ايميلات</button>
+        <button type="button" class="ptype-btn" data-section="appsflyer" onclick="selectSection(this)">🎮 Win AppsFlyer</button>
+        <button type="button" class="ptype-btn" data-section="surveys" onclick="selectSection(this)">📊 Surveys</button>
       </div>
-      <input type="hidden" id="p-platform" value="iOS">
     </div>
 
-    <!-- Step 2: الفئة — تتغير حسب النوع -->
-    <div class="form-group">
-      <label>الفئة | Category</label>
-      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:4px" id="cat-btns"></div>
-      <input id="p-cat-custom" placeholder="أو اكتب فئة جديدة..." style="margin-top:6px;width:100%;padding:7px 10px;border-radius:7px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-size:.8rem" oninput="if(this.value.trim()){document.querySelectorAll('.cat-btn').forEach(b=>b.classList.remove('active'));$('p-cat').value=''}">
-      <input type="hidden" id="p-cat" value="">
+    <!-- subtype — يظهر حسب القسم -->
+    <div class="form-group" id="subtype-group" style="display:none">
+      <label id="subtype-label">النوع</label>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:4px" id="subtype-btns"></div>
     </div>
 
-    <!-- Step 3: الاسم والسعر -->
-    <div class="form-group"><label>اسم المنتج</label><input id="p-name" placeholder="مثال: Toluna Premium Account"></div>
+    <!-- حقل اسم اللعبة لـ AppsFlyer -->
+    <div class="form-group" id="game-name-group" style="display:none">
+      <label>اسم اللعبة</label>
+      <input id="p-game-name" placeholder="مثال: Coin Master">
+    </div>
+
+    <input type="hidden" id="p-category" value="Apple iCloud">
+    <input type="hidden" id="p-platform" value="general">
+
+    <!-- الاسم والسعر -->
+    <div class="form-group"><label>اسم المنتج</label><input id="p-name" placeholder="مثال: iCloud Premium"></div>
     <div class="form-group"><label>الوصف (اختياري)</label><input id="p-desc" placeholder="وصف مختصر"></div>
     <div class="form-row">
       <div class="form-group"><label>السعر USD</label><input id="p-usd" type="number" step="0.5" placeholder="5.00"></div>
       <div class="form-group"><label>السعر SYP</label><input id="p-syp" type="number" placeholder="700"></div>
     </div>
 
-    <!-- Step 4: المخزون -->
+    <!-- المخزون -->
     <div class="form-group">
-      <label>المخزون <span style="color:var(--muted);font-size:.7rem">(كل سطر = وحدة واحدة)</span></label>
-      <textarea id="p-stock" rows="5" placeholder="account@email.com:password123&#10;account2@email.com:password456&#10;&#10;أو رابط تحميل&#10;أو كود تفعيل" oninput="updateStockCount('p-stock','stock-count')"></textarea>
+      <label>المخزون <span style="color:var(--muted);font-size:.7rem">(كل سطر = وحدة)</span></label>
+      <textarea id="p-stock" rows="4" placeholder="account@email.com:password123&#10;account2@email.com:password456" oninput="updateStockCount('p-stock','stock-count')"></textarea>
       <div style="font-size:.68rem;color:var(--muted);margin-top:3px" id="stock-count">0 وحدة</div>
     </div>
 
@@ -658,7 +664,7 @@ function openModal(id) {
   if (id === 'add-product-modal') {
     // شغّل الـ platform الافتراضي iOS
     const firstBtn = document.querySelector('.ptype-btn[data-val="iOS"]')
-    if (firstBtn) selectPlatform(firstBtn)
+    if (firstBtn) selectSection(firstBtn)
   }
 }
 function closeModal(id) { $(id).classList.remove('open') }
@@ -743,36 +749,60 @@ async function loadProducts() {
 }
 
 // ===== Platform categories map =====
-const PLATFORM_CATS = {
-  'iOS':           ['Apple iCloud','Outlook','Gmail','Hotmail','شروحات','أخرى'],
-  'Android':       ['Outlook','Gmail','Hotmail','شروحات','أخرى'],
-  'iOS & Android': ['Outlook','Gmail','Hotmail','شروحات','أخرى'],
-  'Surveys':       ['Toluna','My points','أخرى'],
+const SECTION_CONFIG = {
+  icloud:     { label: null,    cats: null },
+  emails:     { label: 'نوع الايميل', cats: ['Outlook','Gmail','Hotmail'] },
+  appsflyer:  { label: null,    cats: null },
+  surveys:    { label: 'نوع السيرفي', cats: ['Toluna','My points','أخرى'] },
 }
 
-function selectPlatform(btn) {
+function selectSection(btn) {
   document.querySelectorAll('.ptype-btn').forEach(b => b.classList.remove('active'))
   btn.classList.add('active')
-  $('p-platform').value = btn.dataset.val
-  renderCatBtns(btn.dataset.val)
-  // auto-fill SYP hint based on platform
+  const section = btn.dataset.section
+  const cfg = SECTION_CONFIG[section]
+
+  // إخفاء كل الحقول الإضافية أولاً
+  $('subtype-group').style.display = 'none'
+  $('game-name-group').style.display = 'none'
+  $('subtype-btns').innerHTML = ''
+
+  if (section === 'icloud') {
+    $('p-category').value = 'Apple iCloud'
+    $('p-platform').value = 'general'
+
+  } else if (section === 'emails') {
+    $('subtype-label').textContent = 'نوع الايميل'
+    $('subtype-group').style.display = 'block'
+    $('subtype-btns').innerHTML = cfg.cats.map(c =>
+      `<button type="button" class="cat-btn" data-val="${c}" onclick="selectSubtype(this)">${c}</button>`
+    ).join('')
+    $('p-category').value = cfg.cats[0]
+    $('subtype-btns').querySelector('.cat-btn').classList.add('active')
+    $('p-platform').value = 'general'
+
+  } else if (section === 'appsflyer') {
+    $('game-name-group').style.display = 'block'
+    $('p-game-name').value = ''
+    $('p-platform').value = 'general'
+    $('p-category').value = ''
+
+  } else if (section === 'surveys') {
+    $('subtype-label').textContent = 'نوع السيرفي'
+    $('subtype-group').style.display = 'block'
+    $('subtype-btns').innerHTML = cfg.cats.map(c =>
+      `<button type="button" class="cat-btn" data-val="${c}" onclick="selectSubtype(this)">${c}</button>`
+    ).join('')
+    $('p-category').value = cfg.cats[0]
+    $('subtype-btns').querySelector('.cat-btn').classList.add('active')
+    $('p-platform').value = 'general'
+  }
 }
 
-function renderCatBtns(platform) {
-  const cats = PLATFORM_CATS[platform] || ['أخرى']
-  const container = $('cat-btns')
-  container.innerHTML = cats.map(c =>
-    `<button type="button" class="cat-btn" data-val="${c}" onclick="selectCat(this)">${c}</button>`
-  ).join('')
-  $('p-cat').value = ''
-  $('p-cat-custom').value = ''
-}
-
-function selectCat(btn) {
-  document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('active'))
+function selectSubtype(btn) {
+  document.querySelectorAll('#subtype-btns .cat-btn').forEach(b => b.classList.remove('active'))
   btn.classList.add('active')
-  $('p-cat').value = btn.dataset.val
-  $('p-cat-custom').value = ''
+  $('p-category').value = btn.dataset.val
 }
 
 // عداد المخزون في المودال
@@ -782,10 +812,14 @@ function updateStockCount(textareaId, countId) {
 }
 
 async function addProduct() {
-  // الفئة: من الأزرار أو من حقل الكتابة
-  const catFromBtn = $('p-cat').value
-  const catCustom = $('p-cat-custom').value.trim()
-  const finalCat = catCustom || catFromBtn
+  // لو appsflyer — الفئة من حقل اسم اللعبة
+  const activeSection = document.querySelector('.ptype-btn.active')?.dataset.section
+  let finalCat = $('p-category').value
+  if (activeSection === 'appsflyer') {
+    const gameName = $('p-game-name').value.trim()
+    if (!gameName) { toast('اكتب اسم اللعبة', false); return }
+    finalCat = gameName
+  }
 
   const d = {
     name: $('p-name').value.trim(),
@@ -798,15 +832,12 @@ async function addProduct() {
   }
   if (!d.name) { toast('اسم المنتج مطلوب', false); return }
   if (!d.price_usd) { toast('السعر بالدولار مطلوب', false); return }
-  if (!d.category) { toast('اختر فئة أو اكتب فئة جديدة', false); return }
+  if (!d.category) { toast('اختر القسم أولاً', false); return }
 
   const res = await api('/api/products/add', 'POST', d)
   if (!res) return
   closeModal('add-product-modal')
-  // reset form
-  ['p-name','p-desc','p-usd','p-syp','p-stock'].forEach(id => $(id).value = '')
-  $('p-cat').value = ''
-  $('p-cat-custom').value = ''
+  ['p-name','p-desc','p-usd','p-syp','p-stock','p-game-name'].forEach(id => $(id).value = '')
   loadProducts()
   toast('✅ تم إضافة المنتج — ' + d.name)
 }
