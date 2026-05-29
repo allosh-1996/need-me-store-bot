@@ -436,3 +436,112 @@ async def broadcast_send(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(" Cancelled  |  تم الإلغاء", reply_markup=kb.admin_main_menu())
     return ConversationHandler.END
+
+
+# ══════════════════════════════════════════════════════
+# AppsFlyer — قبول / رفض الطلبات
+# ══════════════════════════════════════════════════════
+
+async def appsflyer_accept(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """الأدمن يقبل طلب AppsFlyer → خصم الرصيد + إشعار المستخدم"""
+    query = update.callback_query
+    await query.answer()
+
+    if not is_admin(query.from_user.id):
+        return
+
+    order_id = int(query.data.replace("af_accept_", ""))
+    order = db.get_appsflyer_order(order_id)
+
+    if not order:
+        await query.answer("❌ الطلب غير موجود", show_alert=True)
+        return
+
+    if order["status"] != "pending":
+        await query.answer("⚠️ الطلب تمت معالجته مسبقاً", show_alert=True)
+        return
+
+    # تحقق من الرصيد
+    balance = db.get_balance(order["user_id"])
+    if balance < order["price_usd"]:
+        await query.edit_message_text(
+            query.message.text + f"\n\n❌ *فشل الخصم — رصيد المستخدم غير كافٍ*\n"
+                                  f"الرصيد: `${balance:.2f}` | المطلوب: `${order['price_usd']:.2f}`",
+            parse_mode="Markdown"
+        )
+        return
+
+    # خصم الرصيد
+    db.update_balance(order["user_id"], -order["price_usd"])
+    db.update_appsflyer_order_status(order_id, "accepted")
+
+    # تحديث رسالة الأدمن
+    await query.edit_message_text(
+        query.message.text + f"\n\n✅ *تم القبول — خُصم `${order['price_usd']:.2f}` من رصيد المستخدم*",
+        parse_mode="Markdown"
+    )
+
+    # إشعار المستخدم
+    try:
+        await context.bot.send_message(
+            chat_id=order["user_id"],
+            text=(
+                f"🚀 *طلبك قيد التنفيذ الآن!*\n\n"
+                f"🎮 *اللعبة:* {order['game_name']}\n"
+                f"🔢 *رقم الطلب:* `#{order_id}`\n"
+                f"💵 *المبلغ المخصوم:* `${order['price_usd']:.2f}`\n\n"
+                f"سيتم تنفيذ الخدمة في أقرب وقت ✨\n"
+                f"_Your order is now being executed._"
+            ),
+            parse_mode="Markdown"
+        )
+    except Exception as e:
+        logger.error(f"Failed to notify user {order['user_id']}: {e}")
+
+
+async def appsflyer_reject(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """الأدمن يرفض طلب AppsFlyer → إشعار المستخدم"""
+    query = update.callback_query
+    await query.answer()
+
+    if not is_admin(query.from_user.id):
+        return
+
+    order_id = int(query.data.replace("af_reject_", ""))
+    order = db.get_appsflyer_order(order_id)
+
+    if not order:
+        await query.answer("❌ الطلب غير موجود", show_alert=True)
+        return
+
+    if order["status"] != "pending":
+        await query.answer("⚠️ الطلب تمت معالجته مسبقاً", show_alert=True)
+        return
+
+    db.update_appsflyer_order_status(order_id, "rejected")
+
+    # تحديث رسالة الأدمن
+    await query.edit_message_text(
+        query.message.text + f"\n\n❌ *تم الرفض*",
+        parse_mode="Markdown"
+    )
+
+    # إشعار المستخدم
+    try:
+        await context.bot.send_message(
+            chat_id=order["user_id"],
+            text=(
+                f"❌ *تم رفض طلبك*\n\n"
+                f"🎮 *اللعبة:* {order['game_name']}\n"
+                f"🔢 *رقم الطلب:* `#{order_id}`\n\n"
+                f"لم يتم خصم أي مبلغ من رصيدك.\n"
+                f"_Your order was rejected. No balance was deducted._"
+            ),
+            parse_mode="Markdown",
+            reply_markup=InlineKeyboardMarkup([
+                [InlineKeyboardButton("💬 تواصل", callback_data="contact")],
+                [InlineKeyboardButton("🏠 الرئيسية", callback_data="back_main")],
+            ])
+        )
+    except Exception as e:
+        logger.error(f"Failed to notify user {order['user_id']}: {e}")
