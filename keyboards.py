@@ -1,29 +1,29 @@
-from telegram import InlineKeyboardButton, InlineKeyboardMarkup, ReplyKeyboardMarkup, ReplyKeyboardRemove, KeyboardButton
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup, ReplyKeyboardRemove
 from lang import t
 
-# ============ Main Menu ============
+
 def main_menu(lang="ar"):
     keyboard = [
         [
-            InlineKeyboardButton(t("btn_icloud", lang), callback_data="icloud_menu"),
-            InlineKeyboardButton(t("btn_emails", lang), callback_data="emails_menu"),
+            InlineKeyboardButton(t("btn_icloud", lang),   callback_data="icloud_menu"),
+            InlineKeyboardButton(t("btn_emails", lang),   callback_data="emails_menu"),
         ],
         [
-            InlineKeyboardButton(t("btn_balance", lang), callback_data="show_balance"),
-            InlineKeyboardButton(t("btn_proxy", lang), callback_data="proxy_menu"),
+            InlineKeyboardButton(t("btn_balance", lang),  callback_data="show_balance"),
+            InlineKeyboardButton(t("btn_proxy", lang),    callback_data="proxy_menu"),
         ],
         [
-            InlineKeyboardButton(t("btn_surveys", lang), callback_data="surveys_menu"),
-            InlineKeyboardButton(t("btn_appsflyer", lang), callback_data="win_appsflyer"),
+            InlineKeyboardButton(t("btn_surveys", lang),  callback_data="surveys_menu"),
+            InlineKeyboardButton(t("btn_appsflyer", lang),callback_data="win_appsflyer"),
         ],
         [
-            InlineKeyboardButton(t("btn_contact", lang), callback_data="contact"),
-            InlineKeyboardButton(t("btn_lang", lang), callback_data="toggle_lang"),
+            InlineKeyboardButton(t("btn_contact", lang),  callback_data="contact"),
+            InlineKeyboardButton(t("btn_lang", lang),     callback_data="toggle_lang"),
         ],
     ]
     return InlineKeyboardMarkup(keyboard)
 
-# ============ Categories Menu ============
+
 def categories_menu(categories, back_cb="products", lang="ar"):
     keyboard = []
     row = []
@@ -37,7 +37,7 @@ def categories_menu(categories, back_cb="products", lang="ar"):
     keyboard.append([InlineKeyboardButton(t("back", lang), callback_data=back_cb)])
     return InlineKeyboardMarkup(keyboard)
 
-# ============ Products Menu ============
+
 def products_menu(products, lang="ar", back_cb="products"):
     keyboard = []
     for p in products:
@@ -51,7 +51,7 @@ def products_menu(products, lang="ar", back_cb="products"):
     keyboard.append([InlineKeyboardButton(t("back", lang), callback_data=back_cb)])
     return InlineKeyboardMarkup(keyboard)
 
-# ============ Product Detail Menu ============
+
 def product_detail_menu(product_id, has_stock=True, lang="ar", back_cb="products"):
     keyboard = []
     if has_stock:
@@ -61,22 +61,12 @@ def product_detail_menu(product_id, has_stock=True, lang="ar", back_cb="products
     keyboard.append([InlineKeyboardButton(t("back", lang), callback_data=back_cb)])
     return InlineKeyboardMarkup(keyboard)
 
-# ============ Payment Method Menu ============
-def payment_method_menu(product_id, currency, lang="ar"):
-    keyboard = [
-        [InlineKeyboardButton("USDT  (BEP-20)", callback_data=f"pay_{product_id}_{currency}_usdt")],
-        [InlineKeyboardButton("Syriatel Cash", callback_data=f"pay_{product_id}_{currency}_syriatel")],
-        [InlineKeyboardButton(t("buy_from_balance", lang), callback_data=f"confirm_buy_{product_id}")],
-        [InlineKeyboardButton(t("back", lang), callback_data=f"prod_{product_id}")],
-    ]
-    return InlineKeyboardMarkup(keyboard)
 
-# ============ Admin Main Menu ============
 def admin_main_menu():
     keyboard = [
         [
-            InlineKeyboardButton("المنتجات", callback_data="adm_products"),
-            InlineKeyboardButton("الطلبات", callback_data="adm_orders"),
+            InlineKeyboardButton("المنتجات",    callback_data="adm_products"),
+            InlineKeyboardButton("الطلبات",     callback_data="adm_orders"),
         ],
         [
             InlineKeyboardButton("اضافة منتج", callback_data="adm_add_product"),
@@ -88,28 +78,25 @@ def admin_main_menu():
     ]
     return InlineKeyboardMarkup(keyboard)
 
-# ============ Order Confirm Menu ============
+
 def order_confirm_menu(order_id):
-    keyboard = [
-        [
-            InlineKeyboardButton("تاكيد وارسال", callback_data=f"adm_confirm_{order_id}"),
-            InlineKeyboardButton("رفض", callback_data=f"adm_reject_{order_id}"),
-        ],
-    ]
+    keyboard = [[
+        InlineKeyboardButton("تاكيد وارسال", callback_data=f"adm_confirm_{order_id}"),
+        InlineKeyboardButton("رفض",           callback_data=f"adm_reject_{order_id}"),
+    ]]
     return InlineKeyboardMarkup(keyboard)
 
-# ============ Admin Product Menu ============
+
 def admin_product_menu(product_id):
     keyboard = [
         [
             InlineKeyboardButton("تحديث المخزون", callback_data=f"adm_stock_{product_id}"),
-            InlineKeyboardButton("حذف", callback_data=f"adm_del_{product_id}"),
+            InlineKeyboardButton("حذف",            callback_data=f"adm_del_{product_id}"),
         ],
         [InlineKeyboardButton("رجوع", callback_data="adm_products")],
     ]
     return InlineKeyboardMarkup(keyboard)
 
-# ============ Persistent Bottom Menu ============
+
 def persistent_menu(lang="ar"):
-    """محذوف — يرجع ReplyKeyboardRemove لإخفاء الكيبورد"""
     return ReplyKeyboardRemove()
