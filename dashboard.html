@@ -631,11 +631,12 @@ async function api(url, method='GET', body=null) {
 
 async function loadStats() {
   const d = await api('/api/stats')
-  $('s-users').textContent = d.users
-  $('s-products').textContent = d.products
-  $('s-total').textContent = d.total_orders
-  $('s-pending').textContent = d.pending_orders
-  $('s-done').textContent = d.completed_orders
+  if (!d) return
+  $('s-users').textContent = d.users ?? '—'
+  $('s-products').textContent = d.products ?? '—'
+  $('s-total').textContent = d.total_orders ?? '—'
+  $('s-pending').textContent = d.pending_orders ?? '—'
+  $('s-done').textContent = d.completed_orders ?? '—'
 }
 
 async function loadProducts() {
@@ -669,14 +670,14 @@ async function addProduct() {
 
 async function deleteProduct(id) {
   if (!confirm('حذف المنتج؟')) return
-  await api(`/api/products/${id}/delete`,'POST')
-  loadProducts();toast('🗑️ تم الحذف')
+  const res = await api(`/api/products/${id}/delete`,'POST')
+  if(res && res.ok){ loadProducts(); toast('🗑️ تم الحذف') }
 }
 
 function editStock(id, current) {
   const s = prompt('المخزون الجديد:', current)
   if (s===null) return
-  api(`/api/products/${id}/stock`,'POST',{stock:s}).then(()=>{loadProducts();toast('✅ تم تحديث المخزون')})
+  api(`/api/products/${id}/stock`,'POST',{stock:s}).then(res=>{if(res&&res.ok){loadProducts();toast('✅ تم تحديث المخزون')}})
 }
 
 let currentOrderFilter=''
@@ -864,9 +865,8 @@ async function deductBalance(uid, name, bal){ _currentBalance=bal; _currentUid=u
 async function sendBroadcast(){
   const msg=$('broadcast-msg').value.trim()
   if(!msg){toast('اكتب رسالة أولاً',false);return}
-  await api('/api/broadcast','POST',{message:msg})
-  $('broadcast-msg').value=''
-  toast('✅ تم إرسال الرسالة')
+  const res = await api('/api/broadcast','POST',{message:msg})
+  if(res && res.ok){ $('broadcast-msg').value=''; toast(`✅ تم الإرسال — ${res.sent} مستخدم`) }
 }
 
 loadStats()
