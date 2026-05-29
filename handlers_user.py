@@ -64,70 +64,31 @@ async def show_products(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await query.answer()
     lang = get_user_lang(context)
 
-    platform_kb = InlineKeyboardMarkup([
-        [InlineKeyboardButton("iOS", callback_data="platform_iOS"),
-         InlineKeyboardButton("Android", callback_data="platform_Android")],
-        [InlineKeyboardButton(t("back", lang), callback_data="back_main")],
-    ])
-
-    text = f"*NexVault Shop*\n\n_{t('choose_platform', lang)}_"
-    if query:
-        await query.edit_message_text(text, parse_mode=ParseMode.MARKDOWN, reply_markup=platform_kb)
-    else:
-        await update.message.reply_text(text, parse_mode=ParseMode.MARKDOWN, reply_markup=platform_kb)
-
-async def show_platform_categories(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    query = update.callback_query
-    await query.answer()
-    lang = get_user_lang(context)
-    platform = query.data.replace("platform_", "")
-    context.user_data['selected_platform'] = platform
-
     products = db.get_all_products()
-    platform_products = [p for p in products if platform in (p.get('platform') or 'iOS')]
+    categories = list(dict.fromkeys(p['category'] for p in products if p.get('category')))
 
-    if not platform_products:
-        await query.edit_message_text(
-            t("no_products_platform", lang),
-            parse_mode=ParseMode.MARKDOWN,
-            reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton(t("back", lang), callback_data="products")]])
-        )
-        return
+    text = f"*NexVault Shop*\n\n_{t('choose_category', lang)}_"
+    if query:
+        await query.edit_message_text(text, parse_mode=ParseMode.MARKDOWN,
+                                       reply_markup=kb.categories_menu(categories, back_cb="back_main", lang=lang))
+    else:
+        await update.message.reply_text(text, parse_mode=ParseMode.MARKDOWN,
+                                         reply_markup=kb.categories_menu(categories, back_cb="back_main", lang=lang))
 
-    categories = list(set(p['category'] for p in platform_products if p['category']))
-    text = f"*{platform}*\n\n_{t('choose_category', lang)}_"
-    await query.edit_message_text(text, parse_mode=ParseMode.MARKDOWN,
-                                   reply_markup=kb.categories_menu(categories, back_cb="products", lang=lang))
+# show_platform_categories محذوفة — لا يوجد platform filter
 
 async def show_category(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
     lang = get_user_lang(context)
     category = query.data.replace("cat_", "")
-    platform = context.user_data.get('selected_platform', '')
 
-    EMAIL_CATS = ['Outlook', 'Gmail', 'Hotmail']
-    GAME_CATS = ['Coin Master', 'Domino Dream', 'Disney Dream', 'Screw Guru', 'Travel Town', 'Dice Dream']
-    if category in EMAIL_CATS:
-        context.user_data['cat_source'] = 'emails_menu'
-    elif category in GAME_CATS:
-        context.user_data['cat_source'] = 'win_appsflyer'
-    elif platform == 'Surveys':
-        context.user_data['cat_source'] = 'surveys_menu'
-    elif platform:
-        context.user_data['cat_source'] = f'platform_{platform}'
-    else:
-        context.user_data['cat_source'] = 'products'
+    context.user_data['cat_source'] = 'products'
 
     products = db.get_all_products()
-    if platform == 'Surveys':
-        cat_products = [p for p in products if p['category'] == category and (p.get('platform') or '') == 'Surveys']
-    elif platform and category not in EMAIL_CATS and category not in GAME_CATS:
-        cat_products = [p for p in products if p['category'] == category and platform in (p.get('platform') or 'iOS')]
-    else:
-        cat_products = [p for p in products if p['category'] == category]
+    cat_products = [p for p in products if p['category'] == category]
 
-    back_cb = context.user_data['cat_source']
+    back_cb = 'products' 
 
     if not cat_products:
         await query.edit_message_text(
@@ -154,14 +115,11 @@ async def show_product_detail(update: Update, context: ContextTypes.DEFAULT_TYPE
 
     stock_count = db.get_stock_count(product_id)
     has_stock = stock_count > 0
-    platform = product.get('platform', '') or ''
-
     stock_line = f"{t('in_stock', lang)} ({stock_count} units)" if has_stock else t('out_of_stock', lang)
     text = (
         f"*{product['name']}*\n\n"
         f"━━━━━━━━━━━━━━━━\n"
         f"{product['description'] or t('no_desc', lang)}\n"
-        f"Platform: `{platform}`\n\n"
         f"USD: `${product['price_usd']}`\n"
         f"SYP: `{product['price_syp']:,.0f}`\n\n"
         f"{stock_line}\n"

@@ -115,35 +115,18 @@ async def add_product_price_syp(update: Update, context: ContextTypes.DEFAULT_TY
 
 async def add_product_category(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data['new_product']['category'] = update.message.text
+    context.user_data['new_product']['platform'] = 'general'
 
-    platform_kb = InlineKeyboardMarkup([
-        [InlineKeyboardButton(" iOS", callback_data="adm_platform_iOS"),
-         InlineKeyboardButton(" Android", callback_data="adm_platform_Android")],
-        [InlineKeyboardButton(" iOS & Android", callback_data="adm_platform_iOS & Android")],
-    ])
     await update.message.reply_text(
-        " *المنظومة  |  Platform*\n\n"
-        "_اختر منظومة المنتج:_",
-        parse_mode=ParseMode.MARKDOWN,
-        reply_markup=platform_kb
-    )
-    return ADM_PROD_PLATFORM
-
-async def add_product_platform(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    query = update.callback_query
-    await query.answer()
-    platform = query.data.replace("adm_platform_", "")
-    context.user_data['new_product']['platform'] = platform
-
-    await query.edit_message_text(
-        f" المنظومة  |  Platform: *{platform}*\n\n"
-        f" *المخزون  |  Stock*\n\n"
-        f"_المحتوى الذي سيُرسل للعميل_\n"
-        f"_Content to be sent to the customer_\n\n"
-        f"مثال:\n`account@email.com:password`\n`or download link`",
+        " *المخزون  |  Stock*\n\n"
+        "_المحتوى الذي سيُرسل للعميل_\n"
+        "_Content to be sent to the customer_\n\n"
+        "مثال:\n`account@email.com:password`\n`or download link`",
         parse_mode=ParseMode.MARKDOWN
     )
     return ADM_PROD_STOCK
+
+# add_product_platform محذوفة
 
 async def add_product_stock(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data['new_product']['stock'] = update.message.text

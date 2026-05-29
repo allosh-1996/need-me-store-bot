@@ -57,7 +57,6 @@ def main():
             ha.ADM_PROD_PRICE_USD: [MessageHandler(filters.TEXT & ~filters.COMMAND, ha.add_product_price_usd)],
             ha.ADM_PROD_PRICE_SYP: [MessageHandler(filters.TEXT & ~filters.COMMAND, ha.add_product_price_syp)],
             ha.ADM_PROD_CATEGORY:  [MessageHandler(filters.TEXT & ~filters.COMMAND, ha.add_product_category)],
-            ha.ADM_PROD_PLATFORM:  [CallbackQueryHandler(ha.add_product_platform, pattern=r'^adm_platform_')],
             ha.ADM_PROD_STOCK:     [MessageHandler(filters.TEXT & ~filters.COMMAND, ha.add_product_stock)],
         },
         fallbacks=[CommandHandler('cancel', ha.cancel), MessageHandler(filters.Regex("ابدأ|Start"), hu.persistent_start)],
@@ -192,7 +191,6 @@ def main():
 
     # ========== Callbacks المستخدم ==========
     app.add_handler(CallbackQueryHandler(hu.show_products,       pattern='^products$'))
-    app.add_handler(CallbackQueryHandler(hu.show_platform_categories, pattern=r'^platform_(iOS|Android)$'))
     app.add_handler(CallbackQueryHandler(hu.show_category,       pattern=r'^cat_'))
     app.add_handler(CallbackQueryHandler(hu.show_product_detail, pattern=r'^prod_\d+$'))
     app.add_handler(CallbackQueryHandler(hu.initiate_buy,        pattern=r'^buy_\d+_\w+$'))
