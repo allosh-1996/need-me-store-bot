@@ -255,17 +255,15 @@ def api_broadcast():
     if not msg:
         return jsonify({"ok": False, "error": "Empty message"}), 400
 
-    # احفظ بقاعدة البيانات
+    # احفظ بقاعدة البيانات واجيب lastrowid قبل commit
     conn = db.get_conn()
-    c = conn.cursor()
-    c.execute("INSERT INTO broadcasts (message, is_sent) VALUES (?, 1)", (msg,))
-    broadcast_id = c.lastrowid
-    # FIX: نحدد is_sent=1 مباشرة — الإرسال يصير هنا، الـ job_queue ما يحتاج يعيده
+    cur = conn.execute("INSERT INTO broadcasts (message, is_sent) VALUES (?, 1)", (msg,))
+    broadcast_id = cur.lastrowid
     conn.commit()
 
-    # ارسل مباشرة لكل المستخدمين عبر Bot API
-    c.execute("SELECT id FROM users WHERE is_blocked=0")
-    users = c.fetchall()
+    # جيب المستخدمين بـ dict صح
+    cur2 = conn.execute("SELECT id FROM users WHERE is_blocked=0")
+    users = db._fetchall_dict(cur2)
     conn.close()
 
     sent = 0
@@ -281,15 +279,16 @@ def api_broadcast():
                 sent += 1
             else:
                 failed += 1
-        except:
+                print(f"Broadcast failed for {user['id']}: {resp.status_code} {resp.text[:100]}")
+        except Exception as e:
             failed += 1
+            print(f"Broadcast error for {user['id']}: {e}")
 
     # حدث السجل
-    conn2 = db.get_conn()
-    c2 = conn2.cursor()
-    c2.execute("UPDATE broadcasts SET is_sent=1, sent_count=? WHERE id=?", (sent, broadcast_id))
-    conn2.commit()
-    conn2.close()
+    conn3 = db.get_conn()
+    conn3.execute("UPDATE broadcasts SET is_sent=1, sent_count=? WHERE id=?", (sent, broadcast_id))
+    conn3.commit()
+    conn3.close()
 
     return jsonify({"ok": True, "sent": sent, "failed": failed})
 
