@@ -145,38 +145,6 @@ def main():
         per_user=True, per_chat=True, per_message=False,
     )
 
-    # ========== ConversationHandler: بروكسي ==========
-    proxy_conv = ConversationHandler(
-        entry_points=[CallbackQueryHandler(hp.proxy_menu, pattern='^proxy_menu$')],
-        states={
-            hp.PROXY_TYPE: [
-                CallbackQueryHandler(hp.proxy_type_selected, pattern=r'^prx_(http|socks5|residential|mobile|modem)$'),
-                CallbackQueryHandler(hp.proxy_menu, pattern='^proxy_menu$'),
-            ],
-            hp.PROXY_QTY: [
-                CallbackQueryHandler(hp.proxy_qty_selected, pattern=r'^(prxq_|prx_back_type)'),
-            ],
-            hp.PROXY_QTY_CUSTOM: [
-                MessageHandler(filters.TEXT & ~filters.COMMAND, hp.proxy_qty_custom),
-            ],
-            hp.PROXY_COUNTRY: [
-                CallbackQueryHandler(hp.proxy_country_selected, pattern=r'^(prxc_|prx_back_qty)'),
-            ],
-            hp.PROXY_COUNTRY_CUSTOM: [
-                MessageHandler(filters.TEXT & ~filters.COMMAND, hp.proxy_country_custom),
-            ],
-            hp.PROXY_NOTES: [
-                CallbackQueryHandler(hp.proxy_notes_handler, pattern=r'^(prxn_|prx_back_country)'),
-                MessageHandler(filters.TEXT & ~filters.COMMAND, hp.proxy_notes_handler),
-            ],
-            hp.PROXY_CONFIRM: [
-                CallbackQueryHandler(hp.proxy_confirm, pattern=r'^(prx_confirm_send|prx_back_notes)$'),
-            ],
-        },
-        fallbacks=[CommandHandler('cancel', hp.proxy_cancel), MessageHandler(filters.Regex("ابدأ|Start"), hu.persistent_start)],
-        per_user=True, per_chat=True, per_message=False,
-    )
-
     # ========== أوامر ==========
     app.add_handler(CommandHandler("start",    hu.start))
     app.add_handler(CommandHandler("help",     hu.help_cmd))
