@@ -192,6 +192,48 @@ def main():
     app.add_handler(charge_conv)
     app.add_handler(buy_conv)
 
+    # ========== ConversationHandler: Win AppsFlyer ==========
+    appsflyer_conv = ConversationHandler(
+        entry_points=[
+            CallbackQueryHandler(haf.appsflyer_menu, pattern='^win_appsflyer$'),
+        ],
+        states={
+            haf.AF_GAME: [
+                CallbackQueryHandler(haf.af_game_selected, pattern=r'^af_game_\w+$'),
+                CallbackQueryHandler(haf.af_cancel, pattern='^af_cancel$'),
+            ],
+            haf.AF_IDFA: [
+                MessageHandler(filters.TEXT & ~filters.COMMAND, haf.af_receive_idfa),
+                CallbackQueryHandler(haf.af_cancel, pattern='^af_cancel$'),
+            ],
+            haf.AF_IDFV: [
+                MessageHandler(filters.TEXT & ~filters.COMMAND, haf.af_receive_idfv),
+                CallbackQueryHandler(haf.af_cancel, pattern='^af_cancel$'),
+            ],
+            haf.AF_IOS_VER: [
+                MessageHandler(filters.TEXT & ~filters.COMMAND, haf.af_receive_ios_ver),
+                CallbackQueryHandler(haf.af_cancel, pattern='^af_cancel$'),
+            ],
+            haf.AF_AF_ID: [
+                MessageHandler(filters.TEXT & ~filters.COMMAND, haf.af_receive_af_id),
+                CallbackQueryHandler(haf.af_cancel, pattern='^af_cancel$'),
+            ],
+            haf.AF_CONFIRM: [
+                CallbackQueryHandler(haf.af_confirm_send, pattern='^af_confirm_send$'),
+                CallbackQueryHandler(haf.af_cancel, pattern='^af_cancel$'),
+            ],
+        },
+        fallbacks=[
+            CommandHandler('cancel', haf.af_cancel_text),
+            CommandHandler('start', hu.persistent_start),
+            MessageHandler(filters.Regex("ابدأ|Start"), hu.persistent_start),
+        ],
+        per_user=True,
+        per_chat=True,
+        per_message=False,
+    )
+    app.add_handler(appsflyer_conv)
+
     # ========== Callbacks الرصيد ==========
     app.add_handler(CallbackQueryHandler(hc.show_balance,         pattern='^show_balance$'))
     app.add_handler(CallbackQueryHandler(hu.confirm_buy,          pattern=r'^confirm_buy_\d+$'))
@@ -206,10 +248,13 @@ def main():
     app.add_handler(CallbackQueryHandler(hu.initiate_buy,        pattern=r'^buy_\d+_\w+$'))
     app.add_handler(CallbackQueryHandler(hu.toggle_lang,         pattern='^toggle_lang$'))
     app.add_handler(CallbackQueryHandler(hu.emails_menu,         pattern='^emails_menu$'))
-    app.add_handler(CallbackQueryHandler(hu.win_appsflyer,       pattern='^win_appsflyer$'))
     app.add_handler(CallbackQueryHandler(hu.payment_info,        pattern='^payment_info$'))
     app.add_handler(CallbackQueryHandler(hu.contact,             pattern='^contact$'))
     app.add_handler(CallbackQueryHandler(hu.back_main,           pattern='^back_main$'))
+
+    # ========== Callbacks AppsFlyer Admin ==========
+    app.add_handler(CallbackQueryHandler(ha.appsflyer_accept, pattern=r'^af_accept_\d+$'))
+    app.add_handler(CallbackQueryHandler(ha.appsflyer_reject, pattern=r'^af_reject_\d+$'))
 
     # ========== Callbacks الأدمن ==========
     app.add_handler(CallbackQueryHandler(ha.admin_panel,          pattern='^adm_back$'))
@@ -274,52 +319,6 @@ def main():
     )
 
     logger.info(f"🚀 البوت شغال! Admin ID: {ADMIN_ID}")
-
-    # ========== ConversationHandler: Win AppsFlyer ==========
-    appsflyer_conv = ConversationHandler(
-        entry_points=[
-            CallbackQueryHandler(haf.appsflyer_menu, pattern='^win_appsflyer$'),
-        ],
-        states={
-            haf.AF_GAME: [
-                CallbackQueryHandler(haf.af_game_selected, pattern=r'^af_game_\w+$'),
-                CallbackQueryHandler(haf.af_cancel, pattern='^af_cancel$'),
-            ],
-            haf.AF_IDFA: [
-                MessageHandler(filters.TEXT & ~filters.COMMAND, haf.af_receive_idfa),
-                CallbackQueryHandler(haf.af_cancel, pattern='^af_cancel$'),
-            ],
-            haf.AF_IDFV: [
-                MessageHandler(filters.TEXT & ~filters.COMMAND, haf.af_receive_idfv),
-                CallbackQueryHandler(haf.af_cancel, pattern='^af_cancel$'),
-            ],
-            haf.AF_IOS_VER: [
-                MessageHandler(filters.TEXT & ~filters.COMMAND, haf.af_receive_ios_ver),
-                CallbackQueryHandler(haf.af_cancel, pattern='^af_cancel$'),
-            ],
-            haf.AF_AF_ID: [
-                MessageHandler(filters.TEXT & ~filters.COMMAND, haf.af_receive_af_id),
-                CallbackQueryHandler(haf.af_cancel, pattern='^af_cancel$'),
-            ],
-            haf.AF_CONFIRM: [
-                CallbackQueryHandler(haf.af_confirm_send, pattern='^af_confirm_send$'),
-                CallbackQueryHandler(haf.af_cancel, pattern='^af_cancel$'),
-            ],
-        },
-        fallbacks=[
-            CommandHandler('cancel', haf.af_cancel_text),
-            CommandHandler('start', hu.persistent_start),
-            MessageHandler(filters.Regex("ابدأ|Start"), hu.persistent_start),
-        ],
-        per_user=True,
-        per_chat=True,
-        per_message=False,
-    )
-    app.add_handler(appsflyer_conv)
-
-    # AppsFlyer admin callbacks
-    app.add_handler(CallbackQueryHandler(ha.appsflyer_accept, pattern=r'^af_accept_\d+$'))
-    app.add_handler(CallbackQueryHandler(ha.appsflyer_reject, pattern=r'^af_reject_\d+$'))
 
     app.run_polling(
         allowed_updates=Update.ALL_TYPES,
