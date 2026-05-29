@@ -565,7 +565,7 @@ tr:hover td{background:var(--surface2)}
       <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:6px;margin-top:4px">
         <button type="button" class="ptype-btn active" data-section="icloud" onclick="selectSection(this)">🍏 iCloud</button>
         <button type="button" class="ptype-btn" data-section="emails" onclick="selectSection(this)">📧 ايميلات</button>
-        <button type="button" class="ptype-btn" data-section="appsflyer" onclick="selectSection(this)">🎮 Win AppsFlyer</button>
+
         <button type="button" class="ptype-btn" data-section="surveys" onclick="selectSection(this)">📊 Surveys</button>
       </div>
     </div>
@@ -574,12 +574,6 @@ tr:hover td{background:var(--surface2)}
     <div class="form-group" id="subtype-group" style="display:none">
       <label id="subtype-label">النوع</label>
       <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:4px" id="subtype-btns"></div>
-    </div>
-
-    <!-- حقل اسم اللعبة لـ AppsFlyer -->
-    <div class="form-group" id="game-name-group" style="display:none">
-      <label>اسم اللعبة</label>
-      <input id="p-game-name" placeholder="مثال: Coin Master">
     </div>
 
     <input type="hidden" id="p-category" value="Apple iCloud">
@@ -752,7 +746,6 @@ async function loadProducts() {
 const SECTION_CONFIG = {
   icloud:     { label: null,    cats: null },
   emails:     { label: 'نوع الايميل', cats: ['Outlook','Gmail','Hotmail'] },
-  appsflyer:  { label: null,    cats: null },
   surveys:    { label: 'نوع السيرفي', cats: ['Toluna','My points','أخرى'] },
 }
 
@@ -781,12 +774,6 @@ function selectSection(btn) {
     $('subtype-btns').querySelector('.cat-btn').classList.add('active')
     $('p-platform').value = 'general'
 
-  } else if (section === 'appsflyer') {
-    $('game-name-group').style.display = 'block'
-    $('p-game-name').value = ''
-    $('p-platform').value = 'general'
-    $('p-category').value = ''
-
   } else if (section === 'surveys') {
     $('subtype-label').textContent = 'نوع السيرفي'
     $('subtype-group').style.display = 'block'
@@ -812,14 +799,7 @@ function updateStockCount(textareaId, countId) {
 }
 
 async function addProduct() {
-  // لو appsflyer — الفئة من حقل اسم اللعبة
-  const activeSection = document.querySelector('.ptype-btn.active')?.dataset.section
-  let finalCat = $('p-category').value
-  if (activeSection === 'appsflyer') {
-    const gameName = $('p-game-name').value.trim()
-    if (!gameName) { toast('اكتب اسم اللعبة', false); return }
-    finalCat = gameName
-  }
+  const finalCat = $('p-category').value
 
   const d = {
     name: $('p-name').value.trim(),
@@ -837,7 +817,7 @@ async function addProduct() {
   const res = await api('/api/products/add', 'POST', d)
   if (!res) return
   closeModal('add-product-modal')
-  ['p-name','p-desc','p-usd','p-syp','p-stock','p-game-name'].forEach(id => $(id).value = '')
+  ['p-name','p-desc','p-usd','p-syp','p-stock'].forEach(id => $(id).value = '')
   loadProducts()
   toast('✅ تم إضافة المنتج — ' + d.name)
 }
