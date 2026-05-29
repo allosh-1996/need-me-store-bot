@@ -71,12 +71,11 @@ async def af_game_selected(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return ConversationHandler.END
 
     await query.edit_message_text(
-        f"🎮 *{game_data['name']}* — `${game_data['price_usd']:.2f}`\n\n"
+        f"🎮 *{game_data['name']}* — `${game_data['price_usd']:.2f}`\n"
         f"━━━━━━━━━━━━━━━━\n"
         f"📋 *الخطوة 1 من 4*\n\n"
-        f"أرسل لي الـ *IDFA* الخاص بجهازك:\n"
-        f"_Send your device IDFA:_\n\n"
-        f"_مثال: `6D92078A-8246-4BA4-AE75-79F1B2D67052`_",
+        f"أرسل لي الـ *IDFA* الخاص بجهازك:\n\n"
+        f"_مثال:_ `6D92078A-8246-4BA4-AE75-79F1B2D67052`",
         parse_mode=ParseMode.MARKDOWN,
         reply_markup=InlineKeyboardMarkup([
             [InlineKeyboardButton("❌ إلغاء", callback_data="af_cancel")]
@@ -88,12 +87,11 @@ async def af_game_selected(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def af_receive_idfa(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data["af_idfa"] = update.message.text.strip()
     await update.message.reply_text(
-        f"✅ *IDFA:* `{context.user_data['af_idfa']}`\n\n"
+        f"✅ *IDFA محفوظ*\n\n"
         f"━━━━━━━━━━━━━━━━\n"
         f"📋 *الخطوة 2 من 4*\n\n"
-        f"أرسل لي الـ *IDFV* الخاص بجهازك:\n"
-        f"_Send your device IDFV:_\n\n"
-        f"_مثال: `599F9C00-92DC-4B5C-9464-7971F01F8370`_",
+        f"أرسل لي الـ *IDFV* الخاص بجهازك:\n\n"
+        f"_مثال:_ `599F9C00-92DC-4B5C-9464-7971F01F8370`",
         parse_mode=ParseMode.MARKDOWN,
         reply_markup=InlineKeyboardMarkup([
             [InlineKeyboardButton("❌ إلغاء", callback_data="af_cancel")]
@@ -105,12 +103,11 @@ async def af_receive_idfa(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def af_receive_idfv(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data["af_idfv"] = update.message.text.strip()
     await update.message.reply_text(
-        f"✅ *IDFV:* `{context.user_data['af_idfv']}`\n\n"
+        f"✅ *IDFV محفوظ*\n\n"
         f"━━━━━━━━━━━━━━━━\n"
         f"📋 *الخطوة 3 من 4*\n\n"
-        f"أرسل لي *إصدار iOS* الخاص بجهازك:\n"
-        f"_Send your iOS Version:_\n\n"
-        f"_مثال: `17.4.1`_",
+        f"أرسل لي *إصدار iOS* الخاص بجهازك:\n\n"
+        f"_مثال:_ `17.4.1`",
         parse_mode=ParseMode.MARKDOWN,
         reply_markup=InlineKeyboardMarkup([
             [InlineKeyboardButton("❌ إلغاء", callback_data="af_cancel")]
@@ -122,12 +119,11 @@ async def af_receive_idfv(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def af_receive_ios_ver(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data["af_ios_ver"] = update.message.text.strip()
     await update.message.reply_text(
-        f"✅ *iOS Version:* `{context.user_data['af_ios_ver']}`\n\n"
+        f"✅ *iOS Version محفوظ*\n\n"
         f"━━━━━━━━━━━━━━━━\n"
         f"📋 *الخطوة 4 من 4*\n\n"
-        f"أرسل لي الـ *AppsFlyer ID* الخاص بجهازك:\n"
-        f"_Send your AppsFlyer ID:_\n\n"
-        f"_مثال: `1234567890123-1234567890123456`_",
+        f"أرسل لي الـ *AppsFlyer ID* الخاص بجهازك:\n\n"
+        f"_مثال:_ `1234567890123-1234567890123456`",
         parse_mode=ParseMode.MARKDOWN,
         reply_markup=InlineKeyboardMarkup([
             [InlineKeyboardButton("❌ إلغاء", callback_data="af_cancel")]
