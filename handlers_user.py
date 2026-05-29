@@ -527,6 +527,44 @@ async def emails_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
         reply_markup=kb_emails
     )
 
+
+# ═══════════════════════════════════════
+# iCloud
+# ═══════════════════════════════════════
+async def icloud_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """يفتح قائمة منتجات iCloud — نفس نظام المنتجات الحالي"""
+    query = update.callback_query
+    await query.answer()
+    lang = get_user_lang(context)
+
+    # حدد platform iOS تلقائياً
+    context.user_data['selected_platform'] = 'iOS'
+    context.user_data['cat_source'] = 'icloud_menu'
+
+    products = db.get_all_products()
+    ios_products = [p for p in products if 'iOS' in (p.get('platform') or 'iOS')]
+
+    if not ios_products:
+        await query.edit_message_text(
+            t("no_products_platform", lang),
+            parse_mode=ParseMode.MARKDOWN,
+            reply_markup=InlineKeyboardMarkup([[
+                InlineKeyboardButton(t("back", lang), callback_data="back_main")
+            ]])
+        )
+        return
+
+    # جيب الفئات
+    categories = list(dict.fromkeys(
+        p['category'] for p in ios_products if p.get('category')
+    ))
+
+    await query.edit_message_text(
+        f"*iCloud*\n\n_{t('choose_category', lang)}_",
+        parse_mode=ParseMode.MARKDOWN,
+        reply_markup=kb.categories_menu(categories, back_cb="back_main", lang=lang)
+    )
+
 # ═══════════════════════════════════════
 # Win AppsFlyer
 # ═══════════════════════════════════════
