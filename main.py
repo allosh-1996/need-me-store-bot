@@ -17,6 +17,7 @@ import handlers_user as hu
 import handlers_admin as ha
 import handlers_charge as hc
 import handlers_proxy as hp
+import handlers_appsflyer as haf
 
 logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
@@ -273,6 +274,53 @@ def main():
     )
 
     logger.info(f"🚀 البوت شغال! Admin ID: {ADMIN_ID}")
+
+    # ========== ConversationHandler: Win AppsFlyer ==========
+    appsflyer_conv = ConversationHandler(
+        entry_points=[
+            CallbackQueryHandler(haf.appsflyer_menu, pattern='^win_appsflyer$'),
+        ],
+        states={
+            haf.AF_GAME: [
+                CallbackQueryHandler(haf.af_game_selected, pattern=r'^af_game_\w+$'),
+                CallbackQueryHandler(haf.af_cancel, pattern='^af_cancel$'),
+            ],
+            haf.AF_IDFA: [
+                MessageHandler(filters.TEXT & ~filters.COMMAND, haf.af_receive_idfa),
+                CallbackQueryHandler(haf.af_cancel, pattern='^af_cancel$'),
+            ],
+            haf.AF_IDFV: [
+                MessageHandler(filters.TEXT & ~filters.COMMAND, haf.af_receive_idfv),
+                CallbackQueryHandler(haf.af_cancel, pattern='^af_cancel$'),
+            ],
+            haf.AF_IOS_VER: [
+                MessageHandler(filters.TEXT & ~filters.COMMAND, haf.af_receive_ios_ver),
+                CallbackQueryHandler(haf.af_cancel, pattern='^af_cancel$'),
+            ],
+            haf.AF_AF_ID: [
+                MessageHandler(filters.TEXT & ~filters.COMMAND, haf.af_receive_af_id),
+                CallbackQueryHandler(haf.af_cancel, pattern='^af_cancel$'),
+            ],
+            haf.AF_CONFIRM: [
+                CallbackQueryHandler(haf.af_confirm_send, pattern='^af_confirm_send$'),
+                CallbackQueryHandler(haf.af_cancel, pattern='^af_cancel$'),
+            ],
+        },
+        fallbacks=[
+            CommandHandler('cancel', haf.af_cancel_text),
+            CommandHandler('start', hu.persistent_start),
+            MessageHandler(filters.Regex("ابدأ|Start"), hu.persistent_start),
+        ],
+        per_user=True,
+        per_chat=True,
+        per_message=False,
+    )
+    app.add_handler(appsflyer_conv)
+
+    # AppsFlyer admin callbacks
+    app.add_handler(CallbackQueryHandler(ha.appsflyer_accept, pattern=r'^af_accept_\d+$'))
+    app.add_handler(CallbackQueryHandler(ha.appsflyer_reject, pattern=r'^af_reject_\d+$'))
+
     app.run_polling(
         allowed_updates=Update.ALL_TYPES,
         read_timeout=10,
