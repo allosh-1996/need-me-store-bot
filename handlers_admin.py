@@ -490,8 +490,10 @@ async def appsflyer_accept(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 f"🎮 *اللعبة:* {order['game_name']}\n"
                 f"🔢 *رقم الطلب:* `#{order_id}`\n"
                 f"💵 *المبلغ المخصوم:* `${order['price_usd']:.2f}`\n\n"
-                f"سيتم تنفيذ الخدمة في أقرب وقت ✨\n"
-                f"_Your order is now being executed._"
+                f"━━━━━━━━━━━━━━━━\n"
+                f"📩 للمتابعة وتفاصيل التنفيذ تواصل مع الأدمن:\n"
+                f"👤 @Allosh96ha\n"
+                f"━━━━━━━━━━━━━━━━"
             ),
             parse_mode="Markdown"
         )
