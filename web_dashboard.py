@@ -74,6 +74,14 @@ app.config['SESSION_COOKIE_HTTPONLY'] = True
 app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
 app.config['SESSION_COOKIE_NAME'] = 'nx_session'
 
+# Token-based auth كبديل للـ session (للموبايل)
+import hashlib
+_auth_token = hashlib.sha256(
+    (DASHBOARD_PASSWORD or 'dev').encode() + 
+    (_dashboard_secret or 'dev').encode()
+).hexdigest()[:32]
+app.config['AUTH_TOKEN'] = _auth_token
+
 # ═══ Health Check (FIX: مدمج هنا بدل keep_alive Flask) ═══
 @app.route('/health')
 def health():
@@ -91,7 +99,9 @@ def login():
         if request.form.get('password') == DASHBOARD_PASSWORD:
             session['admin'] = True
             logger.info(f"Dashboard login successful from IP: {request.remote_addr}")
-            return redirect('/')
+            session['admin'] = True
+            token = app.config.get('AUTH_TOKEN', '')
+            return redirect(f'/?_t={token}')
         logger.warning(f"Dashboard login failed from IP: {request.remote_addr}")
         error = "❌ كلمة السر غلط"
     return render_template('login.html', error=error)
@@ -105,9 +115,13 @@ def auth_required(f):
     from functools import wraps
     @wraps(f)
     def decorated(*args, **kwargs):
-        if not session.get('admin'):
-            return redirect('/login')
-        return f(*args, **kwargs)
+        # تحقق من session أو X-Auth-Token header
+        token = request.headers.get('X-Auth-Token') or request.args.get('_t')
+        if session.get('admin') or (token and token == app.config.get('AUTH_TOKEN')):
+            return f(*args, **kwargs)
+        if request.path.startswith('/api/'):
+            return jsonify({'error': 'unauthorized'}), 401
+        return redirect('/login')
     return decorated
 
 # ═══ Pages ═══

@@ -608,13 +608,22 @@ function toast(msg, ok=true) {
 function openModal(id) { $(id).classList.add('open') }
 function closeModal(id) { $(id).classList.remove('open') }
 
+// احفظ الـ token من الـ URL في localStorage
+(function(){
+  const p = new URLSearchParams(window.location.search)
+  const t = p.get('_t')
+  if (t) { localStorage.setItem('_nt', t); history.replaceState({}, '', '/') }
+})()
+
 async function api(url, method='GET', body=null) {
+  const token = localStorage.getItem('_nt') || ''
   try {
     const r = await fetch(url, {
-      method, headers:{'Content-Type':'application/json'},
+      method,
+      headers: {'Content-Type':'application/json', 'X-Auth-Token': token},
       body: body ? JSON.stringify(body) : null
     })
-    if (r.status === 401 || r.redirected) { window.location='/login'; return null }
+    if (r.status === 401 || r.redirected) { localStorage.removeItem('_nt'); window.location='/login'; return null }
     if (!r.ok) {
       let errMsg = '❌ خطأ في السيرفر'
       try { const e = await r.json(); if(e.error) errMsg = '❌ ' + e.error } catch(_){}
