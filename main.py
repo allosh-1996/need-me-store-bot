@@ -185,7 +185,6 @@ def main():
     app.add_handler(CommandHandler("admin",    ha.admin_panel))
 
     # ========== Conversations ==========
-    app.add_handler(proxy_conv)
     app.add_handler(add_product_conv)
     app.add_handler(stock_conv)
     app.add_handler(broadcast_conv)
@@ -270,7 +269,6 @@ def main():
 
     # ========== Callbacks البروكسي ==========
     app.add_handler(CallbackQueryHandler(hp.proxy_admin_done,   pattern=r'^prx_done_\d+'))
-    app.add_handler(CallbackQueryHandler(hp.proxy_admin_reject, pattern=r'^prx_reject_\d+'))
 
     # ========== القائمة الثابتة ==========
     app.add_handler(MessageHandler(
