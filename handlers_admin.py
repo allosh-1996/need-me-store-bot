@@ -443,7 +443,7 @@ async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # ══════════════════════════════════════════════════════
 
 async def appsflyer_accept(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """الأدمن يقبل طلب AppsFlyer → خصم الرصيد + إشعار المستخدم"""
+    """الأدمن يقبل طلب AppsFlyer — الرصيد خُصم مسبقاً عند الإرسال"""
     query = update.callback_query
     await query.answer()
 
@@ -461,23 +461,11 @@ async def appsflyer_accept(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await query.answer("⚠️ الطلب تمت معالجته مسبقاً", show_alert=True)
         return
 
-    # تحقق من الرصيد
-    balance = db.get_balance(order["user_id"])
-    if balance < order["price_usd"]:
-        await query.edit_message_text(
-            query.message.text + f"\n\n❌ *فشل الخصم — رصيد المستخدم غير كافٍ*\n"
-                                  f"الرصيد: `${balance:.2f}` | المطلوب: `${order['price_usd']:.2f}`",
-            parse_mode="Markdown"
-        )
-        return
-
-    # خصم الرصيد
-    db.add_balance(order["user_id"], -order["price_usd"])
     db.update_appsflyer_order_status(order_id, "accepted")
 
     # تحديث رسالة الأدمن
     await query.edit_message_text(
-        query.message.text + f"\n\n✅ *تم القبول — خُصم `${order['price_usd']:.2f}` من رصيد المستخدم*",
+        query.message.text + f"\n\n✅ *تم القبول*",
         parse_mode="Markdown"
     )
 
@@ -486,12 +474,12 @@ async def appsflyer_accept(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await context.bot.send_message(
             chat_id=order["user_id"],
             text=(
-                f"🚀 *طلبك قيد التنفيذ الآن!*\n\n"
+                f"✅ *تم قبول طلبك!*\n\n"
                 f"🎮 *اللعبة:* {order['game_name']}\n"
-                f"🔢 *رقم الطلب:* `#{order_id}`\n"
-                f"💵 *المبلغ المخصوم:* `${order['price_usd']:.2f}`\n\n"
+                f"🔢 *رقم الطلب:* `#{order_id}`\n\n"
+                f"🚀 *طلبك الآن قيد التنفيذ*\n\n"
                 f"━━━━━━━━━━━━━━━━\n"
-                f"📩 للمتابعة وتفاصيل التنفيذ تواصل مع الأدمن:\n"
+                f"📩 للمتابعة تواصل مع الأدمن:\n"
                 f"👤 @Allosh96ha\n"
                 f"━━━━━━━━━━━━━━━━"
             ),
@@ -500,9 +488,8 @@ async def appsflyer_accept(update: Update, context: ContextTypes.DEFAULT_TYPE):
     except Exception as e:
         logger.error(f"Failed to notify user {order['user_id']}: {e}")
 
-
 async def appsflyer_reject(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """الأدمن يرفض طلب AppsFlyer → إشعار المستخدم"""
+    """الأدمن يرفض طلب AppsFlyer — يرجع الرصيد للمستخدم"""
     query = update.callback_query
     await query.answer()
 
@@ -520,11 +507,15 @@ async def appsflyer_reject(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await query.answer("⚠️ الطلب تمت معالجته مسبقاً", show_alert=True)
         return
 
+    # رجّع الرصيد
+    db.add_balance(order["user_id"], order["price_usd"])
     db.update_appsflyer_order_status(order_id, "rejected")
+
+    new_balance = db.get_balance(order["user_id"])
 
     # تحديث رسالة الأدمن
     await query.edit_message_text(
-        query.message.text + f"\n\n❌ *تم الرفض*",
+        query.message.text + f"\n\n❌ *تم الرفض — رُجع الرصيد للمستخدم* (`${order['price_usd']:.2f}`)",
         parse_mode="Markdown"
     )
 
@@ -536,14 +527,14 @@ async def appsflyer_reject(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 f"❌ *تم رفض طلبك*\n\n"
                 f"🎮 *اللعبة:* {order['game_name']}\n"
                 f"🔢 *رقم الطلب:* `#{order_id}`\n\n"
-                f"لم يتم خصم أي مبلغ من رصيدك.\n"
-                f"_Your order was rejected. No balance was deducted._"
+                f"💰 *تم إعادة المبلغ إلى رصيدك:* `${order['price_usd']:.2f}`\n"
+                f"💳 *رصيدك الحالي:* `${new_balance:.2f}`\n\n"
+                f"━━━━━━━━━━━━━━━━\n"
+                f"📩 للاستفسار تواصل مع الأدمن:\n"
+                f"👤 @Allosh96ha\n"
+                f"━━━━━━━━━━━━━━━━"
             ),
-            parse_mode="Markdown",
-            reply_markup=InlineKeyboardMarkup([
-                [InlineKeyboardButton("💬 تواصل", callback_data="contact")],
-                [InlineKeyboardButton("🏠 الرئيسية", callback_data="back_main")],
-            ])
+            parse_mode="Markdown"
         )
     except Exception as e:
         logger.error(f"Failed to notify user {order['user_id']}: {e}")
