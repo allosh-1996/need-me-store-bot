@@ -23,9 +23,9 @@ STRINGS = {
     },
 
     # ═══ القائمة الرئيسية ═══
-    "btn_products": {
-        "ar": "المنتجات",
-        "en": "Shop",
+    "btn_icloud": {
+        "ar": "iCloud",
+        "en": "iCloud",
     },
     "btn_emails": {
         "ar": "ايميلات",
