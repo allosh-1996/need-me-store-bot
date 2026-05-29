@@ -23,7 +23,7 @@ async def appsflyer_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
     keyboard = []
     for game_key, game_data in APPSFLYER_GAMES.items():
         keyboard.append([InlineKeyboardButton(
-            f"{game_data['name']} — ${game_data['price_usd']:.2f}",
+            f"{game_data['name']} — ${game_data['price_usd']:.0f}",
             callback_data=f"af_game_{game_key}"
         )])
     keyboard.append([InlineKeyboardButton(t("back", lang), callback_data="back_main")])
@@ -60,7 +60,7 @@ async def af_game_selected(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await query.edit_message_text(
             f"❌ *رصيدك غير كافٍ*\n\n"
             f"💰 رصيدك الحالي: `${balance:.2f}`\n"
-            f"💵 سعر الخدمة: `${game_data['price_usd']:.2f}`\n\n"
+            f"💵 سعر الخدمة: `${game_data['price_usd']:.0f}`\n\n"
             f"_اشحن رصيدك أولاً ثم حاول مجدداً_",
             parse_mode=ParseMode.MARKDOWN,
             reply_markup=InlineKeyboardMarkup([
@@ -71,7 +71,7 @@ async def af_game_selected(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return ConversationHandler.END
 
     await query.edit_message_text(
-        f"🎮 *{game_data['name']}* — `${game_data['price_usd']:.2f}`\n"
+        f"🎮 *{game_data['name']}* — `${game_data['price_usd']:.0f}`\n"
         f"━━━━━━━━━━━━━━━━\n"
         f"📋 *الخطوة 1 من 4*\n\n"
         f"أرسل لي الـ *IDFA* الخاص بجهازك:\n\n"
@@ -141,7 +141,7 @@ async def af_receive_af_id(update: Update, context: ContextTypes.DEFAULT_TYPE):
         f"🎮 *تأكيد الطلب | Order Summary*\n"
         f"━━━━━━━━━━━━━━━━\n"
         f"🕹 *اللعبة:* {ud['af_game_name']}\n"
-        f"💵 *السعر:* `${ud['af_price']:.2f}`\n"
+        f"💵 *السعر:* `${ud['af_price']:.0f}`\n"
         f"💰 *رصيدك:* `${balance:.2f}`\n"
         f"━━━━━━━━━━━━━━━━\n"
         f"📱 *IDFA:* `{ud['af_idfa']}`\n"
@@ -198,7 +198,7 @@ async def af_confirm_send(update: Update, context: ContextTypes.DEFAULT_TYPE):
         f"✅ *تم إرسال طلبك بنجاح!*\n\n"
         f"🎮 *اللعبة:* {ud['af_game_name']}\n"
         f"🔢 *رقم الطلب:* `#{order_id}`\n"
-        f"💵 *المبلغ المخصوم:* `${ud['af_price']:.2f}`\n"
+        f"💵 *المبلغ المخصوم:* `${ud['af_price']:.0f}`\n"
         f"💰 *رصيدك الحالي:* `${new_balance:.2f}`\n\n"
         f"━━━━━━━━━━━━━━━━\n"
         f"📩 للمتابعة تواصل مع الأدمن:\n"
@@ -214,7 +214,7 @@ async def af_confirm_send(update: Update, context: ContextTypes.DEFAULT_TYPE):
         f"👤 *المستخدم:* {user.full_name} (@{user.username or 'N/A'})\n"
         f"🆔 *User ID:* `{user.id}`\n"
         f"🕹 *اللعبة:* {ud['af_game_name']}\n"
-        f"💵 *السعر:* `${ud['af_price']:.2f}` ✅ *خُصم*\n"
+        f"💵 *السعر:* `${ud['af_price']:.0f}` ✅ *خُصم*\n"
         f"━━━━━━━━━━━━━━━━\n"
         f"📱 *IDFA:* `{ud['af_idfa']}`\n"
         f"📱 *IDFV:* `{ud['af_idfv']}`\n"
