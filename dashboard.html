@@ -608,22 +608,39 @@ function toast(msg, ok=true) {
 function openModal(id) { $(id).classList.add('open') }
 function closeModal(id) { $(id).classList.remove('open') }
 
-// احفظ الـ token من الـ URL في localStorage
+// احفظ الـ token من الـ URL
 (function(){
   const p = new URLSearchParams(window.location.search)
   const t = p.get('_t')
-  if (t) { localStorage.setItem('_nt', t); history.replaceState({}, '', '/') }
+  if (t) {
+    // احفظ بكل الطرق الممكنة
+    try { localStorage.setItem('_nt', t) } catch(e){}
+    try { sessionStorage.setItem('_nt', t) } catch(e){}
+    // cookie يدوي
+    document.cookie = '_nt=' + t + '; path=/; SameSite=Lax'
+    history.replaceState({}, '', '/')
+  }
 })()
 
+function getToken() {
+  // جرب كل مصادر الـ token
+  try { const t = localStorage.getItem('_nt'); if(t) return t } catch(e){}
+  try { const t = sessionStorage.getItem('_nt'); if(t) return t } catch(e){}
+  const m = document.cookie.match(/_nt=([^;]+)/)
+  return m ? m[1] : ''
+}
+
 async function api(url, method='GET', body=null) {
-  const token = localStorage.getItem('_nt') || ''
+  const token = getToken()
+  // لو ما في token — ارجع للوقين
+  if (!token) { window.location='/login'; return null }
   try {
     const r = await fetch(url, {
       method,
       headers: {'Content-Type':'application/json', 'X-Auth-Token': token},
       body: body ? JSON.stringify(body) : null
     })
-    if (r.status === 401 || r.redirected) { localStorage.removeItem('_nt'); window.location='/login'; return null }
+    if (r.status === 401 || r.redirected) { window.location='/login'; return null }
     if (!r.ok) {
       let errMsg = '❌ خطأ في السيرفر'
       try { const e = await r.json(); if(e.error) errMsg = '❌ ' + e.error } catch(_){}
