@@ -735,7 +735,7 @@ async function loadProducts() {
       <td>
         <div class="btn-group">
           <button class="btn btn-sm btn-primary" onclick="openEditStock(${p.id},'${(p.name||'').replace(/'/g,'')}', \`${(p.stock||'').replace(/`/g,'\`')}\`)">✏️ مخزون</button>
-          ${p.active?`<button class="btn btn-sm btn-danger" onclick="deleteProduct(${p.id})">🗑️</button>`:''}
+          <button class="btn btn-sm btn-danger" onclick="deleteProduct(${p.id})">🗑️</button>
         </div>
       </td>
     </tr>`
