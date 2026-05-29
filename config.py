@@ -61,39 +61,38 @@ PROXY_TYPES = {
 
 # ══════════════════════════════════════════════════════
 # AppsFlyer Games Config
-# السعر بالدولار — قابل للتغيير من Railway Variables
 # ══════════════════════════════════════════════════════
 APPSFLYER_GAMES = {
     "domino_dream": {
-        "name": "🎲 Domino Dreams",
-        "price_usd": float(os.environ.get("AF_PRICE_DOMINO", "4.0")),
+        "name": "Domino Dreams",
+        "price_usd": float(os.environ.get("AF_PRICE_DOMINO", "4")),
     },
     "disney_dream": {
-        "name": "✨ Disney Dream",
-        "price_usd": float(os.environ.get("AF_PRICE_DISNEY", "4.0")),
+        "name": "Disney Dream",
+        "price_usd": float(os.environ.get("AF_PRICE_DISNEY", "4")),
     },
     "coin_master": {
-        "name": "🪙 Coin Master",
-        "price_usd": float(os.environ.get("AF_PRICE_COIN", "4.0")),
+        "name": "Coin Master",
+        "price_usd": float(os.environ.get("AF_PRICE_COIN", "4")),
     },
     "travel_town": {
-        "name": "🏖️ Travel Town",
-        "price_usd": float(os.environ.get("AF_PRICE_TRAVEL", "4.0")),
+        "name": "Travel Town",
+        "price_usd": float(os.environ.get("AF_PRICE_TRAVEL", "4")),
     },
     "yarn_loop": {
-        "name": "🧶 Yarn Loop",
-        "price_usd": float(os.environ.get("AF_PRICE_YARN", "4.0")),
+        "name": "Yarn Loop",
+        "price_usd": float(os.environ.get("AF_PRICE_YARN", "4")),
     },
     "dice_dream": {
-        "name": "🎯 Dice Dreams",
-        "price_usd": float(os.environ.get("AF_PRICE_DICE", "4.0")),
+        "name": "Dice Dreams",
+        "price_usd": float(os.environ.get("AF_PRICE_DICE", "4")),
     },
     "toy_blast": {
-        "name": "🧸 Toy Blast",
-        "price_usd": float(os.environ.get("AF_PRICE_TOY", "4.0")),
+        "name": "Toy Blast",
+        "price_usd": float(os.environ.get("AF_PRICE_TOY", "4")),
     },
     "toon_blast": {
-        "name": "🎮 Toon Blast",
-        "price_usd": float(os.environ.get("AF_PRICE_TOON", "4.0")),
+        "name": "Toon Blast",
+        "price_usd": float(os.environ.get("AF_PRICE_TOON", "4")),
     },
 }
