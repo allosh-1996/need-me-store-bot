@@ -89,22 +89,22 @@ async def show_category(update: Update, context: ContextTypes.DEFAULT_TYPE):
     lang = get_user_lang(context)
     category = query.data.replace("cat_", "")
 
-    context.user_data['cat_source'] = 'products'
-
     products = db.get_all_products()
     cat_products = [p for p in products if p['category'] == category]
+
+    back_cb = context.user_data.get('cat_source', 'products')
 
     if not cat_products:
         await query.edit_message_text(
             t("no_products_category", lang),
             parse_mode=ParseMode.MARKDOWN,
-            reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton(t("back", lang), callback_data="products")]])
+            reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton(t("back", lang), callback_data=back_cb)]])
         )
         return
 
     text = f"*{category}*\n\n_{t('choose_product', lang)}_"
     await query.edit_message_text(text, parse_mode=ParseMode.MARKDOWN,
-                                  reply_markup=kb.products_menu(cat_products, lang=lang, back_cb="products"))
+                                  reply_markup=kb.products_menu(cat_products, lang=lang, back_cb=back_cb))
 
 
 async def show_product_detail(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -353,6 +353,8 @@ async def emails_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
     lang = get_user_lang(context)
+
+    context.user_data['cat_source'] = 'emails_menu'
 
     await query.edit_message_text(
         f"*{t('emails_title', lang)}*\n\n"
