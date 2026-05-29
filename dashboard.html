@@ -234,36 +234,51 @@ tr:hover td{background:var(--surface2)}
   .bnav-icon{font-size:1rem}
 }
 
-/* ===== Users Grid ===== */
-.users-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;padding:4px 0}
-.user-card{background:rgba(20,0,0,.9);border:1px solid var(--border);border-radius:12px;padding:10px 8px;text-align:center;cursor:pointer;transition:transform .15s,border-color .15s;-webkit-tap-highlight-color:transparent;min-width:0}
-.user-card:active{transform:scale(.95)}
-.user-card:hover{border-color:var(--accent)}
-.uc-avatar{width:32px;height:32px;border-radius:50%;background:rgba(204,17,17,.2);display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:var(--accent);margin:0 auto 6px}
-.uc-name{font-size:11px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-bottom:2px}
-.uc-id{font-size:10px;color:var(--muted);font-family:monospace}
+/* ===== Users Layout ===== */
+.users-layout{display:flex;gap:0;height:calc(100vh - 140px);min-height:400px;border:1px solid var(--border);border-radius:12px;overflow:hidden}
 
-/* ===== User Drawer ===== */
-.drawer-overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:200;opacity:0;pointer-events:none;transition:opacity .25s}
-.drawer-overlay.open{opacity:1;pointer-events:all}
-.user-drawer{position:fixed;bottom:0;left:0;right:0;background:rgba(20,0,0,.97);border-radius:18px 18px 0 0;z-index:201;padding:0 0 24px;transform:translateY(100%);transition:transform .3s cubic-bezier(.4,0,.2,1);max-height:70vh;overflow-y:auto}
-.user-drawer.open{transform:translateY(0)}
-.drawer-handle{width:36px;height:3px;background:var(--border);border-radius:4px;margin:10px auto 0}
-.drawer-content{padding:14px 20px 0;text-align:center}
-.drawer-avatar{width:46px;height:46px;border-radius:50%;background:rgba(204,17,17,.2);display:flex;align-items:center;justify-content:center;font-size:20px;font-weight:700;color:var(--accent);margin:0 auto 8px}
-.drawer-name{font-size:15px;font-weight:700;color:var(--text);margin-bottom:2px}
-.drawer-username{font-size:12px;color:var(--muted);margin-bottom:1px}
-.drawer-id{font-size:11px;color:var(--muted);font-family:monospace;margin-bottom:8px}
-.drawer-balance{font-size:22px;font-weight:800;color:var(--green);margin-bottom:12px}
-.drawer-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:14px}
-.dstat{background:rgba(6,0,0,1);border-radius:8px;padding:7px 4px}
-.dstat-val{font-size:12px;font-weight:700;color:var(--text)}
-.dstat-lbl{font-size:9px;color:var(--muted);margin-top:1px}
-.drawer-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-.drawer-btn{padding:10px;border-radius:10px;border:none;font-size:13px;font-weight:600;cursor:pointer;transition:opacity .15s}
-.drawer-btn:active{opacity:.7}
+/* Sidebar list */
+.users-sidebar{width:200px;min-width:160px;border-left:1px solid var(--border);overflow-y:auto;background:rgba(10,0,0,.7);flex-shrink:0}
+.users-sidebar-header{padding:10px 12px;font-size:.7rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;border-bottom:1px solid var(--border);position:sticky;top:0;background:rgba(10,0,0,.95);z-index:1}
+.user-list-item{display:flex;align-items:center;gap:9px;padding:10px 12px;cursor:pointer;border-bottom:1px solid rgba(180,0,0,.1);transition:background .12s;-webkit-tap-highlight-color:transparent}
+.user-list-item:hover{background:rgba(204,17,17,.08)}
+.user-list-item.active{background:rgba(204,17,17,.15);border-right:3px solid var(--accent)}
+.uli-avatar{width:30px;height:30px;border-radius:50%;background:rgba(204,17,17,.2);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:var(--accent);flex-shrink:0}
+.uli-info{min-width:0}
+.uli-name{font-size:.75rem;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.uli-id{font-size:.62rem;color:var(--muted);font-family:monospace}
+
+/* Detail panel */
+.user-detail{flex:1;overflow-y:auto;background:rgba(15,0,0,.5);display:flex;align-items:center;justify-content:center}
+.user-detail-empty{text-align:center;color:var(--muted);font-size:.82rem;padding:40px}
+.user-detail-empty .empty-icon{font-size:2.5rem;margin-bottom:10px;opacity:.4}
+.user-detail-content{padding:24px;width:100%}
+.ud-header{text-align:center;margin-bottom:20px;padding-bottom:16px;border-bottom:1px solid var(--border)}
+.ud-avatar{width:60px;height:60px;border-radius:50%;background:rgba(204,17,17,.2);display:flex;align-items:center;justify-content:center;font-size:26px;font-weight:700;color:var(--accent);margin:0 auto 10px;border:2px solid rgba(204,17,17,.3)}
+.ud-name{font-size:1.1rem;font-weight:700;color:var(--text);margin-bottom:3px}
+.ud-username{font-size:.78rem;color:var(--muted);margin-bottom:2px}
+.ud-id{font-size:.7rem;color:var(--muted);font-family:monospace}
+.ud-balance{font-size:2rem;font-weight:800;color:var(--green);text-align:center;margin:16px 0}
+.ud-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:18px}
+.udstat{background:rgba(6,0,0,.8);border:1px solid var(--border);border-radius:8px;padding:10px 6px;text-align:center}
+.udstat-val{font-size:.85rem;font-weight:700;color:var(--text)}
+.udstat-lbl{font-size:.65rem;color:var(--muted);margin-top:3px}
+.ud-actions{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.ud-btn{padding:11px;border-radius:10px;border:none;font-size:.82rem;font-weight:600;cursor:pointer;transition:opacity .15s;width:100%}
+.ud-btn:active{opacity:.7}
 .btn-add{background:var(--green);color:#fff}
-.btn-deduct{background:rgba(239,68,68,.2);color:#f87171;border:1px solid rgba(239,68,68,.3)}
+.btn-deduct{background:rgba(239,68,68,.15);color:#f87171;border:1px solid rgba(239,68,68,.3)}
+
+/* Mobile: stack vertically */
+@media(max-width:600px){
+  .users-layout{flex-direction:column;height:auto}
+  .users-sidebar{width:100%;max-height:220px;border-left:none;border-bottom:1px solid var(--border)}
+  .user-detail{min-height:300px}
+}
+
+/* ===== Legacy drawer (hidden) ===== */
+.drawer-overlay{display:none}
+.user-drawer{display:none}
 </style>
 </head>
 <body>
@@ -381,30 +396,25 @@ tr:hover td{background:var(--surface2)}
 <!-- Users -->
 <div id="page-users" class="page">
   <div class="page-header"><div class="page-title"><h2>👥 المستخدمين</h2><p>قائمة المستخدمين</p></div></div>
-  <div id="users-grid" class="users-grid"></div>
-</div>
-
-<!-- User Drawer -->
-<div id="user-drawer-overlay" class="drawer-overlay" onclick="closeDrawer()"></div>
-<div id="user-drawer" class="user-drawer">
-  <div class="drawer-handle"></div>
-  <div class="drawer-content">
-    <div class="drawer-avatar" id="drawer-avatar">👤</div>
-    <div class="drawer-name" id="drawer-name">—</div>
-    <div class="drawer-username" id="drawer-username">@—</div>
-    <div class="drawer-id" id="drawer-id">ID: —</div>
-    <div class="drawer-balance" id="drawer-balance">$0.00</div>
-    <div class="drawer-stats">
-      <div class="dstat"><div class="dstat-val" id="dstat-charged">$0</div><div class="dstat-lbl">إجمالي الشحن</div></div>
-      <div class="dstat"><div class="dstat-val" id="dstat-spent">$0</div><div class="dstat-lbl">إجمالي الإنفاق</div></div>
-      <div class="dstat"><div class="dstat-val" id="dstat-joined">—</div><div class="dstat-lbl">تاريخ الانضمام</div></div>
+  <div class="users-layout">
+    <!-- Sidebar list -->
+    <div class="users-sidebar">
+      <div class="users-sidebar-header">👥 المستخدمين</div>
+      <div id="users-list"></div>
     </div>
-    <div class="drawer-actions">
-      <button class="drawer-btn btn-add" id="btn-drawer-add" onclick="drawerAddBalance()">➕ إضافة رصيد</button>
-      <button class="drawer-btn btn-deduct" id="btn-drawer-deduct" onclick="drawerDeductBalance()">➖ سحب رصيد</button>
+    <!-- Detail panel -->
+    <div class="user-detail" id="user-detail-panel">
+      <div class="user-detail-empty">
+        <div class="empty-icon">👤</div>
+        <div>اختر مستخدماً من القائمة</div>
+      </div>
     </div>
   </div>
 </div>
+
+<!-- Legacy drawer (hidden, kept for JS compat) -->
+<div id="user-drawer-overlay" class="drawer-overlay"></div>
+<div id="user-drawer" class="user-drawer"></div>
 
 <!-- Broadcast -->
 <div id="page-broadcast" class="page">
@@ -616,81 +626,110 @@ async function chargeAction(id,action){
   loadCharges();toast(action==='confirm'?'✅ تم تأكيد الشحن':'❌ تم الرفض')
 }
 
-// ===== Users Grid =====
-let _currentDrawerUid = null
-let _currentDrawerBalance = 0
+// ===== Users — Sidebar + Detail Panel =====
+let _currentUid = null
+let _currentBalance = 0
+let _usersData = []
 
 async function loadUsers(){
   const data = await api('/api/users')
-  const grid = $('users-grid')
-  if(!data || !Array.isArray(data) || !data.length){ grid.innerHTML='<p style="color:var(--muted);text-align:center;padding:40px">لا يوجد مستخدمين</p>'; return }
-  grid.innerHTML = data.map(u => {
+  _usersData = data || []
+  const list = $('users-list')
+  if(!_usersData.length){
+    list.innerHTML='<div style="padding:20px;text-align:center;color:var(--muted);font-size:.75rem">لا يوجد مستخدمين</div>'
+    return
+  }
+  list.innerHTML = _usersData.map(u => {
     const initials = (u.full_name||'?').charAt(0).toUpperCase()
     const name = (u.full_name||'—').split(' ').slice(0,2).join(' ')
-    const _b=Number(u.balance||0), _c=Number(u.total_charged||0), _s=Number(u.total_spent||0)
-    const _n=(u.full_name||'—').replace(/'/g,"\'"), _u=(u.username||'').replace(/'/g,"\'"), _j=(u.joined_at||'').substring(0,10)
-    return `<div class="user-card" onclick="openDrawer(${u.id},'${_n}','${_u}',${_b},${_c},${_s},'${_j}')">
-      <div class="uc-avatar">${initials}</div>
-      <div class="uc-name">${name}</div>
-      <div class="uc-id">${u.id}</div>
+    return `<div class="user-list-item" id="uli-${u.id}" onclick="selectUser(${u.id})">
+      <div class="uli-avatar">${initials}</div>
+      <div class="uli-info">
+        <div class="uli-name">${name}</div>
+        <div class="uli-id">${u.id}</div>
+      </div>
     </div>`
   }).join('')
 }
 
-function openDrawer(uid, name, username, balance, charged, spent, joined){
-  _currentDrawerUid = uid
-  _currentDrawerBalance = balance
-  $('drawer-avatar').textContent = name.charAt(0).toUpperCase()
-  $('drawer-name').textContent = name
-  $('drawer-username').textContent = username ? '@'+username : '—'
-  $('drawer-id').textContent = 'ID: ' + uid
-  $('drawer-balance').textContent = '$' + Number(balance).toFixed(2)
-  $('dstat-charged').textContent = '$' + Number(charged).toFixed(2)
-  $('dstat-spent').textContent = '$' + Number(spent).toFixed(2)
-  $('dstat-joined').textContent = joined || '—'
-  $('user-drawer').classList.add('open')
-  $('user-drawer-overlay').classList.add('open')
-  document.body.style.overflow = 'hidden'
+function selectUser(uid){
+  document.querySelectorAll('.user-list-item').forEach(el => el.classList.remove('active'))
+  const item = $('uli-'+uid)
+  if(item) item.classList.add('active')
+
+  const u = _usersData.find(x => x.id === uid)
+  if(!u) return
+
+  _currentUid = uid
+  _currentBalance = Number(u.balance||0)
+  const initials = (u.full_name||'?').charAt(0).toUpperCase()
+  const joined = (u.joined_at||'').substring(0,10)
+
+  $('user-detail-panel').innerHTML = `
+    <div class="user-detail-content">
+      <div class="ud-header">
+        <div class="ud-avatar">${initials}</div>
+        <div class="ud-name">${u.full_name||'—'}</div>
+        <div class="ud-username">${u.username ? '@'+u.username : '—'}</div>
+        <div class="ud-id">ID: ${u.id}</div>
+      </div>
+      <div class="ud-balance">$${Number(u.balance||0).toFixed(2)}</div>
+      <div class="ud-stats">
+        <div class="udstat">
+          <div class="udstat-val">$${Number(u.total_charged||0).toFixed(2)}</div>
+          <div class="udstat-lbl">إجمالي الشحن</div>
+        </div>
+        <div class="udstat">
+          <div class="udstat-val">$${Number(u.total_spent||0).toFixed(2)}</div>
+          <div class="udstat-lbl">إجمالي الإنفاق</div>
+        </div>
+        <div class="udstat">
+          <div class="udstat-val">${joined||'—'}</div>
+          <div class="udstat-lbl">تاريخ الانضمام</div>
+        </div>
+      </div>
+      <div class="ud-actions">
+        <button class="ud-btn btn-add" onclick="udAddBalance()">➕ إضافة رصيد</button>
+        <button class="ud-btn btn-deduct" onclick="udDeductBalance()">➖ سحب رصيد</button>
+      </div>
+    </div>
+  `
 }
 
-function closeDrawer(){
-  $('user-drawer').classList.remove('open')
-  $('user-drawer-overlay').classList.remove('open')
-  document.body.style.overflow = ''
-}
-
-async function drawerAddBalance(){
-  const name = $('drawer-name').textContent
-  const amount = prompt(`➕ إضافة رصيد لـ ${name}\nأدخل المبلغ بالدولار $:`)
+async function udAddBalance(){
+  if(!_currentUid) return
+  const u = _usersData.find(x => x.id === _currentUid)
+  const amount = prompt(`➕ إضافة رصيد لـ ${u?.full_name||''}\nأدخل المبلغ بالدولار $:`)
   if (!amount || isNaN(amount) || Number(amount) <= 0) return
-  const res = await api(`/api/users/${_currentDrawerUid}/add_balance`, 'POST', {amount: Number(amount)})
-  if (res.ok) {
-    $('drawer-balance').textContent = '$' + res.new_balance.toFixed(2)
-    _currentDrawerBalance = res.new_balance
-    toast(`✅ تم إضافة $${Number(amount).toFixed(2)} — الرصيد: $${res.new_balance.toFixed(2)}`)
-    loadUsers()
+  const res = await api(`/api/users/${_currentUid}/add_balance`, 'POST', {amount: Number(amount)})
+  if (res && res.ok) {
+    toast(`✅ تم إضافة $${Number(amount).toFixed(2)}`)
+    await loadUsers()
+    selectUser(_currentUid)
   } else { toast('🔴 خطأ في الإضافة', false) }
 }
 
-async function drawerDeductBalance(){
-  const name = $('drawer-name').textContent
-  const amount = prompt(`➖ سحب رصيد من ${name}\nالرصيد الحالي: $${Number(_currentDrawerBalance).toFixed(2)}\nأدخل المبلغ:`)
+async function udDeductBalance(){
+  if(!_currentUid) return
+  const u = _usersData.find(x => x.id === _currentUid)
+  const amount = prompt(`➖ سحب من ${u?.full_name||''}\nالرصيد: $${Number(_currentBalance).toFixed(2)}\nأدخل المبلغ:`)
   if (!amount || isNaN(amount) || Number(amount) <= 0) return
-  if (Number(amount) > _currentDrawerBalance) {
-    toast(`🔴 المبلغ أكبر من الرصيد ($${Number(_currentDrawerBalance).toFixed(2)})`, false); return
-  }
-  const res = await api(`/api/users/${_currentDrawerUid}/deduct_balance`, 'POST', {amount: Number(amount)})
-  if (res.ok) {
-    $('drawer-balance').textContent = '$' + res.new_balance.toFixed(2)
-    _currentDrawerBalance = res.new_balance
-    toast(`✅ تم سحب $${Number(amount).toFixed(2)} — الرصيد: $${res.new_balance.toFixed(2)}`)
-    loadUsers()
-  } else { toast(`🔴 ${res.error || 'خطأ في السحب'}`, false) }
+  if (Number(amount) > _currentBalance) { toast('🔴 أكبر من الرصيد', false); return }
+  const res = await api(`/api/users/${_currentUid}/deduct_balance`, 'POST', {amount: Number(amount)})
+  if (res && res.ok) {
+    toast(`✅ تم سحب $${Number(amount).toFixed(2)}`)
+    await loadUsers()
+    selectUser(_currentUid)
+  } else { toast(`🔴 ${res?.error||'خطأ'}`, false) }
 }
 
-// legacy — kept for safety
-async function addBalance(uid, name) { openDrawer(uid, name, '', 0, 0, 0, '') }
-async function deductBalance(uid, name, bal) { openDrawer(uid, name, '', bal, 0, 0, '') }
+// legacy stubs
+function openDrawer(){}
+function closeDrawer(){}
+function drawerAddBalance(){ udAddBalance() }
+function drawerDeductBalance(){ udDeductBalance() }
+async function addBalance(uid, name){ _currentUid=uid; udAddBalance() }
+async function deductBalance(uid, name, bal){ _currentBalance=bal; _currentUid=uid; udDeductBalance() }
 
 async function sendBroadcast(){
   const msg=$('broadcast-msg').value.trim()
