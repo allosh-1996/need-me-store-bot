@@ -585,36 +585,42 @@ def api_appsflyer_order_status(oid):
         return jsonify({"ok": False, "error": "Already processed"}), 400
 
     if status == 'accepted':
-        balance = db.get_balance(order["user_id"])
-        if balance < order["price_usd"]:
-            return jsonify({"ok": False, "error": f"Insufficient balance: ${balance:.2f}"}), 400
-        db.add_balance(order["user_id"], -order["price_usd"])
+        # الرصيد خُصم مسبقاً — فقط حدّث الحالة وأرسل إشعار
         db.update_appsflyer_order_status(oid, "accepted")
         logger.info(f"Dashboard: AppsFlyer order #{oid} accepted")
         tg_send(order["user_id"],
-            f"🚀 *طلبك قيد التنفيذ الآن!*\n\n"
+            f"✅ *تم قبول طلبك!*\n\n"
             f"🎮 *اللعبة:* {order['game_name']}\n"
-            f"🔢 *رقم الطلب:* `#{oid}`\n"
-            f"💵 *المبلغ المخصوم:* `${order['price_usd']:.2f}`\n\n"
+            f"🔢 *رقم الطلب:* `#{oid}`\n\n"
+            f"🚀 *طلبك الآن قيد التنفيذ*\n\n"
             f"━━━━━━━━━━━━━━━━\n"
-            f"📩 للمتابعة وتفاصيل التنفيذ تواصل مع الأدمن:\n"
+            f"📩 للمتابعة تواصل مع الأدمن:\n"
             f"👤 @Allosh96ha\n"
             f"━━━━━━━━━━━━━━━━"
         )
+
     elif status == 'rejected':
+        # رجّع الرصيد + حدّث الحالة + أرسل إشعار
+        db.add_balance(order["user_id"], order["price_usd"])
+        new_balance = db.get_balance(order["user_id"])
         db.update_appsflyer_order_status(oid, "rejected")
-        logger.info(f"Dashboard: AppsFlyer order #{oid} rejected")
+        logger.info(f"Dashboard: AppsFlyer order #{oid} rejected — refunded ${order['price_usd']}")
         tg_send(order["user_id"],
             f"❌ *تم رفض طلبك*\n\n"
             f"🎮 *اللعبة:* {order['game_name']}\n"
             f"🔢 *رقم الطلب:* `#{oid}`\n\n"
-            f"لم يتم خصم أي مبلغ من رصيدك.\n"
-            f"_للاستفسار تواصل مع الأدمن_"
+            f"💰 *تم إعادة المبلغ:* `${order['price_usd']:.2f}`\n"
+            f"💳 *رصيدك الحالي:* `${new_balance:.2f}`\n\n"
+            f"━━━━━━━━━━━━━━━━\n"
+            f"📩 للاستفسار تواصل مع الأدمن:\n"
+            f"👤 @Allosh96ha\n"
+            f"━━━━━━━━━━━━━━━━"
         )
     else:
         return jsonify({"ok": False, "error": "Invalid status"}), 400
 
     return jsonify({"ok": True})
+
 
 @app.route('/api/charges/<int:cid>/proof_image')
 @auth_required
