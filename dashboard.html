@@ -497,6 +497,7 @@ tr:hover td{background:var(--surface2)}
         <div class="nftab" onclick="filterNotifs('charge',this)">💰</div>
         <div class="nftab" onclick="filterNotifs('order',this)">🛍️</div>
         <div class="nftab" onclick="filterNotifs('proxy',this)">🌐</div>
+        <div class="nftab" onclick="filterNotifs('appsflyer',this)">🎮</div>
       </div>
       <!-- فلتر المستخدم -->
       <div class="user-filter-bar" id="notif-user-filter" style="display:none">
@@ -992,6 +993,8 @@ function selectNotif(idx){
       <div class="nd-row"><span class="nd-label">الحالة</span><span class="nd-value ${sc}">${sl}</span></div>
       <div class="nd-row"><span class="nd-label">التاريخ</span><span class="nd-value">${(n.created_at||'').substring(0,16).replace('T',' ')}</span></div>
     `
+    // زر عرض صورة الإيصال دايماً للشحن
+    rows += `<div style="margin:8px 0"><button class="nd-btn" style="width:100%;background:var(--accent2,#6366f1)" onclick="showChargeProof(${n.id})">🖼️ عرض صورة الإيصال</button></div>`
     if(n.tx_hash && n.tx_hash !== 'photo' && n.tx_hash !== 'file'){
       rows += `<div class="nd-proof"><div class="nd-proof-label">TXID / الإيصال</div><div class="nd-proof-val">${n.tx_hash}</div></div>`
     }
@@ -1151,6 +1154,41 @@ setInterval(async () => {
 
 // أول تحميل
 loadNotifications()
+
+
+async function updateAFOrder(id, status){
+  const label = status === 'accepted' ? 'قبول وخصم الرصيد' : 'رفض'
+  if(!confirm(`تأكيد: ${label} طلب AppsFlyer #${id}؟`)) return
+  const res = await fetch(`/api/appsflyer_orders/${id}/status`, {
+    method:'POST',
+    headers:{'Content-Type':'application/json', 'X-Auth-Token': AUTH_TOKEN},
+    body: JSON.stringify({status})
+  })
+  const d = await res.json()
+  if(d.ok){
+    showToast(status === 'accepted' ? '✅ تم القبول وخصم الرصيد' : '❌ تم الرفض')
+    loadNotifs()
+  } else {
+    showToast('❌ خطأ: ' + (d.error||''), 'error')
+  }
+}
+
+async function showChargeProof(cid){
+  const res = await fetch(`/api/charges/${cid}/proof_image`, {
+    headers:{'X-Auth-Token': AUTH_TOKEN}
+  })
+  const d = await res.json()
+  if(d.ok && d.url){
+    // افتح الصورة في modal
+    const modal = document.createElement('div')
+    modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:9999;display:flex;align-items:center;justify-content:center;cursor:pointer'
+    modal.innerHTML = `<img src="${d.url}" style="max-width:90vw;max-height:90vh;border-radius:12px;box-shadow:0 8px 32px rgba(0,0,0,.5)">`
+    modal.onclick = () => modal.remove()
+    document.body.appendChild(modal)
+  } else {
+    showToast('لا توجد صورة — الإيصال نصي أو غير متوفر', 'error')
+  }
+}
 
 </script>
 </body></html>
