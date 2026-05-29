@@ -279,6 +279,68 @@ tr:hover td{background:var(--surface2)}
 /* ===== Legacy drawer (hidden) ===== */
 .drawer-overlay{display:none}
 .user-drawer{display:none}
+
+/* ===== Notifications Layout ===== */
+.notifs-layout{display:flex;gap:0;height:calc(100vh - 140px);min-height:400px;border:1px solid var(--border);border-radius:12px;overflow:hidden}
+
+/* Sidebar list */
+.notifs-sidebar{width:220px;min-width:170px;border-left:1px solid var(--border);overflow-y:auto;background:rgba(10,0,0,.7);flex-shrink:0}
+.notifs-sidebar-header{padding:10px 12px;font-size:.7rem;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;border-bottom:1px solid var(--border);position:sticky;top:0;background:rgba(10,0,0,.95);z-index:1;display:flex;justify-content:space-between;align-items:center}
+.notif-filter-tabs{display:flex;gap:3px;padding:6px 8px;border-bottom:1px solid var(--border);background:rgba(10,0,0,.9);position:sticky;top:36px;z-index:1}
+.nftab{padding:3px 8px;border-radius:4px;font-size:.62rem;cursor:pointer;color:var(--muted);transition:all .12s;white-space:nowrap}
+.nftab.active{background:var(--accent);color:#fff}
+
+/* Notif list item */
+.notif-list-item{display:flex;align-items:flex-start;gap:8px;padding:10px 12px;cursor:pointer;border-bottom:1px solid rgba(180,0,0,.1);transition:background .12s}
+.notif-list-item:hover{background:rgba(204,17,17,.08)}
+.notif-list-item.active{background:rgba(204,17,17,.15);border-right:3px solid var(--accent)}
+.nli-icon{font-size:1.1rem;margin-top:1px;flex-shrink:0}
+.nli-info{min-width:0;flex:1}
+.nli-title{font-size:.72rem;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.nli-sub{font-size:.62rem;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:1px}
+.nli-time{font-size:.58rem;color:var(--muted);margin-top:2px}
+.nli-status{display:inline-block;width:6px;height:6px;border-radius:50%;flex-shrink:0;margin-top:5px}
+.nli-status.pending{background:var(--orange)}
+.nli-status.completed{background:var(--green)}
+.nli-status.rejected{background:var(--red)}
+.nli-status.confirmed{background:var(--green)}
+
+/* Detail panel */
+.notif-detail{flex:1;overflow-y:auto;background:rgba(15,0,0,.5);display:flex;align-items:flex-start;justify-content:center}
+.notif-detail-empty{text-align:center;color:var(--muted);font-size:.82rem;padding:60px 20px;width:100%}
+.notif-detail-empty .empty-icon{font-size:2.5rem;margin-bottom:10px;opacity:.4}
+.notif-detail-content{padding:20px;width:100%;max-width:520px}
+
+/* Detail card */
+.nd-header{display:flex;align-items:center;gap:12px;margin-bottom:18px;padding-bottom:14px;border-bottom:1px solid var(--border)}
+.nd-icon{font-size:2rem;width:48px;height:48px;display:flex;align-items:center;justify-content:center;background:rgba(204,17,17,.15);border-radius:12px;flex-shrink:0}
+.nd-title{font-size:1rem;font-weight:700;color:var(--text);margin-bottom:3px}
+.nd-sub{font-size:.75rem;color:var(--muted)}
+.nd-row{display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid rgba(255,255,255,.05)}
+.nd-row:last-child{border-bottom:none}
+.nd-label{font-size:.72rem;color:var(--muted)}
+.nd-value{font-size:.78rem;font-weight:600;color:var(--text);text-align:left;max-width:60%;word-break:break-all}
+.nd-value.green{color:var(--green)}
+.nd-value.orange{color:var(--orange)}
+.nd-value.red{color:var(--red)}
+.nd-value.blue{color:var(--blue)}
+.nd-proof{margin-top:14px;padding:10px;background:rgba(255,255,255,.04);border-radius:8px;border:1px solid var(--border)}
+.nd-proof-label{font-size:.65rem;color:var(--muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:.05em}
+.nd-proof-val{font-size:.72rem;color:var(--text);word-break:break-all;font-family:monospace}
+.nd-actions{display:flex;gap:8px;margin-top:16px;flex-wrap:wrap}
+.nd-btn{padding:9px 16px;border-radius:8px;border:none;font-size:.78rem;font-weight:600;cursor:pointer;transition:opacity .15s}
+.nd-btn:active{opacity:.7}
+
+/* User filter pill */
+.user-filter-bar{padding:8px 12px;border-bottom:1px solid var(--border);background:rgba(10,0,0,.8);display:flex;align-items:center;gap:6px;flex-wrap:wrap}
+.user-pill{display:inline-flex;align-items:center;gap:4px;padding:3px 8px;border-radius:20px;background:rgba(204,17,17,.2);border:1px solid rgba(204,17,17,.4);font-size:.68rem;color:var(--accent);cursor:pointer}
+.user-pill .pill-x{font-size:.7rem;opacity:.7}
+
+@media(max-width:600px){
+  .notifs-layout{flex-direction:column;height:auto}
+  .notifs-sidebar{width:100%;max-height:240px;border-left:none;border-bottom:1px solid var(--border)}
+  .notif-detail{min-height:350px}
+}
 </style>
 </head>
 <body>
@@ -327,6 +389,7 @@ tr:hover td{background:var(--surface2)}
     <div class="nav-item" onclick="showPage('charges',this)"><span class="nav-icon">💰</span><span>طلبات الشحن</span></div>
     <div class="nav-item" onclick="showPage('users',this)"><span class="nav-icon">👥</span><span>المستخدمين</span></div>
     <div class="nav-item" onclick="showPage('broadcast',this)"><span class="nav-icon">📢</span><span>رسالة جماعية</span></div>
+    <div class="nav-item" onclick="showPage('notifications',this)"><span class="nav-icon">🔔</span><span>الإشعارات</span></div>
   </nav>
   <div class="sidebar-footer">
     <a href="/logout"><button class="logout-btn">🚪 تسجيل الخروج</button></a>
@@ -416,6 +479,45 @@ tr:hover td{background:var(--surface2)}
 <div id="user-drawer-overlay" class="drawer-overlay"></div>
 <div id="user-drawer" class="user-drawer"></div>
 
+<!-- Notifications -->
+<div id="page-notifications" class="page">
+  <div class="page-header">
+    <div class="page-title"><h2>🔔 الإشعارات</h2><p>كل الطلبات والأحداث بالتفصيل</p></div>
+    <button class="btn btn-primary" onclick="loadNotifPage()">🔄 تحديث</button>
+  </div>
+  <div class="notifs-layout">
+    <!-- Sidebar -->
+    <div class="notifs-sidebar">
+      <div class="notifs-sidebar-header">
+        <span id="notifs-count">الكل</span>
+      </div>
+      <!-- فلتر النوع -->
+      <div class="notif-filter-tabs">
+        <div class="nftab active" onclick="filterNotifs('all',this)">الكل</div>
+        <div class="nftab" onclick="filterNotifs('charge',this)">💰</div>
+        <div class="nftab" onclick="filterNotifs('order',this)">🛍️</div>
+        <div class="nftab" onclick="filterNotifs('proxy',this)">🌐</div>
+      </div>
+      <!-- فلتر المستخدم -->
+      <div class="user-filter-bar" id="notif-user-filter" style="display:none">
+        <span style="font-size:.65rem;color:var(--muted)">مستخدم:</span>
+        <div class="user-pill" id="notif-user-pill">
+          <span id="notif-user-pill-name">—</span>
+          <span class="pill-x" onclick="clearUserFilter()">✕</span>
+        </div>
+      </div>
+      <div id="notifs-list"></div>
+    </div>
+    <!-- Detail panel -->
+    <div class="notif-detail" id="notif-detail-panel">
+      <div class="notif-detail-empty">
+        <div class="empty-icon">🔔</div>
+        <div>اختر إشعاراً من القائمة</div>
+      </div>
+    </div>
+  </div>
+</div>
+
 <!-- Broadcast -->
 <div id="page-broadcast" class="page">
   <div class="page-header"><div class="page-title"><h2>📢 رسالة جماعية</h2><p>إرسال لكل المستخدمين</p></div></div>
@@ -439,6 +541,7 @@ tr:hover td{background:var(--surface2)}
     <div class="bnav-item" onclick="showPage('charges',this,true)"><span class="bnav-icon">💰</span><span>شحن</span></div>
     <div class="bnav-item" onclick="showPage('users',this,true)"><span class="bnav-icon">👥</span><span>مستخدمين</span></div>
     <div class="bnav-item" onclick="showPage('broadcast',this,true)"><span class="bnav-icon">📢</span><span>رسالة</span></div>
+    <div class="bnav-item" onclick="showPage('notifications',this,true)"><span class="bnav-icon">🔔</span><span>إشعارات</span></div>
   </div>
 </nav>
 
@@ -489,6 +592,7 @@ function showPage(name, el, isMobile=false) {
   if (name==='orders') loadOrders('')
   if (name==='charges') loadCharges()
   if (name==='users') loadUsers()
+  if (name==='notifications') loadNotifPage()
   window.scrollTo(0,0)
 }
 
@@ -759,6 +863,194 @@ async function sendBroadcast(){
 }
 
 loadStats()
+
+// ═══ Notifications Page =====
+let _allNotifs = []
+let _notifsFilter = 'all'
+let _notifsUserFilter = null
+let _notifsUserName = ''
+
+async function loadNotifPage(){
+  const data = await api('/api/notifications/all')
+  if(!data) return
+  _allNotifs = data
+  renderNotifsList()
+}
+
+function filterNotifs(type, el){
+  _notifsFilter = type
+  document.querySelectorAll('.nftab').forEach(t => t.classList.remove('active'))
+  el.classList.add('active')
+  renderNotifsList()
+}
+
+function setUserFilter(uid, name){
+  _notifsUserFilter = uid
+  _notifsUserName = name
+  $('notif-user-filter').style.display = 'flex'
+  $('notif-user-pill-name').textContent = name
+  renderNotifsList()
+}
+
+function clearUserFilter(){
+  _notifsUserFilter = null
+  $('notif-user-filter').style.display = 'none'
+  renderNotifsList()
+}
+
+function renderNotifsList(){
+  let items = _allNotifs
+  if(_notifsFilter !== 'all') items = items.filter(n => n.type === _notifsFilter)
+  if(_notifsUserFilter) items = items.filter(n => n.user_id === _notifsUserFilter)
+
+  $('notifs-count').textContent = `${items.length} إشعار`
+
+  const list = $('notifs-list')
+  if(!items.length){
+    list.innerHTML = '<div style="padding:24px;text-align:center;color:var(--muted);font-size:.75rem">لا يوجد إشعارات</div>'
+    return
+  }
+
+  const statusColors = {pending:'orange', completed:'completed', confirmed:'completed', rejected:'rejected'}
+  const statusLabels = {pending:'⏳ معلق', completed:'✅ مكتمل', confirmed:'✅ مؤكد', rejected:'❌ مرفوض'}
+
+  list.innerHTML = items.map((n,i) => {
+    const time = (n.created_at||'').substring(5,16).replace('T',' ')
+    const sc = statusColors[n.status] || 'pending'
+    return `<div class="notif-list-item" id="nli-${i}" onclick="selectNotif(${i})">
+      <div class="nli-status ${sc}"></div>
+      <div class="nli-icon">${n.icon}</div>
+      <div class="nli-info">
+        <div class="nli-title">${n.title}</div>
+        <div class="nli-sub">${n.subtitle||''}</div>
+        <div class="nli-time">${time}</div>
+      </div>
+    </div>`
+  }).join('')
+}
+
+function selectNotif(idx){
+  let items = _allNotifs
+  if(_notifsFilter !== 'all') items = items.filter(n => n.type === _notifsFilter)
+  if(_notifsUserFilter) items = items.filter(n => n.user_id === _notifsUserFilter)
+
+  document.querySelectorAll('.notif-list-item').forEach(el => el.classList.remove('active'))
+  const el = $('nli-'+idx)
+  if(el) el.classList.add('active')
+
+  const n = items[idx]
+  if(!n) return
+
+  const statusLabels = {pending:'⏳ معلق', completed:'✅ مكتمل', confirmed:'✅ مؤكد', rejected:'❌ مرفوض'}
+  const statusColors = {pending:'orange', completed:'green', confirmed:'green', rejected:'red'}
+  const sc = statusColors[n.status] || 'orange'
+  const sl = statusLabels[n.status] || n.status
+
+  let rows = ''
+  let actions = ''
+
+  if(n.type === 'charge'){
+    const method = n.method === 'usdt' ? 'USDT BEP-20' : 'Syriatel Cash'
+    rows = `
+      <div class="nd-row"><span class="nd-label">رقم الطلب</span><span class="nd-value">#${n.id}</span></div>
+      <div class="nd-row"><span class="nd-label">المستخدم</span><span class="nd-value" style="cursor:pointer;color:var(--accent)" onclick="setUserFilter(${n.user_id},'${(n.full_name||'').replace(/'/g,'')}')">${n.full_name||'—'} ↗</span></div>
+      <div class="nd-row"><span class="nd-label">يوزرنيم</span><span class="nd-value">@${n.username||'—'}</span></div>
+      <div class="nd-row"><span class="nd-label">ID</span><span class="nd-value" style="font-family:monospace">${n.user_id}</span></div>
+      <div class="nd-row"><span class="nd-label">المبلغ</span><span class="nd-value green">$${n.amount_usd}</span></div>
+      <div class="nd-row"><span class="nd-label">الطريقة</span><span class="nd-value">${method}</span></div>
+      <div class="nd-row"><span class="nd-label">الحالة</span><span class="nd-value ${sc}">${sl}</span></div>
+      <div class="nd-row"><span class="nd-label">التاريخ</span><span class="nd-value">${(n.created_at||'').substring(0,16).replace('T',' ')}</span></div>
+    `
+    if(n.tx_hash && n.tx_hash !== 'photo' && n.tx_hash !== 'file'){
+      rows += `<div class="nd-proof"><div class="nd-proof-label">TXID / الإيصال</div><div class="nd-proof-val">${n.tx_hash}</div></div>`
+    }
+    if(n.status === 'pending'){
+      actions = `
+        <button class="nd-btn btn-success" onclick="notifChargeAction(${n.id},'confirm',this)">✅ تأكيد الشحن</button>
+        <button class="nd-btn btn-danger" onclick="notifChargeAction(${n.id},'reject',this)">❌ رفض</button>
+      `
+    }
+  } else if(n.type === 'order'){
+    const payMethod = {usdt:'USDT',syriatel:'Syriatel',balance:'رصيد'}[n.payment_method] || n.payment_method
+    rows = `
+      <div class="nd-row"><span class="nd-label">رقم الطلب</span><span class="nd-value">#${n.id}</span></div>
+      <div class="nd-row"><span class="nd-label">المستخدم</span><span class="nd-value" style="cursor:pointer;color:var(--accent)" onclick="setUserFilter(${n.user_id},'${(n.full_name||'').replace(/'/g,'')}')">${n.full_name||'—'} ↗</span></div>
+      <div class="nd-row"><span class="nd-label">يوزرنيم</span><span class="nd-value">@${n.username||'—'}</span></div>
+      <div class="nd-row"><span class="nd-label">ID</span><span class="nd-value" style="font-family:monospace">${n.user_id}</span></div>
+      <div class="nd-row"><span class="nd-label">المنتج</span><span class="nd-value">${n.product_name}</span></div>
+      <div class="nd-row"><span class="nd-label">المبلغ</span><span class="nd-value green">$${n.price_usd}</span></div>
+      <div class="nd-row"><span class="nd-label">طريقة الدفع</span><span class="nd-value">${payMethod}</span></div>
+      <div class="nd-row"><span class="nd-label">الحالة</span><span class="nd-value ${sc}">${sl}</span></div>
+      <div class="nd-row"><span class="nd-label">التاريخ</span><span class="nd-value">${(n.created_at||'').substring(0,16).replace('T',' ')}</span></div>
+    `
+    if(n.delivered_item){
+      rows += `<div class="nd-proof"><div class="nd-proof-label">المنتج المُرسل</div><div class="nd-proof-val">${n.delivered_item}</div></div>`
+    }
+    if(n.status === 'pending'){
+      actions = `
+        <button class="nd-btn btn-success" onclick="notifOrderAction(${n.id},'completed',this)">✅ تأكيد وإرسال</button>
+        <button class="nd-btn btn-danger" onclick="notifOrderAction(${n.id},'rejected',this)">❌ رفض</button>
+      `
+    }
+  } else if(n.type === 'proxy'){
+    rows = `
+      <div class="nd-row"><span class="nd-label">رقم الطلب</span><span class="nd-value">#${n.id}</span></div>
+      <div class="nd-row"><span class="nd-label">المستخدم</span><span class="nd-value" style="cursor:pointer;color:var(--accent)" onclick="setUserFilter(${n.user_id},'${(n.full_name||'').replace(/'/g,'')}')">${n.full_name||'—'} ↗</span></div>
+      <div class="nd-row"><span class="nd-label">يوزرنيم</span><span class="nd-value">@${n.username||'—'}</span></div>
+      <div class="nd-row"><span class="nd-label">ID</span><span class="nd-value" style="font-family:monospace">${n.user_id}</span></div>
+      <div class="nd-row"><span class="nd-label">النوع</span><span class="nd-value">${n.proxy_type_label}</span></div>
+      <div class="nd-row"><span class="nd-label">الكمية</span><span class="nd-value">${n.quantity}</span></div>
+      <div class="nd-row"><span class="nd-label">الدولة</span><span class="nd-value">${n.country}</span></div>
+      <div class="nd-row"><span class="nd-label">الحالة</span><span class="nd-value ${sc}">${sl}</span></div>
+      <div class="nd-row"><span class="nd-label">التاريخ</span><span class="nd-value">${(n.created_at||'').substring(0,16).replace('T',' ')}</span></div>
+    `
+    if(n.notes){
+      rows += `<div class="nd-proof"><div class="nd-proof-label">ملاحظات</div><div class="nd-proof-val">${n.notes}</div></div>`
+    }
+    if(n.status === 'pending'){
+      actions = `
+        <button class="nd-btn btn-success" onclick="notifProxyAction(${n.id},'completed',this)">✅ تأكيد</button>
+        <button class="nd-btn btn-danger" onclick="notifProxyAction(${n.id},'rejected',this)">❌ رفض</button>
+      `
+    }
+  }
+
+  $('notif-detail-panel').innerHTML = `
+    <div class="notif-detail-content">
+      <div class="nd-header">
+        <div class="nd-icon">${n.icon}</div>
+        <div>
+          <div class="nd-title">${n.title}</div>
+          <div class="nd-sub">${n.subtitle||''}</div>
+        </div>
+      </div>
+      ${rows}
+      ${actions ? `<div class="nd-actions">${actions}</div>` : ''}
+    </div>
+  `
+}
+
+async function notifChargeAction(id, action, btn){
+  btn.disabled = true
+  const res = await api(\`/api/charges/\${id}/\${action}\`, 'POST')
+  if(res && res.ok){ toast(action==='confirm'?'✅ تم تأكيد الشحن':'❌ تم الرفض'); await loadNotifPage() }
+  else { toast('🔴 خطأ', false); btn.disabled=false }
+}
+
+async function notifOrderAction(id, action, btn){
+  btn.disabled = true
+  const res = await api(\`/api/orders/\${id}/status\`, 'POST', {status: action})
+  if(res && res.ok){ toast(action==='completed'?'✅ تم التأكيد':'❌ تم الرفض'); await loadNotifPage() }
+  else { toast('🔴 خطأ', false); btn.disabled=false }
+}
+
+async function notifProxyAction(id, action, btn){
+  btn.disabled = true
+  const status = action === 'completed' ? 'completed' : 'rejected'
+  const res = await api(\`/api/proxy_orders/\${id}/status\`, 'POST', {status})
+  if(res && res.ok){ toast(action==='completed'?'✅ تم التأكيد':'❌ تم الرفض'); await loadNotifPage() }
+  else { toast('🔴 خطأ', false); btn.disabled=false }
+}
 
 // ═══ Notifications ═══
 let notifOpen = false

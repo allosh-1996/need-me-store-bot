@@ -336,6 +336,75 @@ def api_get_balance(uid):
         "total_spent": row['total_spent'] if row else 0
     })
 
+# ===== Notifications APIs =====
+
+@app.route('/api/notifications/all')
+@auth_required
+def api_notifications_all():
+    """كل الإشعارات بالتفصيل — كل الأنواع كل الحالات"""
+    conn = db.get_conn()
+
+    cur1 = conn.execute("""SELECT id, user_id, username, full_name, amount_usd, method,
+        tx_hash, proof, status, created_at FROM charge_requests ORDER BY created_at DESC LIMIT 100""")
+    charges = [dict(r, type='charge', icon='💰',
+        title=f"شحن رصيد — ${r['amount_usd']}",
+        subtitle=f"{r['full_name']} · {'USDT' if r['method']=='usdt' else 'Syriatel'}")
+        for r in _fetchall_dict(cur1)]
+
+    cur2 = conn.execute("""SELECT id, user_id, username, full_name, product_name,
+        price_usd, currency, payment_method, payment_proof, status, notes,
+        delivered_item, created_at FROM orders ORDER BY created_at DESC LIMIT 100""")
+    orders = [dict(r, type='order', icon='🛍️',
+        title=f"طلب شراء — {r['product_name']}",
+        subtitle=f"{r['full_name']} · ${r['price_usd']}")
+        for r in _fetchall_dict(cur2)]
+
+    cur3 = conn.execute("""SELECT id, user_id, username, full_name, proxy_type_label,
+        quantity, country, notes, status, created_at FROM proxy_orders ORDER BY created_at DESC LIMIT 100""")
+    proxies = [dict(r, type='proxy', icon='🌐',
+        title=f"بروكسي — {r['proxy_type_label']} x{r['quantity']}",
+        subtitle=f"{r['full_name']} · {r['country']}")
+        for r in _fetchall_dict(cur3)]
+
+    conn.close()
+    all_notifs = sorted(charges + orders + proxies, key=lambda x: x['created_at'], reverse=True)
+    return jsonify(all_notifs)
+
+@app.route('/api/notifications/user/<int:uid>')
+@auth_required
+def api_user_notifications(uid):
+    """إشعارات مستخدم معين"""
+    conn = db.get_conn()
+
+    cur1 = conn.execute("""SELECT id, user_id, username, full_name, amount_usd, method,
+        tx_hash, proof, status, created_at FROM charge_requests
+        WHERE user_id=? ORDER BY created_at DESC""", (uid,))
+    charges = [dict(r, type='charge', icon='💰',
+        title=f"شحن رصيد — ${r['amount_usd']}",
+        subtitle=f"{'USDT' if r['method']=='usdt' else 'Syriatel Cash'}")
+        for r in _fetchall_dict(cur1)]
+
+    cur2 = conn.execute("""SELECT id, user_id, username, full_name, product_name,
+        price_usd, currency, payment_method, payment_proof, status, notes,
+        delivered_item, created_at FROM orders
+        WHERE user_id=? ORDER BY created_at DESC""", (uid,))
+    orders = [dict(r, type='order', icon='🛍️',
+        title=f"طلب شراء — {r['product_name']}",
+        subtitle=f"${r['price_usd']}")
+        for r in _fetchall_dict(cur2)]
+
+    cur3 = conn.execute("""SELECT id, user_id, username, full_name, proxy_type_label,
+        quantity, country, notes, status, created_at FROM proxy_orders
+        WHERE user_id=? ORDER BY created_at DESC""", (uid,))
+    proxies = [dict(r, type='proxy', icon='🌐',
+        title=f"بروكسي — {r['proxy_type_label']} x{r['quantity']}",
+        subtitle=f"{r['country']}")
+        for r in _fetchall_dict(cur3)]
+
+    conn.close()
+    all_notifs = sorted(charges + orders + proxies, key=lambda x: x['created_at'], reverse=True)
+    return jsonify(all_notifs)
+
 @app.route('/api/users/<int:uid>/delete', methods=['POST'])
 @auth_required
 def api_delete_user(uid):
