@@ -35,6 +35,7 @@ def tg_send(chat_id, text):
 # ═══════════════════════════════════════════════════════════════
 _is_production = bool(
     os.environ.get("RAILWAY_ENVIRONMENT") or
+    os.environ.get("RAILWAY_PROJECT_ID") or   # Railway دايماً بيحط هذا
     os.environ.get("RENDER") or
     os.environ.get("PRODUCTION")
 )
@@ -66,6 +67,12 @@ else:
         logger.warning("⚠️  DASHBOARD_SECRET not set — using random key (sessions reset on restart)")
 
 app.secret_key = _dashboard_secret
+
+# FIX: Session cookie على HTTPS — بدونها الـ session ما بتنحفظ على Railway
+app.config['SESSION_COOKIE_SECURE'] = True
+app.config['SESSION_COOKIE_HTTPONLY'] = True
+app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
+app.config['SESSION_COOKIE_NAME'] = 'nx_session'
 
 # ═══ Health Check (FIX: مدمج هنا بدل keep_alive Flask) ═══
 @app.route('/health')
