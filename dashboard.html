@@ -729,7 +729,9 @@ async function udDeductBalance(){
 async function udDeleteUser(){
   if(!_currentUid) return
   const u = _usersData.find(x => x.id === _currentUid)
-  if(!confirm(`🗑️ حذف المستخدم "${u?.full_name||_currentUid}"؟\nهاد الإجراء لا يمكن التراجع عنه.`)) return
+  const bal = Number(u?.balance||0)
+  const warn = bal > 0 ? `\n\n⚠️ تحذير: عنده رصيد $${bal.toFixed(2)} — رح يضيع نهائياً!` : ''
+  if(!confirm(`🗑️ حذف المستخدم "${u?.full_name||_currentUid}"؟${warn}\n\nهاد الإجراء لا يمكن التراجع عنه.`)) return
   const res = await api(`/api/users/${_currentUid}/delete`, 'POST')
   if(res && res.ok){
     toast(`🗑️ تم حذف ${u?.full_name||'المستخدم'}`)
