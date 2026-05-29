@@ -609,18 +609,13 @@ function openModal(id) { $(id).classList.add('open') }
 function closeModal(id) { $(id).classList.remove('open') }
 
 // احفظ الـ token من الـ URL
-(function(){
-  const p = new URLSearchParams(window.location.search)
-  const t = p.get('_t')
-  if (t) {
-    // احفظ بكل الطرق الممكنة
-    try { localStorage.setItem('_nt', t) } catch(e){}
-    try { sessionStorage.setItem('_nt', t) } catch(e){}
-    // cookie يدوي
-    document.cookie = '_nt=' + t + '; path=/; SameSite=Lax'
-    history.replaceState({}, '', '/')
-  }
-})()
+// احفظ الـ token من الـ URL فوراً قبل أي شيء
+const _urlToken = new URLSearchParams(window.location.search).get('_t')
+if (_urlToken) {
+  try { localStorage.setItem('_nt', _urlToken) } catch(e){}
+  try { sessionStorage.setItem('_nt', _urlToken) } catch(e){}
+  document.cookie = '_nt=' + _urlToken + '; path=/; SameSite=Lax; max-age=86400'
+}
 
 function getToken() {
   // جرب كل مصادر الـ token
@@ -632,8 +627,6 @@ function getToken() {
 
 async function api(url, method='GET', body=null) {
   const token = getToken()
-  // لو ما في token — ارجع للوقين
-  if (!token) { window.location='/login'; return null }
   try {
     const r = await fetch(url, {
       method,
@@ -895,6 +888,8 @@ async function sendBroadcast(){
   if(res && res.ok){ $('broadcast-msg').value=''; toast(`✅ تم الإرسال — ${res.sent} مستخدم`) }
 }
 
+// امسح الـ token من الـ URL
+if (typeof _urlToken !== 'undefined' && _urlToken) history.replaceState({}, '', '/')
 loadStats()
 
 // ═══ Notifications Page =====
