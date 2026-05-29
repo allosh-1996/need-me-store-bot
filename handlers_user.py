@@ -1,4 +1,4 @@
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, ReplyKeyboardRemove
 from telegram.ext import ContextTypes, ConversationHandler
 from telegram.constants import ParseMode
 import database as db
@@ -13,6 +13,8 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
     db.upsert_user(user.id, user.username or "", user.full_name or "")
     lang = get_user_lang(context)
+    # أخفِ الـ ReplyKeyboard القديم لو موجود
+    await update.message.reply_text("‌", reply_markup=ReplyKeyboardRemove())
     await update.message.reply_text(
         t("welcome", lang),
         parse_mode=ParseMode.MARKDOWN,
@@ -645,3 +647,30 @@ async def win_appsflyer(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """يحول مباشرة لـ handlers_appsflyer.appsflyer_menu"""
     import handlers_appsflyer as haf
     return await haf.appsflyer_menu(update, context)
+
+# ═══════════════════════════════════════
+# Commands: /change_language و /support
+# ═══════════════════════════════════════
+async def change_language_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """تغيير اللغة مباشرة عبر /change_language"""
+    current = get_user_lang(context)
+    new_lang = "en" if current == "ar" else "ar"
+    context.user_data["lang"] = new_lang
+    await update.message.reply_text(
+        t("welcome", new_lang),
+        parse_mode=ParseMode.MARKDOWN,
+        reply_markup=kb.main_menu(new_lang)
+    )
+
+async def support_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """دعم عبر /support"""
+    lang = get_user_lang(context)
+    await update.message.reply_text(
+        f"*{t('support_title', lang)}*\n\n"
+        f"━━━━━━━━━━━━━━━━\n"
+        f"@Allosh96ha\n\n"
+        f"_{t('support_body', lang)}_\n"
+        f"━━━━━━━━━━━━━━━━",
+        parse_mode=ParseMode.MARKDOWN,
+        reply_markup=kb.main_menu(lang)
+    )

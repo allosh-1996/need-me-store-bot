@@ -1,4 +1,4 @@
-from telegram import InlineKeyboardButton, InlineKeyboardMarkup, ReplyKeyboardMarkup, KeyboardButton
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup, ReplyKeyboardMarkup, ReplyKeyboardRemove, KeyboardButton
 from lang import t
 
 # ============ Main Menu ============
@@ -112,13 +112,5 @@ def admin_product_menu(product_id):
 
 # ============ Persistent Bottom Menu ============
 def persistent_menu(lang="ar"):
-    if lang == "en":
-        keys = [["Start", "Support", "About"]]
-    else:
-        keys = [["ابدأ", "دعم", "عن المتجر"]]
-    return ReplyKeyboardMarkup(
-        keys,
-        resize_keyboard=True,
-        is_persistent=True,
-        one_time_keyboard=False,
-    )
+    """محذوف — يرجع ReplyKeyboardRemove لإخفاء الكيبورد"""
+    return ReplyKeyboardRemove()

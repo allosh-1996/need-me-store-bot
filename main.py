@@ -151,6 +151,8 @@ def main():
     app.add_handler(CommandHandler("products", hu.show_products))
     app.add_handler(CommandHandler("orders",   hu.my_orders))
     app.add_handler(CommandHandler("admin",    ha.admin_panel))
+    app.add_handler(CommandHandler("change_language", hu.change_language_cmd))
+    app.add_handler(CommandHandler("support",  hu.support_cmd))
 
     # ========== Conversations ==========
     app.add_handler(add_product_conv)
@@ -240,11 +242,7 @@ def main():
     app.add_handler(CallbackQueryHandler(hp.proxy_admin_done,   pattern=r'^prx_done_\d+'))
     app.add_handler(CallbackQueryHandler(hp.proxy_admin_reject, pattern=r'^prx_reject_\d+'))
 
-    # ========== القائمة الثابتة ==========
-    app.add_handler(MessageHandler(
-        filters.TEXT & ~filters.COMMAND,
-        hu.handle_persistent_menu
-    ))
+    # ========== القائمة الثابتة — محذوفة (تم الاستعاضة عنها بـ /start /support /change_language) ==========
 
     # ========== Broadcast Job ==========
     # FIX: يستخدم claim_broadcast_for_job() لمنع الإرسال المزدوج مع الداشبورد
