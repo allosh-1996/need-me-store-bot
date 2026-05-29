@@ -423,8 +423,16 @@ def api_notifications_all():
         subtitle=f"{r['full_name']} · {r['country']}")
         for r in _fetchall_dict(cur3)]
 
+    cur4 = conn.execute("""SELECT id, user_id, username, full_name, game_name,
+        price_usd, idfa, idfv, ios_version, appsflyer_id, status, created_at
+        FROM appsflyer_orders ORDER BY created_at DESC LIMIT 100""")
+    appsflyer = [dict(r, type='appsflyer', icon='🎮',
+        title=f"AppsFlyer — {r['game_name']}",
+        subtitle=f"{r['full_name']} · ${r['price_usd']}")
+        for r in _fetchall_dict(cur4)]
+
     conn.close()
-    all_notifs = sorted(charges + orders + proxies, key=lambda x: x['created_at'], reverse=True)
+    all_notifs = sorted(charges + orders + proxies + appsflyer, key=lambda x: x['created_at'], reverse=True)
     return jsonify(all_notifs)
 
 @app.route('/api/notifications/user/<int:uid>')
@@ -490,8 +498,13 @@ def api_notifications():
                 "product": f"{r['proxy_type_label']} x{r['quantity']} ({r['country']})",
                 "amount": 0, "time": r["created_at"]} for r in _fetchall_dict(cur3)]
 
+    cur4 = conn.execute("SELECT id, full_name, game_name, price_usd, created_at FROM appsflyer_orders WHERE status=\'pending\' ORDER BY created_at DESC LIMIT 20")
+    appsflyer = [{"type": "appsflyer", "id": r["id"], "name": r["full_name"],
+                  "product": r["game_name"], "amount": r["price_usd"],
+                  "time": r["created_at"]} for r in _fetchall_dict(cur4)]
+
     conn.close()
-    notifications = sorted(charges + orders + proxies, key=lambda x: x["time"], reverse=True)
+    notifications = sorted(charges + orders + proxies + appsflyer, key=lambda x: x["time"], reverse=True)
     return jsonify({"notifications": notifications, "count": len(notifications)})
 
 @app.route('/api/proxy_orders')
@@ -535,6 +548,103 @@ def api_proxy_order_status(oid):
                 f"_للاستفسار تواصل مع الأدمن_"
             )
     return jsonify({"ok": True})
+
+
+# ═══ AppsFlyer Orders ═══
+
+@app.route('/api/appsflyer_orders')
+@auth_required
+def api_appsflyer_orders():
+    """كل طلبات AppsFlyer مع فلتر اختياري بالحالة"""
+    status = request.args.get('status', '')
+    conn = db.get_conn()
+    if status:
+        cur = conn.execute(
+            "SELECT * FROM appsflyer_orders WHERE status=? ORDER BY created_at DESC LIMIT 100",
+            (status,)
+        )
+    else:
+        cur = conn.execute(
+            "SELECT * FROM appsflyer_orders ORDER BY created_at DESC LIMIT 100"
+        )
+    rows = _fetchall_dict(cur)
+    conn.close()
+    return jsonify(rows)
+
+@app.route('/api/appsflyer_orders/<int:oid>/status', methods=['POST'])
+@auth_required
+def api_appsflyer_order_status(oid):
+    """قبول أو رفض طلب AppsFlyer من الداشبورد"""
+    status = request.json.get('status')
+    order = db.get_appsflyer_order(oid)
+
+    if not order:
+        return jsonify({"ok": False, "error": "Not found"}), 404
+
+    if order["status"] != "pending":
+        return jsonify({"ok": False, "error": "Already processed"}), 400
+
+    if status == 'accepted':
+        balance = db.get_balance(order["user_id"])
+        if balance < order["price_usd"]:
+            return jsonify({"ok": False, "error": f"Insufficient balance: ${balance:.2f}"}), 400
+        db.update_balance(order["user_id"], -order["price_usd"])
+        db.update_appsflyer_order_status(oid, "accepted")
+        logger.info(f"Dashboard: AppsFlyer order #{oid} accepted")
+        tg_send(order["user_id"],
+            f"🚀 *طلبك قيد التنفيذ الآن!*\n\n"
+            f"🎮 *اللعبة:* {order['game_name']}\n"
+            f"🔢 *رقم الطلب:* `#{oid}`\n"
+            f"💵 *المبلغ المخصوم:* `${order['price_usd']:.2f}`\n\n"
+            f"سيتم تنفيذ الخدمة في أقرب وقت ✨"
+        )
+    elif status == 'rejected':
+        db.update_appsflyer_order_status(oid, "rejected")
+        logger.info(f"Dashboard: AppsFlyer order #{oid} rejected")
+        tg_send(order["user_id"],
+            f"❌ *تم رفض طلبك*\n\n"
+            f"🎮 *اللعبة:* {order['game_name']}\n"
+            f"🔢 *رقم الطلب:* `#{oid}`\n\n"
+            f"لم يتم خصم أي مبلغ من رصيدك.\n"
+            f"_للاستفسار تواصل مع الأدمن_"
+        )
+    else:
+        return jsonify({"ok": False, "error": "Invalid status"}), 400
+
+    return jsonify({"ok": True})
+
+@app.route('/api/charges/<int:cid>/proof_image')
+@auth_required
+def api_charge_proof_image(cid):
+    """جيب صورة إيصال الشحن من تيليغرام"""
+    conn = db.get_conn()
+    cur = conn.execute("SELECT proof, method FROM charge_requests WHERE id=?", (cid,))
+    row = _fetchone_dict(cur)
+    conn.close()
+
+    if not row or not row.get("proof"):
+        return jsonify({"ok": False, "error": "No proof found"}), 404
+
+    file_id = row["proof"]
+
+    # جيب رابط الصورة من تيليغرام
+    try:
+        resp = req_lib.get(
+            f"https://api.telegram.org/bot{BOT_TOKEN}/getFile",
+            params={"file_id": file_id},
+            timeout=5
+        )
+        result = resp.json()
+        if not result.get("ok"):
+            return jsonify({"ok": False, "error": "Telegram API error", "is_file_id": True, "file_id": file_id}), 200
+
+        file_path = result["result"]["file_path"]
+        image_url = f"https://api.telegram.org/file/bot{BOT_TOKEN}/{file_path}"
+        return jsonify({"ok": True, "url": image_url, "file_id": file_id})
+    except Exception as e:
+        logger.error(f"Proof image error: {e}")
+        return jsonify({"ok": False, "error": str(e), "file_id": file_id}), 200
+
 
 def run_dashboard():
     app.run(host='0.0.0.0', port=5000, debug=False, use_reloader=False)
