@@ -432,7 +432,7 @@ async def proxy_admin_done(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 f"_We'll send your proxies shortly_ "
             ),
             parse_mode=ParseMode.MARKDOWN,
-            reply_markup=kb.main_menu()
+            reply_markup=kb.main_menu("ar")
         )
         await query.edit_message_text(f" تم إشعار المستخدم `{user_id}`", parse_mode=ParseMode.MARKDOWN)
     except Exception as e:
@@ -462,7 +462,7 @@ async def proxy_admin_reject(update: Update, context: ContextTypes.DEFAULT_TYPE)
                 f"_Contact admin for more info_"
             ),
             parse_mode=ParseMode.MARKDOWN,
-            reply_markup=kb.main_menu()
+            reply_markup=kb.main_menu("ar")
         )
         await query.edit_message_text(f" تم رفض طلب `{user_id}`", parse_mode=ParseMode.MARKDOWN)
     except Exception as e:

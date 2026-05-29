@@ -8,7 +8,17 @@ USDT_WALLET = os.environ.get("USDT_WALLET", "ضع_محفظة_USDT_هنا")
 SYRIATEL_CASH = os.environ.get("SYRIATEL_CASH", "ضع_رقم_سيريتيل_كاش_هنا")
 
 # سعر صرف الليرة السورية | SYP Exchange Rate (SYP per 1 USD)
-SYP_RATE = float(os.environ.get("SYP_RATE", "140"))
+# سعر صرف الليرة السورية — يجب تحديثه في Railway Variables
+# FIX: القيمة الافتراضية 15000 تقريبية لعام 2026 — حدّدها دائماً في البيئة
+_syp_rate_env = os.environ.get("SYP_RATE")
+if not _syp_rate_env:
+    import warnings
+    warnings.warn(
+        "⚠️  SYP_RATE غير محدد في المتغيرات! يُستخدم 15000 كقيمة مؤقتة. "
+        "أضف SYP_RATE في Railway Variables.",
+        stacklevel=1
+    )
+SYP_RATE = float(_syp_rate_env or "15000")
 
 # ═══════════════════════════════════════
 # رسالة الترحيب | Welcome Message

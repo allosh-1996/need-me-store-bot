@@ -69,7 +69,7 @@ else:
 app.secret_key = _dashboard_secret
 
 # FIX: Session cookie على HTTPS — بدونها الـ session ما بتنحفظ على Railway
-app.config['SESSION_COOKIE_SECURE'] = True
+app.config['SESSION_COOKIE_SECURE'] = _is_production  # FIX: only HTTPS in production
 app.config['SESSION_COOKIE_HTTPONLY'] = True
 app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
 app.config['SESSION_COOKIE_NAME'] = 'nx_session'
@@ -160,7 +160,8 @@ def api_add_product():
         price_usd=float(d.get('price_usd', 0)),
         price_syp=float(d.get('price_syp', 0)),
         category=d.get('category',''),
-        stock=d.get('stock','')
+        stock=d.get('stock',''),
+        platform=d.get('platform', 'iOS')  # FIX: platform was missing
     )
     logger.info(f"Dashboard: product #{pid} added")
     return jsonify({"id": pid, "ok": True})

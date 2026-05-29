@@ -562,6 +562,13 @@ tr:hover td{background:var(--surface2)}
         <option>Survey</option><option>شروحات</option><option>أخرى</option>
       </select>
     </div>
+    <div class="form-group"><label>المنظومة | Platform</label>
+      <select id="p-platform">
+        <option value="iOS">iOS</option>
+        <option value="Android">Android</option>
+        <option value="iOS & Android">iOS & Android</option>
+      </select>
+    </div>
     <div class="form-group"><label>المخزون</label>
       <textarea id="p-stock" placeholder="account@example.com:password&#10;أو رابط تحميل&#10;أو كود تفعيل"></textarea>
     </div>
@@ -684,7 +691,8 @@ async function loadProducts() {
 async function addProduct() {
   const d = {name:$('p-name').value,description:$('p-desc').value,
     price_usd:$('p-usd').value,price_syp:$('p-syp').value,
-    category:$('p-cat').value,stock:$('p-stock').value}
+    category:$('p-cat').value,stock:$('p-stock').value,
+    platform:$('p-platform').value}  // FIX: platform added
   if (!d.name||!d.price_usd){toast('الاسم والسعر مطلوبان',false);return}
   const res = await api('/api/products/add','POST',d)
   if(!res) return;

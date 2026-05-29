@@ -252,13 +252,10 @@ async def show_balance(update: Update, context: ContextTypes.DEFAULT_TYPE):
     lang = get_user_lang(context)
     balance = db.get_balance(user.id)
 
-    conn = db.get_conn()
-    cur = conn.execute("SELECT total_charged, total_spent FROM balances WHERE user_id=?", (user.id,))
-    row = db._fetchone_dict(cur)
-    conn.close()
-
-    total_charged = row['total_charged'] if row else 0
-    total_spent = row['total_spent'] if row else 0
+    # FIX: use get_balance_details() instead of raw _fetchone_dict
+    details = db.get_balance_details(user.id)
+    total_charged = details['total_charged']
+    total_spent = details['total_spent']
 
     bal_kb = InlineKeyboardMarkup([
         [InlineKeyboardButton(" Top Up  |  شحن رصيد", callback_data="charge_start")],

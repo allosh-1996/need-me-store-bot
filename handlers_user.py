@@ -552,7 +552,7 @@ async def proxy_menu_simple(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "━━━━━━━━━━━━━━━━"
     )
 
-    await query.message.reply_text(
+    await query.edit_message_text(
         text,
         parse_mode=ParseMode.MARKDOWN,
         reply_markup=InlineKeyboardMarkup([
