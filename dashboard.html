@@ -615,10 +615,16 @@ async function api(url, method='GET', body=null) {
       body: body ? JSON.stringify(body) : null
     })
     if (r.status === 401 || r.redirected) { window.location='/login'; return null }
-    if (!r.ok) return null
+    if (!r.ok) {
+      let errMsg = '❌ خطأ في السيرفر'
+      try { const e = await r.json(); if(e.error) errMsg = '❌ ' + e.error } catch(_){}
+      toast(errMsg, false)
+      return null
+    }
     return await r.json()
   } catch(e) {
     console.error('API Error:', url, e)
+    toast('❌ تعذر الاتصال بالسيرفر', false)
     return null
   }
 }
@@ -656,7 +662,8 @@ async function addProduct() {
     price_usd:$('p-usd').value,price_syp:$('p-syp').value,
     category:$('p-cat').value,stock:$('p-stock').value}
   if (!d.name||!d.price_usd){toast('الاسم والسعر مطلوبان',false);return}
-  await api('/api/products/add','POST',d)
+  const res = await api('/api/products/add','POST',d)
+  if(!res) return;
   closeModal('add-product-modal');loadProducts();toast('✅ تم إضافة المنتج')
 }
 
@@ -698,8 +705,8 @@ async function loadOrders(status, el) {
 }
 
 async function orderAction(id,status){
-  await api(`/api/orders/${id}/status`,'POST',{status})
-  loadOrders(currentOrderFilter);toast(status==='completed'?'✅ تم التأكيد':'❌ تم الرفض')
+  const res = await api(`/api/orders/${id}/status`,'POST',{status})
+  if(res && res.ok){ loadOrders(currentOrderFilter); toast(status==='completed'?'✅ تم التأكيد':'❌ تم الرفض') }
 }
 
 async function loadCharges(){
@@ -726,8 +733,8 @@ async function loadCharges(){
 }
 
 async function chargeAction(id,action){
-  await api(`/api/charges/${id}/${action}`,'POST')
-  loadCharges();toast(action==='confirm'?'✅ تم تأكيد الشحن':'❌ تم الرفض')
+  const res = await api(`/api/charges/${id}/${action}`,'POST')
+  if(res && res.ok){ loadCharges(); toast(action==='confirm'?'✅ تم تأكيد الشحن':'❌ تم الرفض') }
 }
 
 // ===== Users — Sidebar + Detail Panel =====
