@@ -692,7 +692,7 @@ async function loadProducts() {
       <td><span class="badge ${p.active?'badge-success':'badge-error'}">${p.active?'✅ نشط':'🔴 محذوف'}</span></td>
       <td>
         <div class="btn-group">
-          <button class="btn btn-sm btn-primary" onclick="editStock(${p.id}, \`${(p.stock||'').replace(/\`/g,"'")}\`)">✏️</button>
+          <button class="btn btn-sm btn-primary" onclick="editStock(${p.id}, this.dataset.stock)" data-stock="${(p.stock||'').replace(/"/g,'&quot;')}">✏️</button>
           ${p.active?`<button class="btn btn-sm btn-danger" onclick="deleteProduct(${p.id})">🗑️</button>`:''}
         </div>
       </td>
@@ -1082,14 +1082,14 @@ function selectNotif(idx){
 
 async function notifChargeAction(id, action, btn){
   btn.disabled = true
-  const res = await api(\`/api/charges/\${id}/\${action}\`, 'POST')
+  const res = await api(`/api/charges/\${id}/\${action}`, 'POST')
   if(res && res.ok){ toast(action==='confirm'?'✅ تم تأكيد الشحن':'❌ تم الرفض'); await loadNotifPage() }
   else { toast('🔴 خطأ', false); btn.disabled=false }
 }
 
 async function notifOrderAction(id, action, btn){
   btn.disabled = true
-  const res = await api(\`/api/orders/\${id}/status\`, 'POST', {status: action})
+  const res = await api(`/api/orders/\${id}/status`, 'POST', {status: action})
   if(res && res.ok){ toast(action==='completed'?'✅ تم التأكيد':'❌ تم الرفض'); await loadNotifPage() }
   else { toast('🔴 خطأ', false); btn.disabled=false }
 }
@@ -1097,7 +1097,7 @@ async function notifOrderAction(id, action, btn){
 async function notifProxyAction(id, action, btn){
   btn.disabled = true
   const status = action === 'completed' ? 'completed' : 'rejected'
-  const res = await api(\`/api/proxy_orders/\${id}/status\`, 'POST', {status})
+  const res = await api(`/api/proxy_orders/\${id}/status`, 'POST', {status})
   if(res && res.ok){ toast(action==='completed'?'✅ تم التأكيد':'❌ تم الرفض'); await loadNotifPage() }
   else { toast('🔴 خطأ', false); btn.disabled=false }
 }
