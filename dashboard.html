@@ -1049,6 +1049,34 @@ function selectNotif(idx){
     }
   }
 
+  } else if(n.type === 'appsflyer'){
+    rows = `
+      <div class="nd-row"><span class="nd-label">رقم الطلب</span><span class="nd-value">#${n.id}</span></div>
+      <div class="nd-row"><span class="nd-label">المستخدم</span><span class="nd-value" style="cursor:pointer;color:var(--accent)" onclick="setUserFilter(${n.user_id},'${(n.full_name||'').replace(/'/g,'')}')">${n.full_name||'—'} ↗</span></div>
+      <div class="nd-row"><span class="nd-label">يوزرنيم</span><span class="nd-value">@${n.username||'—'}</span></div>
+      <div class="nd-row"><span class="nd-label">User ID</span><span class="nd-value" style="font-family:monospace">${n.user_id}</span></div>
+      <div class="nd-row"><span class="nd-label">اللعبة</span><span class="nd-value">${n.game_name||'—'}</span></div>
+      <div class="nd-row"><span class="nd-label">السعر</span><span class="nd-value green">$${n.price_usd}</span></div>
+      <div class="nd-row"><span class="nd-label">الحالة</span><span class="nd-value ${sc}">${sl}</span></div>
+      <div class="nd-row"><span class="nd-label">التاريخ</span><span class="nd-value">${(n.created_at||'').substring(0,16).replace('T',' ')}</span></div>
+      <div style="margin:10px 0;padding:10px;background:var(--bg2);border-radius:8px;font-size:.72rem">
+        <div style="color:var(--muted);margin-bottom:6px;font-weight:600">📱 معلومات الجهاز</div>
+        <div style="font-family:monospace;word-break:break-all;line-height:2">
+          <b>IDFA:</b> ${n.idfa||'—'}<br>
+          <b>IDFV:</b> ${n.idfv||'—'}<br>
+          <b>iOS Version:</b> ${n.ios_version||'—'}<br>
+          <b>AppsFlyer ID:</b> ${n.appsflyer_id||'—'}
+        </div>
+      </div>
+    `
+    if(n.status === 'pending'){
+      actions = `
+        <button class="nd-btn btn-success" onclick="notifAFAction(${n.id},'accepted',this)">✅ قبول وخصم الرصيد</button>
+        <button class="nd-btn btn-danger" onclick="notifAFAction(${n.id},'rejected',this)">❌ رفض</button>
+      `
+    }
+  }
+
   $('notif-detail-panel').innerHTML = `
     <div class="notif-detail-content">
       <div class="nd-header">
@@ -1084,6 +1112,18 @@ async function notifProxyAction(id, action, btn){
   const res = await api(`/api/proxy_orders/${id}/status`, 'POST', {status})
   if(res && res.ok){ toast(action==='completed'?'✅ تم التأكيد':'❌ تم الرفض'); await loadNotifPage() }
   else { toast('🔴 خطأ', false); btn.disabled=false }
+}
+
+async function notifAFAction(id, status, btn){
+  btn.disabled = true
+  const res = await api(`/api/appsflyer_orders/${id}/status`, 'POST', {status})
+  if(res && res.ok){
+    toast(status === 'accepted' ? '✅ تم القبول وخصم الرصيد' : '❌ تم الرفض')
+    await loadNotifPage()
+  } else {
+    toast('🔴 خطأ: ' + (res && res.error ? res.error : 'فشل'), false)
+    btn.disabled = false
+  }
 }
 
 // ═══ Notifications ═══
@@ -1155,23 +1195,6 @@ setInterval(async () => {
 // أول تحميل
 loadNotifications()
 
-
-async function updateAFOrder(id, status){
-  const label = status === 'accepted' ? 'قبول وخصم الرصيد' : 'رفض'
-  if(!confirm(`تأكيد: ${label} طلب AppsFlyer #${id}؟`)) return
-  const res = await fetch(`/api/appsflyer_orders/${id}/status`, {
-    method:'POST',
-    headers:{'Content-Type':'application/json', 'X-Auth-Token': AUTH_TOKEN},
-    body: JSON.stringify({status})
-  })
-  const d = await res.json()
-  if(d.ok){
-    showToast(status === 'accepted' ? '✅ تم القبول وخصم الرصيد' : '❌ تم الرفض')
-    loadNotifs()
-  } else {
-    showToast('❌ خطأ: ' + (d.error||''), 'error')
-  }
-}
 
 async function showChargeProof(cid){
   const res = await fetch(`/api/charges/${cid}/proof_image`, {
