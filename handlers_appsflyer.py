@@ -168,16 +168,45 @@ async def af_confirm_send(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
     ud = context.user_data
 
-    balance = db.get_balance(user.id)
-    if balance < ud.get("af_price", 0):
-        await query.edit_message_text(
-            "❌ *رصيدك غير كافٍ*\n_اشحن رصيدك وحاول مجدداً_",
-            parse_mode=ParseMode.MARKDOWN
-        )
-        return ConversationHandler.END
+    # FIX: atomic balance check + deduct using BEGIN IMMEDIATE
+    conn = db.get_conn()
+    try:
+        conn.execute("BEGIN IMMEDIATE")
+        cur = conn.execute("SELECT balance_usd FROM balances WHERE user_id=?", (user.id,))
+        row = cur.fetchone()
+        current_balance = row[0] if row else 0.0
+        price = ud.get("af_price", 0)
 
-    # خصم الرصيد فوراً عند الإرسال
-    db.add_balance(user.id, -ud["af_price"])
+        if current_balance < price:
+            conn.execute("ROLLBACK")
+            conn.close()
+            await query.edit_message_text(
+                f"❌ *رصيدك غير كافٍ*\n\n"
+                f"💰 رصيدك: `${current_balance:.2f}`\n"
+                f"💵 السعر: `${price:.0f}`\n\n"
+                f"_اشحن رصيدك وحاول مجدداً_",
+                parse_mode=ParseMode.MARKDOWN
+            )
+            return ConversationHandler.END
+
+        # خصم atomic
+        conn.execute(
+            """UPDATE balances SET
+               balance_usd = balance_usd - ?,
+               total_spent = total_spent + ?,
+               updated_at  = CURRENT_TIMESTAMP
+               WHERE user_id=?""",
+            (price, price, user.id)
+        )
+        conn.execute("COMMIT")
+        conn.close()
+    except Exception as e:
+        try: conn.execute("ROLLBACK")
+        except Exception: pass
+        try: conn.close()
+        except Exception: pass
+        await query.edit_message_text("❌ خطأ في المعالجة، حاول مجدداً", parse_mode=ParseMode.MARKDOWN)
+        return ConversationHandler.END
 
     order_id = db.create_appsflyer_order(
         user_id=user.id,

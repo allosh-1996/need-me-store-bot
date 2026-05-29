@@ -481,6 +481,19 @@ def deduct_balance(user_id, amount):
 def has_enough_balance(user_id, amount):
     return get_balance(user_id) >= amount
 
+def get_balance_details(user_id):
+    """FIX: يجلب كل تفاصيل الرصيد — بدل استخدام _fetchone_dict مباشرة من handlers"""
+    conn = get_conn()
+    cur = conn.execute(
+        "SELECT balance_usd, total_charged, total_spent FROM balances WHERE user_id=?",
+        (user_id,)
+    )
+    row = cur.fetchone()
+    conn.close()
+    if row:
+        return {"balance_usd": row[0], "total_charged": row[1], "total_spent": row[2]}
+    return {"balance_usd": 0.0, "total_charged": 0.0, "total_spent": 0.0}
+
 # ════════════════════════════════════════
 # Charge Requests
 # ════════════════════════════════════════
@@ -542,7 +555,13 @@ def reject_charge(req_id):
 
 def get_pending_broadcasts():
     conn = get_conn()
-    cur = conn.execute("SELECT * FROM broadcasts WHERE is_sent=0 ORDER BY sent_at ASC")
+    # FIX: يجلب is_sent=0 (جديد) و is_sent=2 (عالق بعد crash) القديمة أكثر من 10 دقائق
+    cur = conn.execute(
+        """SELECT * FROM broadcasts
+           WHERE is_sent=0
+              OR (is_sent=2 AND sent_at < datetime('now', '-10 minutes'))
+           ORDER BY sent_at ASC"""
+    )
     rows = _fetchall_dict(cur)
     conn.close()
     return rows

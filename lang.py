@@ -39,6 +39,10 @@ STRINGS = {
         "ar": "بروكسي",
         "en": "Proxy",
     },
+    "btn_surveys": {
+        "ar": "Surveys",
+        "en": "Surveys",
+    },
     "btn_appsflyer": {
         "ar": "Win AppsFlyer",
         "en": "Win AppsFlyer",
@@ -310,6 +314,20 @@ STRINGS = {
     "choose_type": {
         "ar": "اختر النوع",
         "en": "Choose type",
+    },
+
+    # ═══ Surveys ═══
+    "surveys_title": {
+        "ar": "Surveys",
+        "en": "Surveys",
+    },
+    "choose_survey_category": {
+        "ar": "اختر الفئة",
+        "en": "Choose a category",
+    },
+    "no_surveys": {
+        "ar": "لا يوجد منتجات متاحة حالياً",
+        "en": "No products available right now",
     },
 
     # ═══ Win AppsFlyer ═══
