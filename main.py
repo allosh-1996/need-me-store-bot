@@ -58,7 +58,8 @@ def main():
         },
         fallbacks=[
             CommandHandler('cancel', lambda u, c: ConversationHandler.END),
-            CommandHandler('start', hu.start),
+            CommandHandler('start', hu.persistent_start),
+            MessageHandler(filters.Regex(r"^(ابدأ|🚀 Start \| ابدأ|Start)"), hu.persistent_start),
         ],
         per_user=True,
         per_chat=True,
@@ -77,7 +78,7 @@ def main():
             ha.ADM_PROD_PLATFORM:  [CallbackQueryHandler(ha.add_product_platform, pattern=r'^adm_platform_')],
             ha.ADM_PROD_STOCK:     [MessageHandler(filters.TEXT & ~filters.COMMAND, ha.add_product_stock)],
         },
-        fallbacks=[CommandHandler('cancel', ha.cancel)],
+        fallbacks=[CommandHandler('cancel', ha.cancel), MessageHandler(filters.Regex(r"^(ابدأ|🚀 Start \| ابدأ|Start)"), hu.persistent_start)],
         per_user=True,
         per_chat=True,
         per_message=False,
@@ -89,7 +90,7 @@ def main():
         states={
             ha.ADM_STOCK_UPDATE: [MessageHandler(filters.TEXT & ~filters.COMMAND, ha.update_stock_receive)],
         },
-        fallbacks=[CommandHandler('cancel', ha.cancel)],
+        fallbacks=[CommandHandler('cancel', ha.cancel), MessageHandler(filters.Regex(r"^(ابدأ|🚀 Start \| ابدأ|Start)"), hu.persistent_start)],
         per_user=True,
         per_chat=True,
         per_message=False,
@@ -106,7 +107,7 @@ def main():
                 )
             ],
         },
-        fallbacks=[CommandHandler('cancel', ha.cancel)],
+        fallbacks=[CommandHandler('cancel', ha.cancel), MessageHandler(filters.Regex(r"^(ابدأ|🚀 Start \| ابدأ|Start)"), hu.persistent_start)],
         per_user=True,
         per_chat=True,
         per_message=False,
@@ -138,6 +139,7 @@ def main():
         fallbacks=[
             CommandHandler('cancel', hc.charge_cancel),
             CommandHandler('start', hc.charge_back_to_main),
+            MessageHandler(filters.Regex(r"^(ابدأ|🚀 Start \| ابدأ|Start)"), hu.persistent_start),
         ],
         per_user=True, per_chat=True, per_message=False,
     )
@@ -170,7 +172,7 @@ def main():
                 CallbackQueryHandler(hp.proxy_confirm, pattern=r'^(prx_confirm_send|prx_back_notes)$'),
             ],
         },
-        fallbacks=[CommandHandler('cancel', hp.proxy_cancel)],
+        fallbacks=[CommandHandler('cancel', hp.proxy_cancel), MessageHandler(filters.Regex(r"^(ابدأ|🚀 Start \| ابدأ|Start)"), hu.persistent_start)],
         per_user=True, per_chat=True, per_message=False,
     )
 

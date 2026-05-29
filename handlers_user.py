@@ -397,14 +397,27 @@ async def back_main(update: Update, context: ContextTypes.DEFAULT_TYPE):
         reply_markup=kb.main_menu(lang)
     )
 
+async def persistent_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """ينهي أي conversation ويرجع للقائمة — يُستخدم كـ fallback"""
+    user = update.effective_user
+    lang = get_user_lang(context)
+    db.upsert_user(user.id, user.username or "", user.full_name or "")
+    # نظف أي user_data متبقية
+    for k in ['charge_amount','charge_method','charge_display','charge_amount_syp','pending_order_id','buy_currency']:
+        context.user_data.pop(k, None)
+    await update.message.reply_text(
+        t("welcome", lang),
+        parse_mode=ParseMode.MARKDOWN,
+        reply_markup=kb.main_menu(lang)
+    )
+    return ConversationHandler.END
+
 async def handle_persistent_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
     text = update.message.text or ""
     lang = get_user_lang(context)
 
     if any(x in text for x in ["Start", "ابدأ"]):
-        user = update.effective_user
-        db.upsert_user(user.id, user.username or "", user.full_name or "")
-        await update.message.reply_text(t("welcome", lang), parse_mode=ParseMode.MARKDOWN, reply_markup=kb.main_menu(lang))
+        await persistent_start(update, context)
 
     elif any(x in text for x in ["Support", "دعم"]):
         await update.message.reply_text(
