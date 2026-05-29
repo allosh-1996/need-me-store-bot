@@ -64,24 +64,36 @@ PROXY_TYPES = {
 # السعر بالدولار — قابل للتغيير من Railway Variables
 # ══════════════════════════════════════════════════════
 APPSFLYER_GAMES = {
-    "pubg": {
-        "name": "🎮 PUBG Mobile",
-        "price_usd": float(os.environ.get("AF_PRICE_PUBG", "5.0")),
+    "domino_dream": {
+        "name": "🎲 Domino Dreams",
+        "price_usd": float(os.environ.get("AF_PRICE_DOMINO", "5.0")),
     },
-    "free_fire": {
-        "name": "🔥 Free Fire",
-        "price_usd": float(os.environ.get("AF_PRICE_FREE_FIRE", "5.0")),
+    "disney_dream": {
+        "name": "✨ Disney Dreamlight Valley",
+        "price_usd": float(os.environ.get("AF_PRICE_DISNEY", "5.0")),
     },
-    "mobile_legends": {
-        "name": "⚔️ Mobile Legends",
-        "price_usd": float(os.environ.get("AF_PRICE_ML", "5.0")),
+    "coin_master": {
+        "name": "🪙 Coin Master",
+        "price_usd": float(os.environ.get("AF_PRICE_COIN", "5.0")),
     },
-    "clash_of_clans": {
-        "name": "🏰 Clash of Clans",
-        "price_usd": float(os.environ.get("AF_PRICE_COC", "5.0")),
+    "travel_town": {
+        "name": "🏖️ Travel Town",
+        "price_usd": float(os.environ.get("AF_PRICE_TRAVEL", "5.0")),
     },
-    "clash_royale": {
-        "name": "👑 Clash Royale",
-        "price_usd": float(os.environ.get("AF_PRICE_CR", "5.0")),
+    "yarn_loop": {
+        "name": "🧶 Yarn Loop",
+        "price_usd": float(os.environ.get("AF_PRICE_YARN", "5.0")),
+    },
+    "dice_dream": {
+        "name": "🎯 Dice Dreams",
+        "price_usd": float(os.environ.get("AF_PRICE_DICE", "5.0")),
+    },
+    "toy_blast": {
+        "name": "🧸 Toy Blast",
+        "price_usd": float(os.environ.get("AF_PRICE_TOY", "5.0")),
+    },
+    "toon_blast": {
+        "name": "🎮 Toon Blast",
+        "price_usd": float(os.environ.get("AF_PRICE_TOON", "5.0")),
     },
 }
