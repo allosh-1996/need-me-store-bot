@@ -1,16 +1,25 @@
-from telegram import Update
+import logging
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ContextTypes, ConversationHandler
 from telegram.constants import ParseMode
 import database as db
 import keyboards as kb
 from config import ADMIN_ID
 
+logger = logging.getLogger(__name__)
+
 (ADM_PROD_NAME, ADM_PROD_DESC, ADM_PROD_PRICE_USD, ADM_PROD_PRICE_SYP,
  ADM_PROD_CATEGORY, ADM_PROD_PLATFORM, ADM_PROD_STOCK, ADM_BROADCAST_MSG, ADM_STOCK_UPDATE,
  ADM_CONFIRM_DELIVERY) = range(10, 20)
 
 def is_admin(user_id):
-    return user_id == ADMIN_ID
+    result = user_id == ADMIN_ID
+    # FIX: Log every admin access attempt
+    if result:
+        logger.info(f"Admin access granted: user_id={user_id}")
+    else:
+        logger.warning(f"Unauthorized admin access attempt: user_id={user_id}")
+    return result
 
 async def admin_panel(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
@@ -85,7 +94,7 @@ async def add_product_price_usd(update: Update, context: ContextTypes.DEFAULT_TY
         context.user_data['new_product']['price_usd'] = price
         await update.message.reply_text(" السعر بالليرة السورية  |  Price in SYP:")
         return ADM_PROD_PRICE_SYP
-    except:
+    except Exception:
         await update.message.reply_text(" أرسل رقم صحيح  |  Send a valid number:")
         return ADM_PROD_PRICE_USD
 
@@ -100,14 +109,13 @@ async def add_product_price_syp(update: Update, context: ContextTypes.DEFAULT_TY
             parse_mode=ParseMode.MARKDOWN
         )
         return ADM_PROD_CATEGORY
-    except:
+    except Exception:
         await update.message.reply_text(" أرسل رقم صحيح  |  Send a valid number:")
         return ADM_PROD_PRICE_SYP
 
 async def add_product_category(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data['new_product']['category'] = update.message.text
 
-    from telegram import InlineKeyboardButton, InlineKeyboardMarkup
     platform_kb = InlineKeyboardMarkup([
         [InlineKeyboardButton(" iOS", callback_data="adm_platform_iOS"),
          InlineKeyboardButton(" Android", callback_data="adm_platform_Android")],
@@ -147,6 +155,7 @@ async def add_product_stock(update: Update, context: ContextTypes.DEFAULT_TYPE):
         category=p['category'], stock=p['stock'],
         platform=p.get('platform', 'iOS')
     )
+    logger.info(f"Admin added product #{product_id}: {p['name']}")
 
     await update.message.reply_text(
         f" *Product Added!  |  تم إضافة المنتج!*\n\n"
@@ -190,10 +199,6 @@ async def show_pending_orders(update: Update, context: ContextTypes.DEFAULT_TYPE
                                    reply_markup=kb.admin_main_menu())
 
 async def confirm_order(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """
-    FIX: يستخدم pop_stock_item() لسحب وحدة واحدة فريدة من المخزون.
-    كل مستخدم يحصل على وحدة مختلفة — لا تكرار.
-    """
     query = update.callback_query
     await query.answer()
     if not is_admin(query.from_user.id):
@@ -211,7 +216,6 @@ async def confirm_order(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await query.edit_message_text(" المنتج غير موجود  |  Product not found")
         return
 
-    # FIX: سحب وحدة فريدة من المخزون
     item, remaining = db.pop_stock_item(order['product_id'])
     if not item:
         await query.edit_message_text(
@@ -222,8 +226,8 @@ async def confirm_order(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         return
 
-    # احفظ الوحدة المُرسلة في الطلب
     db.update_order_delivered_item(order_id, item)
+    logger.info(f"Admin confirmed order #{order_id}, product={order['product_name']}, remaining_stock={remaining}")
 
     try:
         await context.bot.send_message(
@@ -245,13 +249,14 @@ async def confirm_order(update: Update, context: ContextTypes.DEFAULT_TYPE):
         confirm_text = f" *Order `#{order_id}` Confirmed!*\n_Sent to {order['full_name']}_ | Stock remaining: {remaining}"
         try:
             await query.edit_message_caption(confirm_text)
-        except:
+        except Exception:
             await query.edit_message_text(
                 confirm_text,
                 parse_mode=ParseMode.MARKDOWN,
                 reply_markup=kb.admin_main_menu()
             )
     except Exception as e:
+        logger.error(f"confirm_order error: {e}")
         await query.edit_message_text(f" Error: {e}", reply_markup=kb.admin_main_menu())
 
 async def reject_order(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -263,6 +268,7 @@ async def reject_order(update: Update, context: ContextTypes.DEFAULT_TYPE):
     order_id = int(query.data.replace("adm_reject_", ""))
     order = db.get_order(order_id)
     db.update_order_status(order_id, 'rejected', 'رُفض من الأدمن')
+    logger.info(f"Admin rejected order #{order_id}")
 
     try:
         await context.bot.send_message(
@@ -280,12 +286,12 @@ async def reject_order(update: Update, context: ContextTypes.DEFAULT_TYPE):
             parse_mode=ParseMode.MARKDOWN,
             reply_markup=kb.main_menu("ar")
         )
-    except:
+    except Exception:
         pass
 
     try:
         await query.edit_message_caption(f" Order #{order_id} rejected")
-    except:
+    except Exception:
         await query.edit_message_text(f" Order `#{order_id}` rejected",
                                        parse_mode=ParseMode.MARKDOWN,
                                        reply_markup=kb.admin_main_menu())
@@ -303,7 +309,6 @@ async def admin_show_products(update: Update, context: ContextTypes.DEFAULT_TYPE
                                        reply_markup=kb.admin_main_menu())
         return
 
-    from telegram import InlineKeyboardButton, InlineKeyboardMarkup
     keyboard = []
     for p in products:
         status = "" if p['active'] else ""
@@ -329,13 +334,15 @@ async def admin_product_detail(update: Update, context: ContextTypes.DEFAULT_TYP
         await query.edit_message_text(" المنتج غير موجود  |  Product not found")
         return
 
+    stock_count = db.get_stock_count(product_id)
     text = (
         f" *{product['name']}*\n\n"
         f"\n"
         f" ID: `{product['id']}`\n"
         f" Category: {product['category']}\n"
         f" USD: `${product['price_usd']}`\n"
-        f" SYP: `{product['price_syp']:,.0f}`\n\n"
+        f" SYP: `{product['price_syp']:,.0f}`\n"
+        f" Stock Count: `{stock_count} units`\n\n"
         f" Stock Preview:\n"
         f"`{product['stock'][:200] if product['stock'] else 'Empty'}...`\n"
         f""
@@ -359,8 +366,10 @@ async def update_stock_start(update: Update, context: ContextTypes.DEFAULT_TYPE)
 async def update_stock_receive(update: Update, context: ContextTypes.DEFAULT_TYPE):
     product_id = context.user_data.get('stock_product_id')
     db.update_product_stock(product_id, update.message.text)
+    stock_count = db.get_stock_count(product_id)
+    logger.info(f"Admin updated stock for product #{product_id}: {stock_count} units")
     await update.message.reply_text(
-        " *Stock Updated!  |  تم تحديث المخزون!*",
+        f" *Stock Updated!  |  تم تحديث المخزون!*\n\n`{stock_count}` units added",
         parse_mode=ParseMode.MARKDOWN,
         reply_markup=kb.admin_main_menu()
     )
@@ -371,6 +380,7 @@ async def delete_product(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await query.answer()
     product_id = int(query.data.replace("adm_del_", ""))
     db.delete_product(product_id)
+    logger.info(f"Admin deleted product #{product_id}")
     await query.edit_message_text(
         " *Product Deleted  |  تم حذف المنتج*",
         parse_mode=ParseMode.MARKDOWN,
@@ -410,9 +420,10 @@ async def broadcast_send(update: Update, context: ContextTypes.DEFAULT_TYPE):
             else:
                 await context.bot.send_message(chat_id=user['id'], text=update.message.text)
             sent += 1
-        except:
+        except Exception:
             failed += 1
 
+    logger.info(f"Admin broadcast sent: {sent} success, {failed} failed")
     await update.message.reply_text(
         f" *Broadcast Done!*\n\n"
         f" Sent: `{sent}`\n"

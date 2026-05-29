@@ -26,8 +26,8 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 def main():
-    keep_alive()  # منع النوم | Prevent sleeping
-    
+    keep_alive()  # Self-ping فقط — لا Flask server منفصل
+
     # محاولة الاتصال بالـ DB مع retry
     import time
     for attempt in range(10):
@@ -231,9 +231,15 @@ def main():
     ))
 
     # ========== Broadcast Job ==========
+    # FIX: يستخدم claim_broadcast_for_job() لمنع الإرسال المزدوج مع الداشبورد
     async def send_pending_broadcasts(context):
         broadcasts = db.get_pending_broadcasts()
         for bc in broadcasts:
+            # FIX: atomic claim — لو فشل يعني الداشبورد سبق وأرسلها
+            if not db.claim_broadcast_for_job(bc["id"]):
+                logger.info(f"Broadcast #{bc['id']} already sent by dashboard, skipping")
+                continue
+
             users = db.get_all_users()
             sent = 0
             for user in users:
@@ -244,16 +250,15 @@ def main():
                         parse_mode="Markdown"
                     )
                     sent += 1
-                except:
+                except Exception:
                     pass
             db.mark_broadcast_sent(bc["id"], sent)
             logger.info(f"📢 Broadcast #{bc['id']} sent to {sent} users")
 
     app.job_queue.run_repeating(send_pending_broadcasts, interval=30, first=10)
 
-    # ========== Auto-Register: سجّل كل مستخدم يتفاعل مع البوت ==========
+    # ========== Auto-Register ==========
     async def auto_register(update: Update, context):
-        """يسجل المستخدم تلقائياً بأول تفاعل — رسالة أو ضغطة زر"""
         user = update.effective_user
         if user and not user.is_bot:
             db.upsert_user(user.id, user.username or "", user.full_name or "")

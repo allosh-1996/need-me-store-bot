@@ -9,7 +9,10 @@ database.py — NexVault Bot
 """
 
 import os
+import logging
 import libsql_experimental as libsql
+
+logger = logging.getLogger(__name__)
 
 TURSO_URL   = os.environ.get("TURSO_DATABASE_URL", "")
 TURSO_TOKEN = os.environ.get("TURSO_AUTH_TOKEN", "")
@@ -173,28 +176,49 @@ def delete_product(product_id):
 
 def pop_stock_item(product_id):
     """
-    يسحب أول وحدة من مخزون المنتج ويحذفها.
-    كل مشتري يحصل على وحدة فريدة — لا تكرار.
+    FIX: Atomic stock pop using BEGIN IMMEDIATE transaction.
+    يسحب أول وحدة من المخزون بشكل atomic — لا يمكن لمستخدمين الحصول على نفس الوحدة.
     يرجع: (item_text, remaining_count) أو (None, 0) لو فارغ.
     """
     conn = get_conn()
-    cur = conn.execute("SELECT stock FROM products WHERE id=?", (product_id,))
-    row = cur.fetchone()
-    if not row or not row[0]:
-        conn.close()
-        return None, 0
+    try:
+        # BEGIN IMMEDIATE يقفل الجدول للكتابة فوراً — يمنع race condition
+        conn.execute("BEGIN IMMEDIATE")
+        cur = conn.execute("SELECT stock FROM products WHERE id=?", (product_id,))
+        row = cur.fetchone()
 
-    lines = [l.strip() for l in row[0].strip().splitlines() if l.strip()]
-    if not lines:
-        conn.close()
-        return None, 0
+        if not row or not row[0]:
+            conn.execute("ROLLBACK")
+            conn.close()
+            return None, 0
 
-    item = lines[0]
-    remaining = lines[1:]
-    conn.execute("UPDATE products SET stock=? WHERE id=?", ("\n".join(remaining), product_id))
-    conn.commit()
-    conn.close()
-    return item, len(remaining)
+        lines = [l.strip() for l in row[0].strip().splitlines() if l.strip()]
+        if not lines:
+            conn.execute("ROLLBACK")
+            conn.close()
+            return None, 0
+
+        item = lines[0]
+        remaining = lines[1:]
+        conn.execute(
+            "UPDATE products SET stock=? WHERE id=?",
+            ("\n".join(remaining), product_id)
+        )
+        conn.execute("COMMIT")
+        conn.close()
+        return item, len(remaining)
+
+    except Exception as e:
+        logger.error(f"pop_stock_item error for product {product_id}: {e}")
+        try:
+            conn.execute("ROLLBACK")
+        except Exception:
+            pass
+        try:
+            conn.close()
+        except Exception:
+            pass
+        return None, 0
 
 def get_stock_count(product_id):
     conn = get_conn()
@@ -309,6 +333,77 @@ def get_balance(user_id):
     conn.close()
     return row[0] if row else 0.0
 
+def buy_with_balance(user_id, product_id, price):
+    """
+    FIX: Atomic purchase — خصم الرصيد وسحب المنتج في transaction واحدة.
+    يرجع: (item_text, new_balance) أو يرفع ValueError لو فشل.
+    """
+    conn = get_conn()
+    try:
+        conn.execute("BEGIN IMMEDIATE")
+
+        # تحقق من الرصيد
+        cur = conn.execute("SELECT balance_usd FROM balances WHERE user_id=?", (user_id,))
+        row = cur.fetchone()
+        current_balance = row[0] if row else 0.0
+
+        if current_balance < price:
+            conn.execute("ROLLBACK")
+            conn.close()
+            raise ValueError(f"insufficient_balance:{current_balance:.2f}")
+
+        # تحقق من المخزون وسحب وحدة
+        cur2 = conn.execute("SELECT stock FROM products WHERE id=?", (product_id,))
+        row2 = cur2.fetchone()
+        if not row2 or not row2[0]:
+            conn.execute("ROLLBACK")
+            conn.close()
+            raise ValueError("out_of_stock")
+
+        lines = [l.strip() for l in row2[0].strip().splitlines() if l.strip()]
+        if not lines:
+            conn.execute("ROLLBACK")
+            conn.close()
+            raise ValueError("out_of_stock")
+
+        item = lines[0]
+        remaining = lines[1:]
+
+        # خصم الرصيد
+        conn.execute(
+            """UPDATE balances SET
+               balance_usd = balance_usd - ?,
+               total_spent = total_spent + ?,
+               updated_at  = CURRENT_TIMESTAMP
+               WHERE user_id=?""",
+            (price, price, user_id)
+        )
+
+        # سحب المنتج من المخزون
+        conn.execute(
+            "UPDATE products SET stock=? WHERE id=?",
+            ("\n".join(remaining), product_id)
+        )
+
+        conn.execute("COMMIT")
+        new_balance = current_balance - price
+        conn.close()
+        return item, new_balance, len(remaining)
+
+    except ValueError:
+        raise
+    except Exception as e:
+        logger.error(f"buy_with_balance error user={user_id} product={product_id}: {e}")
+        try:
+            conn.execute("ROLLBACK")
+        except Exception:
+            pass
+        try:
+            conn.close()
+        except Exception:
+            pass
+        raise ValueError(f"transaction_error:{e}")
+
 def add_balance(user_id, amount):
     conn = get_conn()
     if amount >= 0:
@@ -420,6 +515,37 @@ def mark_broadcast_sent(broadcast_id, sent_count):
     conn.execute("UPDATE broadcasts SET is_sent=1, sent_count=? WHERE id=?", (sent_count, broadcast_id))
     conn.commit()
     conn.close()
+
+def claim_broadcast_for_job(broadcast_id):
+    """
+    FIX: Atomic claim — يمنع job_queue من إرسال broadcast سبق للداشبورد إرساله.
+    يرجع True لو نجح الـ claim، False لو سبق أحد.
+    """
+    conn = get_conn()
+    try:
+        conn.execute("BEGIN IMMEDIATE")
+        cur = conn.execute("SELECT is_sent FROM broadcasts WHERE id=?", (broadcast_id,))
+        row = cur.fetchone()
+        if not row or row[0] == 1:
+            conn.execute("ROLLBACK")
+            conn.close()
+            return False
+        # احجز الـ broadcast بتغيير is_sent=2 (in-progress)
+        conn.execute("UPDATE broadcasts SET is_sent=2 WHERE id=?", (broadcast_id,))
+        conn.execute("COMMIT")
+        conn.close()
+        return True
+    except Exception as e:
+        logger.error(f"claim_broadcast_for_job error: {e}")
+        try:
+            conn.execute("ROLLBACK")
+        except Exception:
+            pass
+        try:
+            conn.close()
+        except Exception:
+            pass
+        return False
 
 # ════════════════════════════════════════
 # Proxy Orders

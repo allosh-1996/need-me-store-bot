@@ -143,21 +143,10 @@ async def show_product_detail(update: Update, context: ContextTypes.DEFAULT_TYPE
         await query.edit_message_text(t("error_not_found", lang))
         return
 
-    # FIX: استخدم get_stock_count لعرض العدد الحقيقي
     stock_count = db.get_stock_count(product_id)
     has_stock = stock_count > 0
     platform = product.get('platform', '') or ''
 
-    text = (
-        f"*{product['name']}*\n\n"
-        f"━━━━━━━━━━━━━━━━\n"
-        f"{product['description'] or t('no_desc', lang)}\n"
-        f"Platform: `{platform}`\n\n"
-        f"USD: `${product['price_usd']}`\n"
-        f"SYP: `{product['price_syp']:,.0f}`\n\n"
-        f"{t('in_stock', lang)} ({stock_count} units)" if has_stock else f"{t('out_of_stock', lang)}"
-    )
-    # بناء النص بشكل صحيح
     stock_line = f"{t('in_stock', lang)} ({stock_count} units)" if has_stock else t('out_of_stock', lang)
     text = (
         f"*{product['name']}*\n\n"
@@ -185,7 +174,6 @@ async def initiate_buy(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
     product = db.get_product(product_id)
 
-    # FIX: تحقق من المخزون بـ get_stock_count
     stock_count = db.get_stock_count(product_id)
     if not product or stock_count == 0:
         await query.edit_message_text(t("no_products_category", lang), parse_mode=ParseMode.MARKDOWN)
@@ -280,7 +268,6 @@ async def show_payment_details(update: Update, context: ContextTypes.DEFAULT_TYP
 async def receive_proof(update: Update, context: ContextTypes.DEFAULT_TYPE):
     lang = get_user_lang(context)
 
-    # لو المستخدم ضغط "ابدأ" أو "Start" — ارجع للقائمة
     if update.message and update.message.text:
         txt = update.message.text.strip()
         if any(x in txt for x in ["ابدأ", "Start"]):
@@ -405,11 +392,9 @@ async def back_main(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
 
 async def persistent_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """ينهي أي conversation ويرجع للقائمة — يُستخدم كـ fallback"""
     user = update.effective_user
     lang = get_user_lang(context)
     db.upsert_user(user.id, user.username or "", user.full_name or "")
-    # نظف أي user_data متبقية
     for k in ['charge_amount','charge_method','charge_display','charge_amount_syp','pending_order_id','buy_currency']:
         context.user_data.pop(k, None)
     await update.message.reply_text(
@@ -449,7 +434,8 @@ async def handle_persistent_menu(update: Update, context: ContextTypes.DEFAULT_T
 
 async def confirm_buy(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """
-    FIX: الحين يستخدم pop_stock_item() لسحب وحدة واحدة فريدة لكل مشتري.
+    FIX: يستخدم buy_with_balance() — خصم الرصيد وسحب المنتج في transaction واحدة atomic.
+    لا يمكن الحصول على منتج بدون خصم رصيد أو العكس.
     """
     query = update.callback_query
     await query.answer()
@@ -459,37 +445,35 @@ async def confirm_buy(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
     product = db.get_product(product_id)
 
-    # تحقق من المخزون أولاً قبل الخصم
-    stock_count = db.get_stock_count(product_id)
-    if not product or stock_count == 0:
+    if not product:
         await query.edit_message_text(t("no_products_category", lang), parse_mode=ParseMode.MARKDOWN)
         return
 
-    balance = db.get_balance(user.id)
     price = product['price_usd']
 
-    if balance < price:
-        await query.edit_message_text(
-            f"*{t('insufficient_balance', lang)}*\n\n"
-            f"{t('balance', lang)}: `${balance:.2f}`\n"
-            f"{t('amount', lang)}: `${price}`\n\n"
-            f"_{t('top_up_first', lang)}_",
-            parse_mode=ParseMode.MARKDOWN,
-            reply_markup=InlineKeyboardMarkup([
-                [InlineKeyboardButton(t("top_up", lang), callback_data="charge_start")],
-                [InlineKeyboardButton(t("back", lang), callback_data=f"prod_{product_id}")]
-            ])
-        )
+    try:
+        # FIX: عملية atomic واحدة — خصم + سحب معاً أو لا شيء
+        item, new_balance, remaining = db.buy_with_balance(user.id, product_id, price)
+    except ValueError as e:
+        err = str(e)
+        if err.startswith("insufficient_balance:"):
+            balance = float(err.split(":")[1])
+            await query.edit_message_text(
+                f"*{t('insufficient_balance', lang)}*\n\n"
+                f"{t('balance', lang)}: `${balance:.2f}`\n"
+                f"{t('amount', lang)}: `${price}`\n\n"
+                f"_{t('top_up_first', lang)}_",
+                parse_mode=ParseMode.MARKDOWN,
+                reply_markup=InlineKeyboardMarkup([
+                    [InlineKeyboardButton(t("top_up", lang), callback_data="charge_start")],
+                    [InlineKeyboardButton(t("back", lang), callback_data=f"prod_{product_id}")]
+                ])
+            )
+        else:
+            # out_of_stock أو transaction_error
+            await query.edit_message_text(t("no_products_category", lang), parse_mode=ParseMode.MARKDOWN)
         return
 
-    # FIX: سحب وحدة فريدة من المخزون
-    item, remaining = db.pop_stock_item(product_id)
-    if not item:
-        # نادر: نفد المخزون بين التحقق والسحب (race condition)
-        await query.edit_message_text(t("no_products_category", lang), parse_mode=ParseMode.MARKDOWN)
-        return
-
-    db.deduct_balance(user.id, price)
     order_id = db.create_order(
         user_id=user.id, username=user.username or "",
         full_name=user.full_name or "", product_id=product_id,
@@ -498,7 +482,6 @@ async def confirm_buy(update: Update, context: ContextTypes.DEFAULT_TYPE):
         payment_method="balance", delivered_item=item
     )
     db.update_order_status(order_id, 'completed', 'balance')
-    new_balance = db.get_balance(user.id)
 
     done_kb = InlineKeyboardMarkup([[InlineKeyboardButton(t("home", lang), callback_data="back_main")]])
     await query.edit_message_text(
@@ -519,7 +502,7 @@ async def confirm_buy(update: Update, context: ContextTypes.DEFAULT_TYPE):
             text=f"*New Sale #{order_id}*\n{user.full_name}\n{product['name']}\n${price} (Balance)\nStock remaining: {remaining}",
             parse_mode=ParseMode.MARKDOWN
         )
-    except:
+    except Exception:
         pass
 
 # ═══════════════════════════════════════

@@ -1,14 +1,19 @@
 """
 Web Dashboard Backend
 Flask server for the admin dashboard
+FIX: Health endpoint مدمج هنا (port 5000) — لا حاجة لـ keep_alive Flask server.
+FIX: DASHBOARD_PASSWORD الافتراضي None — يرفع RuntimeError في production بدون كلمة سر.
 """
 from flask import Flask, render_template, request, jsonify, session, redirect, url_for, send_from_directory
 import database as db
 from database import _fetchall_dict, _fetchone_dict
 import os
-import asyncio
 import requests as req_lib
 from config import ADMIN_ID, BOT_TOKEN
+import secrets as _secrets
+import logging
+
+logger = logging.getLogger(__name__)
 
 app = Flask(__name__, template_folder='.')
 
@@ -21,33 +26,55 @@ def tg_send(chat_id, text):
             timeout=5
         )
     except Exception as e:
-        print(f"TG send error: {e}")
-
-
-import secrets as _secrets
+        logger.error(f"TG send error: {e}")
 
 # ═══════════════════════════════════════════════════════════════
 # FIX: أمان الداشبورد
-#
-# DASHBOARD_SECRET  — مفتاح تشفير الجلسات. لو ما تحدد:
-#   - في dev: يستخدم مفتاح عشوائي (sessions تنكسر مع كل restart)
-#   - في production: يرفع خطأ واضح
-#
-# DASHBOARD_PASSWORD — كلمة سر الداشبورد. الافتراضي "admin123" خطر!
+# DASHBOARD_SECRET  — مفتاح تشفير الجلسات (مطلوب في production)
+# DASHBOARD_PASSWORD — كلمة سر الداشبورد (مطلوبة دائماً، لا افتراضي)
 # ═══════════════════════════════════════════════════════════════
-_is_production = os.environ.get("RAILWAY_ENVIRONMENT") or os.environ.get("RENDER") or os.environ.get("PRODUCTION")
-_dashboard_secret = os.environ.get("DASHBOARD_SECRET")
-DASHBOARD_PASSWORD = os.environ.get("DASHBOARD_PASSWORD", "admin123")
+_is_production = bool(
+    os.environ.get("RAILWAY_ENVIRONMENT") or
+    os.environ.get("RENDER") or
+    os.environ.get("PRODUCTION")
+)
 
-if not _dashboard_secret:
-    _dashboard_secret = _secrets.token_hex(32)
-    print("⚠️  WARNING: DASHBOARD_SECRET not set — using random key (sessions reset on restart)")
-    print("   Set DASHBOARD_SECRET in Railway Variables for persistent sessions")
+_dashboard_secret = os.environ.get("DASHBOARD_SECRET")
+DASHBOARD_PASSWORD = os.environ.get("DASHBOARD_PASSWORD")  # FIX: لا افتراضي
+
+# في production: ارفض الشغل بدون credentials
+if _is_production:
+    if not DASHBOARD_PASSWORD:
+        raise RuntimeError(
+            "❌ DASHBOARD_PASSWORD غير محدد!\n"
+            "أضف DASHBOARD_PASSWORD في Railway Variables.\n"
+            "مثال: python3 -c \"import secrets; print(secrets.token_urlsafe(16))\""
+        )
+    if not _dashboard_secret:
+        raise RuntimeError(
+            "❌ DASHBOARD_SECRET غير محدد!\n"
+            "أضف DASHBOARD_SECRET في Railway Variables.\n"
+            "مثال: python3 -c \"import secrets; print(secrets.token_hex(32))\""
+        )
+else:
+    # في dev: تحذيرات واضحة لكن لا يوقف
+    if not DASHBOARD_PASSWORD:
+        DASHBOARD_PASSWORD = "dev_only_change_in_production"
+        logger.warning("⚠️  DASHBOARD_PASSWORD not set — using dev default. Set it in production!")
+    if not _dashboard_secret:
+        _dashboard_secret = _secrets.token_hex(32)
+        logger.warning("⚠️  DASHBOARD_SECRET not set — using random key (sessions reset on restart)")
 
 app.secret_key = _dashboard_secret
 
-if DASHBOARD_PASSWORD == "admin123":
-    print("⚠️  WARNING: DASHBOARD_PASSWORD is default 'admin123'! Change it in Railway Variables.")
+# ═══ Health Check (FIX: مدمج هنا بدل keep_alive Flask) ═══
+@app.route('/health')
+def health():
+    return {"status": "alive", "bot": "NexVault"}, 200
+
+@app.route('/ping')
+def ping():
+    return "🌙 NexVault Bot — Online ✅"
 
 # ═══ Auth ═══
 @app.route('/login', methods=['GET', 'POST'])
@@ -56,7 +83,9 @@ def login():
     if request.method == 'POST':
         if request.form.get('password') == DASHBOARD_PASSWORD:
             session['admin'] = True
+            logger.info(f"Dashboard login successful from IP: {request.remote_addr}")
             return redirect('/')
+        logger.warning(f"Dashboard login failed from IP: {request.remote_addr}")
         error = "❌ كلمة السر غلط"
     return render_template('login.html', error=error)
 
@@ -112,12 +141,14 @@ def api_add_product():
         category=d.get('category',''),
         stock=d.get('stock','')
     )
+    logger.info(f"Dashboard: product #{pid} added")
     return jsonify({"id": pid, "ok": True})
 
 @app.route('/api/products/<int:pid>/delete', methods=['POST'])
 @auth_required
 def api_delete_product(pid):
     db.delete_product(pid)
+    logger.info(f"Dashboard: product #{pid} deleted")
     return jsonify({"ok": True})
 
 @app.route('/api/products/<int:pid>/stock', methods=['POST'])
@@ -125,7 +156,9 @@ def api_delete_product(pid):
 def api_update_stock(pid):
     stock = request.json.get('stock', '')
     db.update_product_stock(pid, stock)
-    return jsonify({"ok": True})
+    count = db.get_stock_count(pid)
+    logger.info(f"Dashboard: stock updated for product #{pid}: {count} units")
+    return jsonify({"ok": True, "count": count})
 
 @app.route('/api/orders')
 @auth_required
@@ -144,18 +177,18 @@ def api_orders():
 @auth_required
 def api_order_status(oid):
     """
-    FIX: عند التأكيد يستخدم pop_stock_item() لسحب وحدة فريدة.
+    FIX: عند التأكيد يستخدم pop_stock_item() لسحب وحدة فريدة atomic.
     """
     status = request.json.get('status')
     order = db.get_order(oid)
 
     if order and status == 'completed':
-        # FIX: سحب وحدة فريدة من المخزون
         item, remaining = db.pop_stock_item(order['product_id'])
         if not item:
             return jsonify({"ok": False, "error": "No stock available for this product"}), 400
         db.update_order_delivered_item(oid, item)
         db.update_order_status(oid, status)
+        logger.info(f"Dashboard: order #{oid} confirmed, stock remaining={remaining}")
         tg_send(order['user_id'],
             f"🎉 *تم تأكيد طلبك!  |  Order Confirmed!*\n\n"
             f"━━━━━━━━━━━━━━━━\n"
@@ -168,6 +201,7 @@ def api_order_status(oid):
         )
     elif order and status == 'rejected':
         db.update_order_status(oid, status)
+        logger.info(f"Dashboard: order #{oid} rejected")
         tg_send(order['user_id'],
             f"🔴 *تم رفض طلبك  |  Order Rejected*\n\n"
             f"━━━━━━━━━━━━━━━━\n"
@@ -195,13 +229,13 @@ def api_charges():
 @auth_required
 def api_confirm_charge(cid):
     """
-    FIX: الحين يضيف الرصيد تلقائياً عبر db.confirm_charge()
-    اللي تضيف الرصيد وتغير الحالة مع بعض.
+    FIX: يضيف الرصيد تلقائياً عبر db.confirm_charge()
     """
-    charge = db.confirm_charge(cid)  # يضيف الرصيد + يغير الحالة
+    charge = db.confirm_charge(cid)
     if charge:
         new_balance = db.get_balance(charge['user_id'])
         method_label = "USDT BEP-20" if charge['method'] == 'usdt' else "Syriatel Cash"
+        logger.info(f"Dashboard: charge #{cid} confirmed, user={charge['user_id']}, amount=${charge['amount_usd']}")
         tg_send(charge['user_id'],
             f"✅ *تم شحن رصيدك!  |  Balance Added!*\n\n"
             f"━━━━━━━━━━━━━━━━\n"
@@ -221,6 +255,7 @@ def api_reject_charge(cid):
     db.reject_charge(cid)
     if charge:
         method_label = "USDT BEP-20" if charge['method'] == 'usdt' else "Syriatel Cash"
+        logger.info(f"Dashboard: charge #{cid} rejected, user={charge['user_id']}")
         tg_send(charge['user_id'],
             f"🔴 *تم رفض طلب الشحن  |  Top Up Rejected*\n\n"
             f"━━━━━━━━━━━━━━━━\n"
@@ -235,11 +270,11 @@ def api_reject_charge(cid):
 @auth_required
 def api_users():
     conn = db.get_conn()
-    cur = conn.execute("""SELECT u.*, 
+    cur = conn.execute("""SELECT u.*,
                         COALESCE(b.balance_usd, 0) as balance,
                         COALESCE(b.total_charged, 0) as total_charged,
                         COALESCE(b.total_spent, 0) as total_spent
-                 FROM users u LEFT JOIN balances b ON u.id=b.user_id 
+                 FROM users u LEFT JOIN balances b ON u.id=b.user_id
                  ORDER BY u.joined_at DESC""")
     rows = _fetchall_dict(cur)
     conn.close()
@@ -248,17 +283,19 @@ def api_users():
 @app.route('/api/broadcast', methods=['POST'])
 @auth_required
 def api_broadcast():
+    """
+    FIX: يحدد is_sent=1 فوراً قبل الإرسال — يمنع job_queue من إرسالها مرة ثانية.
+    """
     msg = request.json.get('message', '')
     if not msg:
         return jsonify({"ok": False, "error": "Empty message"}), 400
 
-    # احفظ بقاعدة البيانات واجيب lastrowid قبل commit
     conn = db.get_conn()
+    # FIX: is_sent=1 من البداية — الداشبورد يرسل مباشرة، job_queue لن يراها
     cur = conn.execute("INSERT INTO broadcasts (message, is_sent) VALUES (?, 1)", (msg,))
     broadcast_id = cur.lastrowid
     conn.commit()
 
-    # جيب المستخدمين بـ dict صح
     cur2 = conn.execute("SELECT id FROM users WHERE is_blocked=0")
     users = db._fetchall_dict(cur2)
     conn.close()
@@ -276,17 +313,16 @@ def api_broadcast():
                 sent += 1
             else:
                 failed += 1
-                print(f"Broadcast failed for {user['id']}: {resp.status_code} {resp.text[:100]}")
         except Exception as e:
             failed += 1
-            print(f"Broadcast error for {user['id']}: {e}")
+            logger.error(f"Broadcast error for {user['id']}: {e}")
 
-    # حدث السجل
     conn3 = db.get_conn()
-    conn3.execute("UPDATE broadcasts SET is_sent=1, sent_count=? WHERE id=?", (sent, broadcast_id))
+    conn3.execute("UPDATE broadcasts SET sent_count=? WHERE id=?", (sent, broadcast_id))
     conn3.commit()
     conn3.close()
 
+    logger.info(f"Dashboard broadcast #{broadcast_id}: sent={sent}, failed={failed}")
     return jsonify({"ok": True, "sent": sent, "failed": failed})
 
 @app.route('/api/users/<int:uid>/add_balance', methods=['POST'])
@@ -297,6 +333,7 @@ def api_add_balance(uid):
         return jsonify({"ok": False, "error": "Invalid amount"}), 400
     db.add_balance(uid, amount)
     new_balance = db.get_balance(uid)
+    logger.info(f"Dashboard: added ${amount} to user {uid}, new balance=${new_balance}")
     tg_send(uid,
         f"✅ *تم إضافة رصيد إلى حسابك!*\n\n"
         f"💵 المبلغ المضاف: `${amount:.2f}`\n"
@@ -315,6 +352,7 @@ def api_deduct_balance(uid):
         return jsonify({"ok": False, "error": f"الرصيد غير كافي — الرصيد الحالي: ${current:.2f}"}), 400
     db.add_balance(uid, -amount)
     new_balance = db.get_balance(uid)
+    logger.info(f"Dashboard: deducted ${amount} from user {uid}, new balance=${new_balance}")
     tg_send(uid,
         f"🔴 *تم خصم رصيد من حسابك*\n\n"
         f"💵 المبلغ المخصوم: `${amount:.2f}`\n"
@@ -341,9 +379,7 @@ def api_get_balance(uid):
 @app.route('/api/notifications/all')
 @auth_required
 def api_notifications_all():
-    """كل الإشعارات بالتفصيل — كل الأنواع كل الحالات"""
     conn = db.get_conn()
-
     cur1 = conn.execute("""SELECT id, user_id, username, full_name, amount_usd, method,
         tx_hash, proof, status, created_at FROM charge_requests ORDER BY created_at DESC LIMIT 100""")
     charges = [dict(r, type='charge', icon='💰',
@@ -373,9 +409,7 @@ def api_notifications_all():
 @app.route('/api/notifications/user/<int:uid>')
 @auth_required
 def api_user_notifications(uid):
-    """إشعارات مستخدم معين"""
     conn = db.get_conn()
-
     cur1 = conn.execute("""SELECT id, user_id, username, full_name, amount_usd, method,
         tx_hash, proof, status, created_at FROM charge_requests
         WHERE user_id=? ORDER BY created_at DESC""", (uid,))
@@ -413,39 +447,31 @@ def api_delete_user(uid):
     conn.execute("DELETE FROM balances WHERE user_id=?", (uid,))
     conn.commit()
     conn.close()
+    logger.info(f"Dashboard: user {uid} deleted")
     return jsonify({"ok": True})
 
 @app.route('/api/notifications')
 @auth_required
 def api_notifications():
     conn = db.get_conn()
-
-    # طلبات شحن معلقة
     cur1 = conn.execute("SELECT id, full_name, amount_usd, method, created_at FROM charge_requests WHERE status='pending' ORDER BY created_at DESC LIMIT 20")
     charges = [{"type": "charge", "id": r["id"], "name": r["full_name"],
                 "amount": r["amount_usd"], "method": r["method"],
                 "time": r["created_at"]} for r in _fetchall_dict(cur1)]
 
-    # طلبات شراء معلقة
     cur2 = conn.execute("SELECT id, full_name, product_name, price_usd, created_at FROM orders WHERE status='pending' ORDER BY created_at DESC LIMIT 20")
     orders = [{"type": "order", "id": r["id"], "name": r["full_name"],
                "product": r["product_name"], "amount": r["price_usd"],
                "time": r["created_at"]} for r in _fetchall_dict(cur2)]
 
-    # طلبات بروكسي معلقة
     cur3 = conn.execute("SELECT id, full_name, proxy_type_label, quantity, country, created_at FROM proxy_orders WHERE status='pending' ORDER BY created_at DESC LIMIT 20")
     proxies = [{"type": "proxy", "id": r["id"], "name": r["full_name"],
                 "product": f"{r['proxy_type_label']} x{r['quantity']} ({r['country']})",
                 "amount": 0, "time": r["created_at"]} for r in _fetchall_dict(cur3)]
 
     conn.close()
-
     notifications = sorted(charges + orders + proxies, key=lambda x: x["time"], reverse=True)
-    return jsonify({
-        "notifications": notifications,
-        "count": len(notifications)
-    })
-
+    return jsonify({"notifications": notifications, "count": len(notifications)})
 
 @app.route('/api/proxy_orders')
 @auth_required
@@ -465,6 +491,7 @@ def api_proxy_order_status(oid):
     proxy = _fetchone_dict(cur)
     conn.close()
     db.update_proxy_order_status(oid, status)
+    logger.info(f"Dashboard: proxy order #{oid} status={status}")
     if proxy:
         if status == 'completed':
             tg_send(proxy['user_id'],
