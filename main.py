@@ -43,7 +43,7 @@ def main():
                 logger.critical("❌ فشل الاتصال بقاعدة البيانات بعد 10 محاولات")
                 raise
 
-    app = Application.builder().token(BOT_TOKEN).concurrent_updates(True).build()
+    app = Application.builder().token(BOT_TOKEN).build()
 
     # ========== ConversationHandler: شراء منتج ==========
     buy_conv = ConversationHandler(
