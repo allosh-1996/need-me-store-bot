@@ -173,11 +173,9 @@ async def initiate_buy(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     user = update.effective_user
     product = db.get_product(product_id)
-    if not product:
-        await query.edit_message_text(t("no_products_category", lang), parse_mode=ParseMode.MARKDOWN)
-        return
+
     stock_count = db.get_stock_count(product_id)
-    if stock_count == 0:
+    if not product or stock_count == 0:
         await query.edit_message_text(t("no_products_category", lang), parse_mode=ParseMode.MARKDOWN)
         return
 
