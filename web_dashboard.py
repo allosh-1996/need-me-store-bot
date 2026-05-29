@@ -596,7 +596,10 @@ def api_appsflyer_order_status(oid):
             f"🎮 *اللعبة:* {order['game_name']}\n"
             f"🔢 *رقم الطلب:* `#{oid}`\n"
             f"💵 *المبلغ المخصوم:* `${order['price_usd']:.2f}`\n\n"
-            f"سيتم تنفيذ الخدمة في أقرب وقت ✨"
+            f"━━━━━━━━━━━━━━━━\n"
+            f"📩 للمتابعة وتفاصيل التنفيذ تواصل مع الأدمن:\n"
+            f"👤 @Allosh96ha\n"
+            f"━━━━━━━━━━━━━━━━"
         )
     elif status == 'rejected':
         db.update_appsflyer_order_status(oid, "rejected")
