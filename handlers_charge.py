@@ -203,8 +203,25 @@ async def charge_proof(update: Update, context: ContextTypes.DEFAULT_TYPE):
     return ConversationHandler.END
 
 async def charge_cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    context.user_data.pop('charge_amount', None)
-    await update.message.reply_text(" Cancelled  |  تم الإلغاء", reply_markup=kb.persistent_menu())
+    for k in ['charge_amount','charge_method','charge_display','charge_amount_syp']:
+        context.user_data.pop(k, None)
+    if update.message:
+        await update.message.reply_text("تم الإلغاء ✅", reply_markup=kb.persistent_menu())
+    return ConversationHandler.END
+
+async def charge_back_to_main(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """زر رجوع داخل conversation الشحن — ينهي الـ conversation ويرجع للقائمة"""
+    query = update.callback_query
+    await query.answer()
+    lang = get_user_lang(context)
+    for k in ['charge_amount','charge_method','charge_display','charge_amount_syp']:
+        context.user_data.pop(k, None)
+    from config import WELCOME_MSG
+    await query.edit_message_text(
+        t("welcome", lang),
+        parse_mode=ParseMode.MARKDOWN,
+        reply_markup=kb.main_menu(lang)
+    )
     return ConversationHandler.END
 
 async def show_balance(update: Update, context: ContextTypes.DEFAULT_TYPE):

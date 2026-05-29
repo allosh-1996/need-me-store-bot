@@ -56,7 +56,10 @@ def main():
                 )
             ],
         },
-        fallbacks=[CommandHandler('cancel', lambda u, c: ConversationHandler.END)],
+        fallbacks=[
+            CommandHandler('cancel', lambda u, c: ConversationHandler.END),
+            CommandHandler('start', hu.start),
+        ],
         per_user=True,
         per_chat=True,
         per_message=False,
@@ -117,17 +120,25 @@ def main():
         ],
         states={
             hc.WAITING_METHOD: [
-                CallbackQueryHandler(hc.charge_method_selected, pattern=r'^chg_method_')
+                CallbackQueryHandler(hc.charge_method_selected, pattern=r'^chg_method_'),
+                CallbackQueryHandler(hc.charge_back_to_main, pattern='^back_main$'),
             ],
-            hc.WAITING_AMOUNT: [MessageHandler(filters.TEXT & ~filters.COMMAND, hc.charge_amount)],
+            hc.WAITING_AMOUNT: [
+                MessageHandler(filters.TEXT & ~filters.COMMAND, hc.charge_amount),
+                CallbackQueryHandler(hc.charge_back_to_main, pattern='^back_main$'),
+            ],
             hc.WAITING_TXHASH: [
                 MessageHandler(
                     filters.PHOTO | filters.Document.ALL | (filters.TEXT & ~filters.COMMAND),
                     hc.charge_proof
-                )
+                ),
+                CallbackQueryHandler(hc.charge_back_to_main, pattern='^back_main$'),
             ],
         },
-        fallbacks=[CommandHandler('cancel', hc.charge_cancel)],
+        fallbacks=[
+            CommandHandler('cancel', hc.charge_cancel),
+            CommandHandler('start', hc.charge_back_to_main),
+        ],
         per_user=True, per_chat=True, per_message=False,
     )
 
