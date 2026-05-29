@@ -538,19 +538,18 @@ async def proxy_menu_simple(update: Update, context: ContextTypes.DEFAULT_TYPE):
     lang = get_user_lang(context)
 
     text = (
-        "🌐 *خدمة البروكسي*\n"
+        "🌐 *Proxy Service*\n"
         "━━━━━━━━━━━━━━━━\n\n"
-        "نوفر أنواع بروكسي متعددة:\n\n"
+        "We offer multiple proxy types:\n\n"
         "• HTTP / HTTPS\n"
         "• SOCKS5\n"
         "• Residential\n"
         "• Mobile 4G / 5G\n"
         "• Modem Private\n\n"
         "━━━━━━━━━━━━━━━━\n"
-        "📩 لطلب البروكسي تواصل مع الأدمن مباشرة:\n"
+        "📩 To order, contact the admin directly:\n"
         "👤 @Allosh96ha\n"
-        "━━━━━━━━━━━━━━━━\n"
-        "_أرسل له نوع البروكسي، الكمية، والدولة_"
+        "━━━━━━━━━━━━━━━━"
     )
 
     await query.message.reply_text(
