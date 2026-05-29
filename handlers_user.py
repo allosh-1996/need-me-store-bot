@@ -1,4 +1,4 @@
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, ReplyKeyboardRemove
 from telegram.ext import ContextTypes, ConversationHandler
 from telegram.constants import ParseMode
 import database as db
@@ -13,6 +13,11 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
     db.upsert_user(user.id, user.username or "", user.full_name or "")
     lang = get_user_lang(context)
+    # شيل الـ ReplyKeyboard القديم بأول رسالة حقيقية
+    await update.message.reply_text(
+        "👋",
+        reply_markup=ReplyKeyboardRemove()
+    )
     await update.message.reply_text(
         t("welcome", lang),
         parse_mode=ParseMode.MARKDOWN,
