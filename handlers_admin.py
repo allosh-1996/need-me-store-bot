@@ -9,12 +9,11 @@ from config import ADMIN_ID
 logger = logging.getLogger(__name__)
 
 (ADM_PROD_NAME, ADM_PROD_DESC, ADM_PROD_PRICE_USD, ADM_PROD_PRICE_SYP,
- ADM_PROD_CATEGORY, ADM_PROD_PLATFORM, ADM_PROD_STOCK, ADM_BROADCAST_MSG, ADM_STOCK_UPDATE,
- ADM_CONFIRM_DELIVERY) = range(10, 20)
+ ADM_PROD_CATEGORY, ADM_PROD_STOCK, ADM_BROADCAST_MSG, ADM_STOCK_UPDATE,
+ ADM_CONFIRM_DELIVERY) = range(10, 19)
 
 def is_admin(user_id):
     result = user_id == ADMIN_ID
-    # FIX: Log every admin access attempt
     if result:
         logger.info(f"Admin access granted: user_id={user_id}")
     else:
@@ -125,8 +124,6 @@ async def add_product_category(update: Update, context: ContextTypes.DEFAULT_TYP
         parse_mode=ParseMode.MARKDOWN
     )
     return ADM_PROD_STOCK
-
-# add_product_platform محذوفة
 
 async def add_product_stock(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data['new_product']['stock'] = update.message.text

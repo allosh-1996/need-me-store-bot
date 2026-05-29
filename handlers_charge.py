@@ -73,7 +73,6 @@ async def charge_method_selected(update: Update, context: ContextTypes.DEFAULT_T
 async def charge_amount(update: Update, context: ContextTypes.DEFAULT_TYPE):
     text = update.message.text.strip()
 
-    # لو المستخدم ضغط "ابدأ" أو "Start" — ارجع للقائمة الرئيسية
     if any(x in text for x in ["ابدأ", "Start"]):
         return await charge_back_to_main(update, context)
 
@@ -116,7 +115,6 @@ async def charge_amount(update: Update, context: ContextTypes.DEFAULT_TYPE):
     return WAITING_TXHASH
 
 async def charge_proof(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    # لو المستخدم بعث نص "ابدأ" أو "Start" — ارجع للقائمة
     if update.message and update.message.text:
         txt = update.message.text.strip()
         if any(x in txt for x in ["ابدأ", "Start"]):
@@ -218,7 +216,7 @@ async def charge_cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
     for k in ['charge_amount','charge_method','charge_display','charge_amount_syp']:
         context.user_data.pop(k, None)
     if update.message:
-        await update.message.reply_text("تم الإلغاء ✅", reply_markup=kb.persistent_menu())
+        await update.message.reply_text("تم الإلغاء ✅")
     return ConversationHandler.END
 
 async def charge_back_to_main(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -252,7 +250,6 @@ async def show_balance(update: Update, context: ContextTypes.DEFAULT_TYPE):
     lang = get_user_lang(context)
     balance = db.get_balance(user.id)
 
-    # FIX: use get_balance_details() instead of raw _fetchone_dict
     details = db.get_balance_details(user.id)
     total_charged = details['total_charged']
     total_spent = details['total_spent']
@@ -277,17 +274,13 @@ async def show_balance(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text(text, parse_mode=ParseMode.MARKDOWN, reply_markup=bal_kb)
 
 async def admin_confirm_charge(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """
-    FIX: كانت تغير الحالة لـ 'accepted' بدون إضافة رصيد.
-    الحين تستخدم db.confirm_charge() اللي تضيف الرصيد تلقائياً.
-    """
     query = update.callback_query
     await query.answer()
     if query.from_user.id != ADMIN_ID:
         return
 
     req_id = int(query.data.replace("chg_confirm_", ""))
-    req = db.confirm_charge(req_id)  # هاد الحين يضيف الرصيد تلقائياً
+    req = db.confirm_charge(req_id)
 
     if not req:
         try:

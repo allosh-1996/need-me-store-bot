@@ -6,10 +6,8 @@ import keyboards as kb
 from config import ADMIN_ID, PROXY_TYPES
 from lang import t, get_user_lang
 
-# حالات المحادثة
 PROXY_TYPE, PROXY_QTY, PROXY_QTY_CUSTOM, PROXY_COUNTRY, PROXY_COUNTRY_CUSTOM, PROXY_NOTES, PROXY_CONFIRM = range(30, 37)
 
-# ═══ قوائم الخيارات ═══
 COUNTRY_OPTIONS = [
     (" USA", "USA"),
     (" UK", "UK"),
@@ -79,7 +77,6 @@ def proxy_confirm_keyboard():
     return InlineKeyboardMarkup(keyboard)
 
 
-# ═══ قائمة البروكسي ═══
 async def proxy_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     if query:
@@ -102,7 +99,6 @@ async def proxy_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
     return PROXY_TYPE
 
 
-# ═══ اختيار النوع ═══
 async def proxy_type_selected(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
@@ -123,7 +119,6 @@ async def proxy_type_selected(update: Update, context: ContextTypes.DEFAULT_TYPE
     return PROXY_QTY
 
 
-# ═══ الكمية (أزرار) ═══
 async def proxy_qty_selected(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
@@ -167,7 +162,6 @@ async def proxy_qty_selected(update: Update, context: ContextTypes.DEFAULT_TYPE)
     return PROXY_COUNTRY
 
 
-# ═══ الكمية المخصصة (نص) ═══
 async def proxy_qty_custom(update: Update, context: ContextTypes.DEFAULT_TYPE):
     text = update.message.text.strip()
     try:
@@ -195,7 +189,6 @@ async def proxy_qty_custom(update: Update, context: ContextTypes.DEFAULT_TYPE):
     return PROXY_COUNTRY
 
 
-# ═══ الدولة (أزرار) ═══
 async def proxy_country_selected(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
@@ -240,7 +233,6 @@ async def proxy_country_selected(update: Update, context: ContextTypes.DEFAULT_T
     return PROXY_NOTES
 
 
-# ═══ الدولة المخصصة (نص) ═══
 async def proxy_country_custom(update: Update, context: ContextTypes.DEFAULT_TYPE):
     country = update.message.text.strip()
     context.user_data["proxy_country"] = country
@@ -258,7 +250,6 @@ async def proxy_country_custom(update: Update, context: ContextTypes.DEFAULT_TYP
     return PROXY_NOTES
 
 
-# ═══ الملاحظات ═══
 async def proxy_notes_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
 
@@ -316,7 +307,6 @@ async def _show_confirm(target, context, edit=True):
                                         reply_markup=proxy_confirm_keyboard())
 
 
-# ═══ تأكيد الإرسال ═══
 async def proxy_confirm(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
@@ -408,7 +398,6 @@ async def proxy_confirm(update: Update, context: ContextTypes.DEFAULT_TYPE):
     return ConversationHandler.END
 
 
-# ═══ ردود الأدمن ═══
 async def proxy_admin_done(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
@@ -470,5 +459,5 @@ async def proxy_admin_reject(update: Update, context: ContextTypes.DEFAULT_TYPE)
 
 
 async def proxy_cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text(" Cancelled  |  تم الإلغاء", reply_markup=kb.persistent_menu())
+    await update.message.reply_text(" Cancelled  |  تم الإلغاء")
     return ConversationHandler.END
