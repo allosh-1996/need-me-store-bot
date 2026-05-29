@@ -625,7 +625,7 @@ function getToken() {
   return m ? m[1] : ''
 }
 
-async function api(url, method='GET', body=null) {
+async function api(url, method='GET', body=null, silent=false) {
   const token = getToken()
   try {
     const r = await fetch(url, {
@@ -633,7 +633,10 @@ async function api(url, method='GET', body=null) {
       headers: {'Content-Type':'application/json', 'X-Auth-Token': token},
       body: body ? JSON.stringify(body) : null
     })
-    if (r.status === 401 || r.redirected) { window.location='/login'; return null }
+    if (r.status === 401 || r.redirected) {
+      if (!silent) window.location='/login'
+      return null
+    }
     if (!r.ok) {
       let errMsg = '❌ خطأ في السيرفر'
       try { const e = await r.json(); if(e.error) errMsg = '❌ ' + e.error } catch(_){}
@@ -1089,8 +1092,8 @@ function toggleNotifPanel() {
   if (notifOpen) loadNotifications()
 }
 
-async function loadNotifications() {
-  const data = await api('/api/notifications')
+async function loadNotifications(silent=false) {
+  const data = await api('/api/notifications', 'GET', null, silent)
   const badge = document.getElementById('notif-badge')
   const count = document.getElementById('notif-count')
   const list = document.getElementById('notif-list')
@@ -1135,7 +1138,7 @@ async function loadNotifications() {
 
 // تحديث الإشعارات كل 30 ثانية
 setInterval(async () => {
-  const data = await api('/api/notifications')
+  const data = await api('/api/notifications', 'GET', null, true)
   const badge = document.getElementById('notif-badge')
   if (data && data.count > 0) {
     badge.style.display = 'flex'
@@ -1143,7 +1146,7 @@ setInterval(async () => {
   } else {
     badge.style.display = 'none'
   }
-  if (notifOpen) loadNotifications()
+  if (notifOpen) loadNotifications(true)
 }, 30000)
 
 // أول تحميل
