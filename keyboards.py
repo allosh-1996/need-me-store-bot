@@ -56,8 +56,7 @@ def product_detail_menu(product_id, has_stock=True, lang="ar", back_cb="products
     keyboard = []
     if has_stock:
         keyboard.append([
-            InlineKeyboardButton(t("buy_usd", lang), callback_data=f"buy_{product_id}_USD"),
-            InlineKeyboardButton(t("buy_syp", lang), callback_data=f"buy_{product_id}_SYP"),
+            InlineKeyboardButton(t("buy_from_balance", lang), callback_data=f"buy_{product_id}_USD"),
         ])
     keyboard.append([InlineKeyboardButton(t("back", lang), callback_data=back_cb)])
     return InlineKeyboardMarkup(keyboard)

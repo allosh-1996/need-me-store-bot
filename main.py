@@ -46,26 +46,7 @@ def main():
 
     app = Application.builder().token(BOT_TOKEN).build()
 
-    # ========== ConversationHandler: شراء منتج ==========
-    buy_conv = ConversationHandler(
-        entry_points=[CallbackQueryHandler(hu.show_payment_details, pattern=r'^pay_\d+_\w+_\w+$')],
-        states={
-            hu.WAITING_PROOF: [
-                MessageHandler(
-                    filters.PHOTO | filters.Document.ALL | (filters.TEXT & ~filters.COMMAND),
-                    hu.receive_proof
-                )
-            ],
-        },
-        fallbacks=[
-            CommandHandler('cancel', lambda u, c: ConversationHandler.END),
-            CommandHandler('start', hu.persistent_start),
-            MessageHandler(filters.Regex("ابدأ|Start"), hu.persistent_start),
-        ],
-        per_user=True,
-        per_chat=True,
-        per_message=False,
-    )
+    # buy_conv محذوف — الشراء الآن فقط عبر الرصيد
 
     # ========== ConversationHandler: إضافة منتج ==========
     add_product_conv = ConversationHandler(
@@ -159,7 +140,7 @@ def main():
     app.add_handler(stock_conv)
     app.add_handler(broadcast_conv)
     app.add_handler(charge_conv)
-    app.add_handler(buy_conv)
+
 
     # ========== ConversationHandler: Win AppsFlyer ==========
     appsflyer_conv = ConversationHandler(

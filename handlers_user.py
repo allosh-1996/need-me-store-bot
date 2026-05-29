@@ -177,8 +177,6 @@ async def initiate_buy(update: Update, context: ContextTypes.DEFAULT_TYPE):
     lang = get_user_lang(context)
     parts = query.data.split("_")
     product_id = int(parts[1])
-    currency = parts[2].upper() if len(parts) > 2 else "USD"
-    context.user_data['buy_currency'] = currency
 
     user = update.effective_user
     product = db.get_product(product_id)
@@ -190,36 +188,29 @@ async def initiate_buy(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     balance = db.get_balance(user.id)
     price = product["price_usd"]
-    price_syp = product["price_syp"]
-    display_price = f"${price}" if currency == "USD" else f"{price_syp:,.0f}"
 
     if balance >= price:
         confirm_kb = InlineKeyboardMarkup([
-            [InlineKeyboardButton(f"{t('buy_from_balance', lang)} — ${price}", callback_data=f"confirm_buy_{product_id}")],
-            [InlineKeyboardButton("USDT BEP-20", callback_data=f"pay_{product_id}_{currency}_usdt")],
-            [InlineKeyboardButton("Syriatel Cash", callback_data=f"pay_{product_id}_{currency}_syriatel")],
+            [InlineKeyboardButton(f"✅ {t('buy_from_balance', lang)} — ${price}", callback_data=f"confirm_buy_{product_id}")],
             [InlineKeyboardButton(t("back", lang), callback_data=f"prod_{product_id}")]
         ])
         text = (
-            f"*{t('choose_payment', lang)}*\n\n"
+            f"*{product['name']}*\n\n"
             f"━━━━━━━━━━━━━━━━\n"
-            f"{product['name']}\n"
-            f"{t('amount', lang)}: `{display_price}`\n"
+            f"{t('amount', lang)}: `${price}`\n"
             f"{t('balance', lang)}: `${balance:.2f}`\n"
             f"━━━━━━━━━━━━━━━━"
         )
     else:
         needed = price - balance
         confirm_kb = InlineKeyboardMarkup([
-            [InlineKeyboardButton("USDT BEP-20", callback_data=f"pay_{product_id}_{currency}_usdt")],
-            [InlineKeyboardButton("Syriatel Cash", callback_data=f"pay_{product_id}_{currency}_syriatel")],
-            [InlineKeyboardButton(f"{t('top_up', lang)} — ${needed:.2f}", callback_data="charge_start")],
+            [InlineKeyboardButton(f"💳 {t('top_up', lang)} — ${needed:.2f}", callback_data="charge_start")],
             [InlineKeyboardButton(t("back", lang), callback_data=f"prod_{product_id}")]
         ])
         text = (
             f"*{product['name']}*\n\n"
             f"━━━━━━━━━━━━━━━━\n"
-            f"{t('amount', lang)}: `{display_price}`\n"
+            f"{t('amount', lang)}: `${price}`\n"
             f"{t('balance', lang)}: `${balance:.2f}`\n"
             f"━━━━━━━━━━━━━━━━\n"
             f"_{t('insufficient_balance', lang)}_"
