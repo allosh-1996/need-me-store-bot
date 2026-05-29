@@ -588,7 +588,7 @@ def api_appsflyer_order_status(oid):
         balance = db.get_balance(order["user_id"])
         if balance < order["price_usd"]:
             return jsonify({"ok": False, "error": f"Insufficient balance: ${balance:.2f}"}), 400
-        db.update_balance(order["user_id"], -order["price_usd"])
+        db.add_balance(order["user_id"], -order["price_usd"])
         db.update_appsflyer_order_status(oid, "accepted")
         logger.info(f"Dashboard: AppsFlyer order #{oid} accepted")
         tg_send(order["user_id"],
