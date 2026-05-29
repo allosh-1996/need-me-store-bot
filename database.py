@@ -126,6 +126,23 @@ def init_db():
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )''')
 
+
+    conn.execute('''CREATE TABLE IF NOT EXISTS appsflyer_orders (
+        id           INTEGER PRIMARY KEY AUTOINCREMENT,
+        user_id      INTEGER NOT NULL,
+        username     TEXT,
+        full_name    TEXT,
+        game_key     TEXT NOT NULL,
+        game_name    TEXT NOT NULL,
+        price_usd    REAL NOT NULL,
+        idfa         TEXT,
+        idfv         TEXT,
+        ios_version  TEXT,
+        appsflyer_id TEXT,
+        status       TEXT DEFAULT 'pending',
+        created_at   TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    )''')
+
     conn.commit()
     conn.close()
 
@@ -604,3 +621,59 @@ def update_proxy_order_status(order_id, status):
 def get_conn_raw():
     """للداشبورد — يرجع connection مع _fetchall_dict و _fetchone_dict"""
     return get_conn()
+
+
+# ══════════════════════════════════════════════════════
+# AppsFlyer Orders
+# ══════════════════════════════════════════════════════
+
+def create_appsflyer_order(user_id, username, full_name, game_key,
+                            game_name, price_usd, idfa, idfv,
+                            ios_version, appsflyer_id):
+    """ينشئ طلب AppsFlyer جديد ويرجع الـ ID"""
+    conn = get_conn()
+    c = conn.execute(
+        '''INSERT INTO appsflyer_orders
+           (user_id, username, full_name, game_key, game_name, price_usd,
+            idfa, idfv, ios_version, appsflyer_id, status)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending')''',
+        (user_id, username, full_name, game_key, game_name, price_usd,
+         idfa, idfv, ios_version, appsflyer_id)
+    )
+    conn.commit()
+    order_id = c.lastrowid
+    conn.close()
+    return order_id
+
+
+def get_appsflyer_order(order_id):
+    """يجيب طلب AppsFlyer بالـ ID"""
+    conn = get_conn()
+    c = conn.execute(
+        'SELECT * FROM appsflyer_orders WHERE id = ?', (order_id,)
+    )
+    row = _fetchone_dict(c)
+    conn.close()
+    return row
+
+
+def update_appsflyer_order_status(order_id, status):
+    """يحدّث حالة الطلب: pending / accepted / rejected"""
+    conn = get_conn()
+    conn.execute(
+        'UPDATE appsflyer_orders SET status = ? WHERE id = ?',
+        (status, order_id)
+    )
+    conn.commit()
+    conn.close()
+
+
+def get_pending_appsflyer_orders():
+    """يجيب كل الطلبات المعلقة"""
+    conn = get_conn()
+    c = conn.execute(
+        "SELECT * FROM appsflyer_orders WHERE status = 'pending' ORDER BY created_at DESC"
+    )
+    rows = _fetchall_dict(c)
+    conn.close()
+    return rows
