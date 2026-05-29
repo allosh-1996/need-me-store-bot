@@ -528,6 +528,40 @@ async def emails_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
 
 
+
+# ═══════════════════════════════════════
+# Proxy Menu — رسالة تواصل مباشر
+# ═══════════════════════════════════════
+async def proxy_menu_simple(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+    lang = get_user_lang(context)
+
+    text = (
+        "🌐 *خدمة البروكسي*\n"
+        "━━━━━━━━━━━━━━━━\n\n"
+        "نوفر أنواع بروكسي متعددة:\n\n"
+        "• HTTP / HTTPS\n"
+        "• SOCKS5\n"
+        "• Residential\n"
+        "• Mobile 4G / 5G\n"
+        "• Modem Private\n\n"
+        "━━━━━━━━━━━━━━━━\n"
+        "📩 لطلب البروكسي تواصل مع الأدمن مباشرة:\n"
+        "👤 @Allosh96ha\n"
+        "━━━━━━━━━━━━━━━━\n"
+        "_أرسل له نوع البروكسي، الكمية، والدولة_"
+    )
+
+    await query.edit_message_text(
+        text,
+        parse_mode=ParseMode.MARKDOWN,
+        reply_markup=InlineKeyboardMarkup([
+            [InlineKeyboardButton("💬 تواصل مع الأدمن", url="https://t.me/Allosh96ha")],
+            [InlineKeyboardButton(t("back", lang), callback_data="back_main")],
+        ])
+    )
+
 # ═══════════════════════════════════════
 # iCloud
 # ═══════════════════════════════════════
