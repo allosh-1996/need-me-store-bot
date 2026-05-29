@@ -472,7 +472,7 @@ async def appsflyer_accept(update: Update, context: ContextTypes.DEFAULT_TYPE):
         return
 
     # خصم الرصيد
-    db.update_balance(order["user_id"], -order["price_usd"])
+    db.add_balance(order["user_id"], -order["price_usd"])
     db.update_appsflyer_order_status(order_id, "accepted")
 
     # تحديث رسالة الأدمن
