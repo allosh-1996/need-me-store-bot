@@ -133,7 +133,20 @@ def init_db():
 # Products
 # ════════════════════════════════════════
 
+# Cache بسيط للمنتجات — يتجدد كل 60 ثانية
+import time as _time
+_products_cache = {"data": None, "ts": 0}
+_CACHE_TTL = 60  # ثانية
+
+def invalidate_products_cache():
+    """استدعيها بعد أي تعديل على المنتجات"""
+    _products_cache["data"] = None
+    _products_cache["ts"] = 0
+
 def get_all_products(active_only=True):
+    now = _time.time()
+    if active_only and _products_cache["data"] is not None and (now - _products_cache["ts"]) < _CACHE_TTL:
+        return _products_cache["data"]
     conn = get_conn()
     cur = conn.execute(
         "SELECT * FROM products WHERE active=1 ORDER BY category, name"
@@ -142,6 +155,9 @@ def get_all_products(active_only=True):
     )
     rows = _fetchall_dict(cur)
     conn.close()
+    if active_only:
+        _products_cache["data"] = rows
+        _products_cache["ts"] = now
     return rows
 
 def get_product(product_id):
@@ -160,6 +176,7 @@ def add_product(name, description, price_usd, price_syp, category, stock, platfo
     conn.commit()
     pid = cur.lastrowid
     conn.close()
+    invalidate_products_cache()
     return pid
 
 def update_product_stock(product_id, stock):
@@ -167,12 +184,14 @@ def update_product_stock(product_id, stock):
     conn.execute("UPDATE products SET stock=? WHERE id=?", (stock, product_id))
     conn.commit()
     conn.close()
+    invalidate_products_cache()
 
 def delete_product(product_id):
     conn = get_conn()
     conn.execute("UPDATE products SET active=0 WHERE id=?", (product_id,))
     conn.commit()
     conn.close()
+    invalidate_products_cache()
 
 def pop_stock_item(product_id):
     """
@@ -206,6 +225,7 @@ def pop_stock_item(product_id):
         )
         conn.execute("COMMIT")
         conn.close()
+        invalidate_products_cache()
         return item, len(remaining)
 
     except Exception as e:
