@@ -157,6 +157,14 @@ tr:hover td{background:var(--surface2)}
 .notif-sub{font-size:.72rem;color:rgba(255,255,255,.4)}
 .notif-empty{padding:24px;text-align:center;color:rgba(255,255,255,.3);font-size:.8rem}
 
+/* ═══ PLATFORM TYPE BUTTONS ═══ */
+.ptype-btn{padding:8px 10px;border-radius:8px;border:1px solid var(--border);background:var(--surface2);color:var(--muted);font-size:.75rem;font-weight:500;cursor:pointer;transition:all .15s;text-align:center}
+.ptype-btn:hover{border-color:var(--accent);color:var(--text)}
+.ptype-btn.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+.cat-btn{padding:5px 12px;border-radius:20px;border:1px solid var(--border);background:var(--surface2);color:var(--muted);font-size:.72rem;cursor:pointer;transition:all .15s}
+.cat-btn:hover{border-color:var(--accent);color:var(--text)}
+.cat-btn.active{background:rgba(204,17,17,.2);color:var(--accent);border-color:var(--accent)}
+
 /* ═══ EMPTY ═══ */
 .empty{text-align:center;padding:32px;color:var(--muted);font-size:.82rem}
 
@@ -422,7 +430,7 @@ tr:hover td{background:var(--surface2)}
   </div>
   <div class="card">
     <div class="table-wrap">
-      <table><thead><tr><th>الاسم</th><th>الفئة</th><th>USD</th><th>الحالة</th><th>إجراء</th></tr></thead>
+      <table><thead><tr><th>الاسم</th><th>الفئة</th><th>Platform</th><th>USD</th><th>المخزون</th><th>الحالة</th><th>إجراء</th></tr></thead>
       <tbody id="products-table"><tr><td colspan="5" class="empty">جاري التحميل...</td></tr></tbody></table>
     </div>
   </div>
@@ -546,36 +554,66 @@ tr:hover td{background:var(--surface2)}
   </div>
 </nav>
 
-<!-- Modal: إضافة منتج -->
+<!-- Modal: إضافة منتج — محسّن -->
 <div class="modal" id="add-product-modal">
-  <div class="modal-box">
+  <div class="modal-box" style="max-width:520px">
     <h3>➕ إضافة منتج جديد</h3>
-    <div class="form-group"><label>الاسم</label><input id="p-name" placeholder="اسم المنتج"></div>
-    <div class="form-group"><label>الوصف</label><input id="p-desc" placeholder="وصف مختصر (اختياري)"></div>
+
+    <!-- Step 1: النوع / Platform -->
+    <div class="form-group">
+      <label>النوع | Platform</label>
+      <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:6px;margin-top:4px" id="platform-btns">
+        <button type="button" class="ptype-btn active" data-val="iOS" onclick="selectPlatform(this)">🍏 iCloud / iOS</button>
+        <button type="button" class="ptype-btn" data-val="Android" onclick="selectPlatform(this)">🤖 Android</button>
+        <button type="button" class="ptype-btn" data-val="Surveys" onclick="selectPlatform(this)">📊 Surveys</button>
+        <button type="button" class="ptype-btn" data-val="iOS & Android" onclick="selectPlatform(this)">📱 iOS & Android</button>
+      </div>
+      <input type="hidden" id="p-platform" value="iOS">
+    </div>
+
+    <!-- Step 2: الفئة — تتغير حسب النوع -->
+    <div class="form-group">
+      <label>الفئة | Category</label>
+      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:4px" id="cat-btns"></div>
+      <input id="p-cat-custom" placeholder="أو اكتب فئة جديدة..." style="margin-top:6px;width:100%;padding:7px 10px;border-radius:7px;border:1px solid var(--border);background:var(--surface2);color:var(--text);font-size:.8rem" oninput="if(this.value.trim()){document.querySelectorAll('.cat-btn').forEach(b=>b.classList.remove('active'));$('p-cat').value=''}">
+      <input type="hidden" id="p-cat" value="">
+    </div>
+
+    <!-- Step 3: الاسم والسعر -->
+    <div class="form-group"><label>اسم المنتج</label><input id="p-name" placeholder="مثال: Toluna Premium Account"></div>
+    <div class="form-group"><label>الوصف (اختياري)</label><input id="p-desc" placeholder="وصف مختصر"></div>
     <div class="form-row">
-      <div class="form-group"><label>السعر USD</label><input id="p-usd" type="number" placeholder="5.00"></div>
-      <div class="form-group"><label>السعر SYP</label><input id="p-syp" type="number" placeholder="50000"></div>
+      <div class="form-group"><label>السعر USD</label><input id="p-usd" type="number" step="0.5" placeholder="5.00"></div>
+      <div class="form-group"><label>السعر SYP</label><input id="p-syp" type="number" placeholder="700"></div>
     </div>
-    <div class="form-group"><label>الفئة</label>
-      <select id="p-cat">
-        <option>Apple iCloud</option><option>إيميلات</option>
-        <option>Survey</option><option>شروحات</option><option>أخرى</option>
-      </select>
+
+    <!-- Step 4: المخزون -->
+    <div class="form-group">
+      <label>المخزون <span style="color:var(--muted);font-size:.7rem">(كل سطر = وحدة واحدة)</span></label>
+      <textarea id="p-stock" rows="5" placeholder="account@email.com:password123&#10;account2@email.com:password456&#10;&#10;أو رابط تحميل&#10;أو كود تفعيل" oninput="updateStockCount('p-stock','stock-count')"></textarea>
+      <div style="font-size:.68rem;color:var(--muted);margin-top:3px" id="stock-count">0 وحدة</div>
     </div>
-    <div class="form-group"><label>المنظومة | Platform</label>
-      <select id="p-platform">
-        <option value="iOS">iOS</option>
-        <option value="Android">Android</option>
-        <option value="iOS & Android">iOS & Android</option>
-        <option value="Surveys">Surveys</option>
-      </select>
-    </div>
-    <div class="form-group"><label>المخزون</label>
-      <textarea id="p-stock" placeholder="account@example.com:password&#10;أو رابط تحميل&#10;أو كود تفعيل"></textarea>
-    </div>
+
     <div class="modal-footer">
       <button class="btn" onclick="closeModal('add-product-modal')" style="background:var(--surface2);color:var(--text)">إلغاء</button>
       <button class="btn btn-primary" onclick="addProduct()">➕ إضافة</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: تعديل مخزون — محسّن -->
+<div class="modal" id="edit-stock-modal">
+  <div class="modal-box" style="max-width:500px">
+    <h3>✏️ تعديل المخزون</h3>
+    <div style="font-size:.75rem;color:var(--muted);margin-bottom:10px" id="edit-stock-product-name"></div>
+    <div class="form-group">
+      <label>المخزون الجديد <span style="color:var(--muted);font-size:.7rem">(كل سطر = وحدة واحدة)</span></label>
+      <textarea id="edit-stock-content" rows="8" placeholder="account@email.com:password123&#10;account2@email.com:password456" oninput="updateStockCount('edit-stock-content','edit-stock-count')"></textarea>
+      <div style="font-size:.68rem;color:var(--muted);margin-top:3px" id="edit-stock-count">0 وحدة</div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn" onclick="closeModal('edit-stock-modal')" style="background:var(--surface2);color:var(--text)">إلغاء</button>
+      <button class="btn btn-primary" onclick="saveStock()">💾 حفظ</button>
     </div>
   </div>
 </div>
@@ -614,7 +652,15 @@ function toast(msg, ok=true) {
   setTimeout(() => t.classList.remove('show'), 2500)
 }
 
-function openModal(id) { $(id).classList.add('open') }
+function openModal(id) {
+  $(id).classList.add('open')
+  // تهيئة مودال إضافة المنتج
+  if (id === 'add-product-modal') {
+    // شغّل الـ platform الافتراضي iOS
+    const firstBtn = document.querySelector('.ptype-btn[data-val="iOS"]')
+    if (firstBtn) selectPlatform(firstBtn)
+  }
+}
 function closeModal(id) { $(id).classList.remove('open') }
 
 // احفظ الـ token من الـ URL
@@ -673,44 +719,128 @@ async function loadStats() {
 async function loadProducts() {
   const data = await api('/api/products')
   const tb = $('products-table')
-  if (!data || !data.length) { tb.innerHTML = '<tr><td colspan="5" class="empty">لا يوجد منتجات</td></tr>'; return }
-  tb.innerHTML = data.map(p => `
-    <tr>
+  if (!data || !data.length) { tb.innerHTML = '<tr><td colspan="7" class="empty">لا يوجد منتجات</td></tr>'; return }
+  const platIcon = {iOS:'🍏',Android:'🤖',Surveys:'📊','iOS & Android':'📱'}
+  tb.innerHTML = data.map(p => {
+    const stockCount = (p.stock||'').split('\n').filter(l=>l.trim()).length
+    const plat = p.platform || 'iOS'
+    const icon = platIcon[plat] || '📦'
+    return `<tr>
       <td><strong>${p.name}</strong><br><small style="color:var(--muted)">${p.description||''}</small></td>
-      <td><small>${p.category||'—'}</small></td>
+      <td><span style="font-size:.72rem">${p.category||'—'}</span></td>
+      <td><span style="font-size:.72rem">${icon} ${plat}</span></td>
       <td>$${p.price_usd}</td>
+      <td><span class="badge ${stockCount>0?'badge-success':'badge-error'}">${stockCount} وحدة</span></td>
       <td><span class="badge ${p.active?'badge-success':'badge-error'}">${p.active?'✅ نشط':'🔴 محذوف'}</span></td>
       <td>
         <div class="btn-group">
-          <button class="btn btn-sm btn-primary" onclick="editStock(${p.id}, this.dataset.stock)" data-stock="${(p.stock||'').replace(/"/g,'&quot;')}">✏️</button>
+          <button class="btn btn-sm btn-primary" onclick="openEditStock(${p.id},'${(p.name||'').replace(/'/g,'')}', \`${(p.stock||'').replace(/`/g,'\`')}\`)">✏️ مخزون</button>
           ${p.active?`<button class="btn btn-sm btn-danger" onclick="deleteProduct(${p.id})">🗑️</button>`:''}
         </div>
       </td>
-    </tr>`).join('')
+    </tr>`
+  }).join('')
+}
+
+// ===== Platform categories map =====
+const PLATFORM_CATS = {
+  'iOS':           ['Apple iCloud','Outlook','Gmail','Hotmail','شروحات','أخرى'],
+  'Android':       ['Outlook','Gmail','Hotmail','شروحات','أخرى'],
+  'iOS & Android': ['Outlook','Gmail','Hotmail','شروحات','أخرى'],
+  'Surveys':       ['Toluna','My points','أخرى'],
+}
+
+function selectPlatform(btn) {
+  document.querySelectorAll('.ptype-btn').forEach(b => b.classList.remove('active'))
+  btn.classList.add('active')
+  $('p-platform').value = btn.dataset.val
+  renderCatBtns(btn.dataset.val)
+  // auto-fill SYP hint based on platform
+}
+
+function renderCatBtns(platform) {
+  const cats = PLATFORM_CATS[platform] || ['أخرى']
+  const container = $('cat-btns')
+  container.innerHTML = cats.map(c =>
+    `<button type="button" class="cat-btn" data-val="${c}" onclick="selectCat(this)">${c}</button>`
+  ).join('')
+  $('p-cat').value = ''
+  $('p-cat-custom').value = ''
+}
+
+function selectCat(btn) {
+  document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('active'))
+  btn.classList.add('active')
+  $('p-cat').value = btn.dataset.val
+  $('p-cat-custom').value = ''
+}
+
+// عداد المخزون في المودال
+function updateStockCount(textareaId, countId) {
+  const lines = $(textareaId).value.split('\n').filter(l => l.trim()).length
+  $(countId).textContent = lines + ' وحدة'
 }
 
 async function addProduct() {
-  const d = {name:$('p-name').value,description:$('p-desc').value,
-    price_usd:$('p-usd').value,price_syp:$('p-syp').value,
-    category:$('p-cat').value,stock:$('p-stock').value,
-    platform:$('p-platform').value}  // FIX: platform added
-  if (!d.name||!d.price_usd){toast('الاسم والسعر مطلوبان',false);return}
-  const res = await api('/api/products/add','POST',d)
-  if(!res) return;
-  closeModal('add-product-modal');loadProducts();toast('✅ تم إضافة المنتج')
+  // الفئة: من الأزرار أو من حقل الكتابة
+  const catFromBtn = $('p-cat').value
+  const catCustom = $('p-cat-custom').value.trim()
+  const finalCat = catCustom || catFromBtn
+
+  const d = {
+    name: $('p-name').value.trim(),
+    description: $('p-desc').value.trim(),
+    price_usd: $('p-usd').value,
+    price_syp: $('p-syp').value,
+    category: finalCat,
+    stock: $('p-stock').value,
+    platform: $('p-platform').value
+  }
+  if (!d.name) { toast('اسم المنتج مطلوب', false); return }
+  if (!d.price_usd) { toast('السعر بالدولار مطلوب', false); return }
+  if (!d.category) { toast('اختر فئة أو اكتب فئة جديدة', false); return }
+
+  const res = await api('/api/products/add', 'POST', d)
+  if (!res) return
+  closeModal('add-product-modal')
+  // reset form
+  ['p-name','p-desc','p-usd','p-syp','p-stock'].forEach(id => $(id).value = '')
+  $('p-cat').value = ''
+  $('p-cat-custom').value = ''
+  loadProducts()
+  toast('✅ تم إضافة المنتج — ' + d.name)
 }
 
 async function deleteProduct(id) {
   if (!confirm('حذف المنتج؟')) return
-  const res = await api(`/api/products/${id}/delete`,'POST')
-  if(res && res.ok){ loadProducts(); toast('🗑️ تم الحذف') }
+  const res = await api(`/api/products/${id}/delete`, 'POST')
+  if (res && res.ok) { loadProducts(); toast('🗑️ تم الحذف') }
 }
 
-function editStock(id, current) {
-  const s = prompt('المخزون الجديد:', current)
-  if (s===null) return
-  api(`/api/products/${id}/stock`,'POST',{stock:s}).then(res=>{if(res&&res.ok){loadProducts();toast('✅ تم تحديث المخزون')}})
+// ===== تعديل مخزون — مودال محسّن =====
+let _editStockId = null
+
+function openEditStock(id, name, current) {
+  _editStockId = id
+  $('edit-stock-product-name').textContent = '📦 ' + name
+  $('edit-stock-content').value = current
+  updateStockCount('edit-stock-content', 'edit-stock-count')
+  openModal('edit-stock-modal')
 }
+
+async function saveStock() {
+  if (!_editStockId) return
+  const stock = $('edit-stock-content').value
+  const res = await api(`/api/products/${_editStockId}/stock`, 'POST', {stock})
+  if (res && res.ok) {
+    closeModal('edit-stock-modal')
+    loadProducts()
+    toast('✅ تم تحديث المخزون — ' + res.count + ' وحدة')
+  }
+}
+
+// legacy stub
+function editStock(id, current) { openEditStock(id, 'المنتج #'+id, current) }
 
 let currentOrderFilter=''
 async function loadOrders(status, el) {
