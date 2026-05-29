@@ -258,7 +258,7 @@ def api_broadcast():
     # احفظ بقاعدة البيانات
     conn = db.get_conn()
     c = conn.cursor()
-    c.execute("INSERT INTO broadcasts (message) VALUES (?)", (msg,))
+    c.execute("INSERT INTO broadcasts (message, is_sent) VALUES (?, 1)", (msg,))
     broadcast_id = c.lastrowid
     # FIX: نحدد is_sent=1 مباشرة — الإرسال يصير هنا، الـ job_queue ما يحتاج يعيده
     conn.commit()
