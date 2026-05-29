@@ -71,8 +71,14 @@ async def charge_method_selected(update: Update, context: ContextTypes.DEFAULT_T
     return WAITING_AMOUNT
 
 async def charge_amount(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    text = update.message.text.strip()
+
+    # لو المستخدم ضغط "ابدأ" أو "Start" — ارجع للقائمة الرئيسية
+    if any(x in text for x in ["ابدأ", "Start"]):
+        return await charge_back_to_main(update, context)
+
     method = context.user_data.get("charge_method", "usdt")
-    raw = update.message.text.strip().replace("$", "").replace(",", "").replace("،", "")
+    raw = text.replace("$", "").replace(",", "").replace("،", "")
 
     try:
         amount = float(raw)
@@ -110,6 +116,12 @@ async def charge_amount(update: Update, context: ContextTypes.DEFAULT_TYPE):
     return WAITING_TXHASH
 
 async def charge_proof(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    # لو المستخدم بعث نص "ابدأ" أو "Start" — ارجع للقائمة
+    if update.message and update.message.text:
+        txt = update.message.text.strip()
+        if any(x in txt for x in ["ابدأ", "Start"]):
+            return await charge_back_to_main(update, context)
+
     user = update.effective_user
     amount = context.user_data.get("charge_amount", 0)
     method = context.user_data.get("charge_method", "usdt")
@@ -210,18 +222,25 @@ async def charge_cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
     return ConversationHandler.END
 
 async def charge_back_to_main(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """زر رجوع داخل conversation الشحن — ينهي الـ conversation ويرجع للقائمة"""
-    query = update.callback_query
-    await query.answer()
+    """رجوع للقائمة الرئيسية — يشتغل مع callback أو message"""
     lang = get_user_lang(context)
     for k in ['charge_amount','charge_method','charge_display','charge_amount_syp']:
         context.user_data.pop(k, None)
-    from config import WELCOME_MSG
-    await query.edit_message_text(
-        t("welcome", lang),
-        parse_mode=ParseMode.MARKDOWN,
-        reply_markup=kb.main_menu(lang)
-    )
+
+    query = update.callback_query
+    if query:
+        await query.answer()
+        await query.edit_message_text(
+            t("welcome", lang),
+            parse_mode=ParseMode.MARKDOWN,
+            reply_markup=kb.main_menu(lang)
+        )
+    else:
+        await update.message.reply_text(
+            t("welcome", lang),
+            parse_mode=ParseMode.MARKDOWN,
+            reply_markup=kb.main_menu(lang)
+        )
     return ConversationHandler.END
 
 async def show_balance(update: Update, context: ContextTypes.DEFAULT_TYPE):

@@ -279,6 +279,13 @@ async def show_payment_details(update: Update, context: ContextTypes.DEFAULT_TYP
 
 async def receive_proof(update: Update, context: ContextTypes.DEFAULT_TYPE):
     lang = get_user_lang(context)
+
+    # لو المستخدم ضغط "ابدأ" أو "Start" — ارجع للقائمة
+    if update.message and update.message.text:
+        txt = update.message.text.strip()
+        if any(x in txt for x in ["ابدأ", "Start"]):
+            return await persistent_start(update, context)
+
     order_id = context.user_data.get('pending_order_id')
     if not order_id:
         await update.message.reply_text(t("session_expired", lang))
