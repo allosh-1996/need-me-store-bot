@@ -553,12 +553,11 @@ async def proxy_menu_simple(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "_أرسل له نوع البروكسي، الكمية، والدولة_"
     )
 
-    await query.edit_message_text(
+    await query.message.reply_text(
         text,
         parse_mode=ParseMode.MARKDOWN,
         reply_markup=InlineKeyboardMarkup([
             [InlineKeyboardButton("💬 تواصل مع الأدمن", url="https://t.me/Allosh96ha")],
-            [InlineKeyboardButton(t("back", lang), callback_data="back_main")],
         ])
     )
 
