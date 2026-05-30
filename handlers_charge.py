@@ -262,14 +262,24 @@ async def show_balance(update: Update, context: ContextTypes.DEFAULT_TYPE):
         [InlineKeyboardButton(" Back  |  رجوع", callback_data="back_main")]
     ])
 
-    text = (
-        f" *My Balance  |  رصيدي*\n\n"
-        f"\n"
-        f" Balance: `${balance:.2f}`\n"
-        f" Total Charged: `${total_charged:.2f}`\n"
-        f" Total Spent: `${total_spent:.2f}`\n"
-        f""
-    )
+    if lang == 'en':
+        text = (
+            f"💳 *My Balance*\n"
+            f"━━━━━━━━━━━━━━━━\n"
+            f"💰 Balance: *${balance:.2f}*\n\n"
+            f"📥 Total Charged: `${total_charged:.2f}`\n"
+            f"📤 Total Spent: `${total_spent:.2f}`\n"
+            f"━━━━━━━━━━━━━━━━"
+        )
+    else:
+        text = (
+            f"💳 *رصيدي*\n"
+            f"━━━━━━━━━━━━━━━━\n"
+            f"💰 الرصيد: *${balance:.2f}*\n\n"
+            f"📥 إجمالي الشحن: `${total_charged:.2f}`\n"
+            f"📤 إجمالي الإنفاق: `${total_spent:.2f}`\n"
+            f"━━━━━━━━━━━━━━━━"
+        )
 
     if query:
         await query.edit_message_text(text, parse_mode=ParseMode.MARKDOWN, reply_markup=bal_kb)
