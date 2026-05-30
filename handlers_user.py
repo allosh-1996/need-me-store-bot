@@ -113,12 +113,11 @@ async def show_product_detail(update: Update, context: ContextTypes.DEFAULT_TYPE
     lang = get_user_lang(context)
     product_id = int(query.data.replace("prod_", ""))
 
-    product = db.get_product(product_id)
+    product, stock_count = db.get_product_with_stock(product_id)
     if not product:
         await query.edit_message_text(t("error_not_found", lang))
         return
 
-    stock_count = db.get_stock_count(product_id)
     has_stock = stock_count > 0
     stock_line = f"{t('in_stock', lang)} ({stock_count} units)" if has_stock else t('out_of_stock', lang)
 
@@ -152,9 +151,9 @@ async def initiate_buy(update: Update, context: ContextTypes.DEFAULT_TYPE):
     product_id = int(query.data.split("_")[1])
 
     user = update.effective_user
-    product = db.get_product(product_id)
+    product, stock_count = db.get_product_with_stock(product_id)
 
-    if not product or db.get_stock_count(product_id) == 0:
+    if not product or stock_count == 0:
         await query.edit_message_text(t("no_products_category", lang), parse_mode=ParseMode.MARKDOWN)
         return
 

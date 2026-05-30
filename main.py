@@ -217,7 +217,10 @@ def main():
     async def auto_register(update: Update, context):
         user = update.effective_user
         if user and not user.is_bot:
-            db.upsert_user(user.id, user.username or "", user.full_name or "")
+            # تحقق من user_data أولاً — لو المستخدم مسجل بالجلسة ما نحتاج Turso
+            if not context.user_data.get("_registered"):
+                db.upsert_user(user.id, user.username or "", user.full_name or "")
+                context.user_data["_registered"] = True
 
     app.add_handler(MessageHandler(filters.ALL, auto_register), group=-1)
     app.add_handler(CallbackQueryHandler(auto_register), group=-1)

@@ -150,15 +150,17 @@ def init_db():
 # Products
 # ════════════════════════════════════════
 
-# Cache بسيط للمنتجات — يتجدد كل 60 ثانية
+# Cache للمنتجات — يتجدد كل 60 ثانية
 import time as _time
 _products_cache = {"data": None, "ts": 0}
+_single_cache: dict = {}   # product_id → {"data": row, "ts": float}
 _CACHE_TTL = 60  # ثانية
 
 def invalidate_products_cache():
-    """استدعيها بعد أي تعديل على المنتجات"""
+    """استدعيها بعد أي تعديل على المنتجات — تمسح الكل"""
     _products_cache["data"] = None
     _products_cache["ts"] = 0
+    _single_cache.clear()
 
 def get_all_products(active_only=True):
     now = _time.time()
@@ -178,11 +180,32 @@ def get_all_products(active_only=True):
     return rows
 
 def get_product(product_id):
+    """يجيب المنتج مع cache — يتجدد كل 60 ثانية أو عند تغيير المخزون"""
+    now = _time.time()
+    cached = _single_cache.get(product_id)
+    if cached and (now - cached["ts"]) < _CACHE_TTL:
+        return cached["data"]
     conn = get_conn()
     cur = conn.execute("SELECT * FROM products WHERE id=?", (product_id,))
     row = _fetchone_dict(cur)
     conn.close()
+    if row:
+        _single_cache[product_id] = {"data": row, "ts": now}
     return row
+
+def get_product_with_stock(product_id):
+    """
+    يجيب المنتج + عدد المخزون في استعلام واحد — بدل get_product() + get_stock_count().
+    يستخدم نفس cache تبع get_product().
+    يرجع: (product_dict, stock_count) أو (None, 0) لو ما موجود.
+    """
+    product = get_product(product_id)
+    if not product:
+        return None, 0
+    stock = product.get("stock") or ""
+    count = len([l for l in stock.strip().splitlines() if l.strip()])
+    return product, count
+
 
 def add_product(name, description, price_usd, price_syp, category, stock, platform='iOS'):
     conn = get_conn()
