@@ -576,7 +576,7 @@ tr:hover td{background:var(--surface2)}
       <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:4px" id="subtype-btns"></div>
     </div>
 
-    <input type="hidden" id="p-category" value="Apple iCloud">
+    <input type="hidden" id="p-category" value="">
     <input type="hidden" id="p-platform" value="general">
 
     <!-- الاسم والسعر -->
@@ -654,18 +654,11 @@ function toast(msg, ok=true) {
 
 function openModal(id) {
   $(id).classList.add('open')
-  // تهيئة مودال إضافة المنتج
   if (id === 'add-product-modal') {
-    // شغّل الـ platform الافتراضي iOS
-    const firstBtn = document.querySelector('.ptype-btn[data-val="iOS"]')
-    // رجّع آخر section مختار (أو iCloud افتراضياً)
-  const lastSection = window._lastSection || 'icloud'
-  const targetBtn = document.querySelector(`.ptype-btn[data-section="${lastSection}"]`) || firstBtn
-  if (targetBtn) {
-    // شيل active من كل الأزرار أولاً
+    const lastSection = window._lastSection || 'icloud'
+    const targetBtn = document.querySelector(`.ptype-btn[data-section="${lastSection}"]`)
     document.querySelectorAll('.ptype-btn').forEach(b => b.classList.remove('active'))
-    selectSection(targetBtn)
-  }
+    if (targetBtn) selectSection(targetBtn)
   }
 }
 function closeModal(id) { $(id).classList.remove('open') }
@@ -820,7 +813,7 @@ async function addProduct() {
   }
   if (!d.name) { toast('اسم المنتج مطلوب', false); return }
   if (!d.price_usd) { toast('السعر بالدولار مطلوب', false); return }
-  if (!d.category) { toast('اختر القسم أولاً', false); return }
+  if (!d.category) { toast('⚠️ اختر القسم أولاً (iCloud / ايميلات / Surveys)', false); return }
 
   const res = await api('/api/products/add', 'POST', d)
   if (!res) return
