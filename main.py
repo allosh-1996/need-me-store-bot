@@ -164,7 +164,6 @@ def main():
 
     # ── Callbacks الرصيد ──
     app.add_handler(CallbackQueryHandler(hc.show_balance,         pattern='^show_balance$'))
-    app.add_handler(CallbackQueryHandler(hu.confirm_buy,          pattern=r'^confirm_buy_\d+$'))
     app.add_handler(CallbackQueryHandler(hc.admin_confirm_charge, pattern=r'^chg_confirm_\d+$'))
     app.add_handler(CallbackQueryHandler(hc.admin_reject_charge,  pattern=r'^chg_reject_\d+$'))
 

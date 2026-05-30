@@ -149,59 +149,16 @@ async def initiate_buy(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await query.edit_message_text(t("no_products_category", lang), parse_mode=ParseMode.MARKDOWN)
         return
 
-    balance = db.get_balance(user.id)
     price = product["price_usd"]
 
-    if balance >= price:
-        confirm_kb = InlineKeyboardMarkup([
-            [InlineKeyboardButton(f"✅ {t('buy_from_balance', lang)} — ${price}", callback_data=f"confirm_buy_{product_id}")],
-            [InlineKeyboardButton(t("back", lang), callback_data=f"prod_{product_id}")]
-        ])
-        text = (
-            f"*{product['name']}*\n\n"
-            f"━━━━━━━━━━━━━━━━\n"
-            f"{t('amount', lang)}: `${price}`\n"
-            f"{t('balance', lang)}: `${balance:.2f}`\n"
-            f"━━━━━━━━━━━━━━━━"
-        )
-    else:
-        needed = price - balance
-        confirm_kb = InlineKeyboardMarkup([
-            [InlineKeyboardButton(f"💳 {t('top_up', lang)} — ${needed:.2f}", callback_data="charge_start")],
-            [InlineKeyboardButton(t("back", lang), callback_data=f"prod_{product_id}")]
-        ])
-        text = (
-            f"*{product['name']}*\n\n"
-            f"━━━━━━━━━━━━━━━━\n"
-            f"{t('amount', lang)}: `${price}`\n"
-            f"{t('balance', lang)}: `${balance:.2f}`\n"
-            f"━━━━━━━━━━━━━━━━\n"
-            f"_{t('insufficient_balance', lang)}_"
-        )
-    await query.edit_message_text(text, parse_mode=ParseMode.MARKDOWN, reply_markup=confirm_kb)
-
-
-async def confirm_buy(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    query = update.callback_query
-    await query.answer()
-    lang = get_user_lang(context)
-    product_id = int(query.data.replace("confirm_buy_", ""))
-
-    user = update.effective_user
-    product = db.get_product(product_id)
-
-    if not product:
-        await query.edit_message_text(t("no_products_category", lang), parse_mode=ParseMode.MARKDOWN)
-        return
-
-    price = product['price_usd']
-
+    # خصم مباشر بدون خطوة تأكيد
     try:
         item, new_balance, remaining = db.buy_with_balance(user.id, product_id, price)
     except ValueError as e:
         err = str(e)
         if err.startswith("insufficient_balance:"):
             balance = float(err.split(":")[1])
+            needed = price - balance
             await query.edit_message_text(
                 f"*{t('insufficient_balance', lang)}*\n\n"
                 f"{t('balance', lang)}: `${balance:.2f}`\n"
@@ -209,7 +166,7 @@ async def confirm_buy(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 f"_{t('top_up_first', lang)}_",
                 parse_mode=ParseMode.MARKDOWN,
                 reply_markup=InlineKeyboardMarkup([
-                    [InlineKeyboardButton(t("top_up", lang), callback_data="charge_start")],
+                    [InlineKeyboardButton(f"💳 {t('top_up', lang)} — ${needed:.2f}", callback_data="charge_start")],
                     [InlineKeyboardButton(t("back", lang), callback_data=f"prod_{product_id}")]
                 ])
             )
@@ -237,7 +194,7 @@ async def confirm_buy(update: Update, context: ContextTypes.DEFAULT_TYPE):
         parse_mode=ParseMode.MARKDOWN,
         reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton(t("home", lang), callback_data="back_main")]])
     )
-    # رسالة منفصلة تحتوي المنتج فقط
+    # رسالة منفصلة للمنتج
     await context.bot.send_message(
         chat_id=user.id,
         text=(
