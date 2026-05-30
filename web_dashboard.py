@@ -214,19 +214,19 @@ def api_order_status(oid):
         logger.info(f"Dashboard: order #{oid} confirmed, stock remaining={remaining}")
         tg_send(order['user_id'],
             f"✅ *تم تأكيد طلبك!  |  Order Confirmed!*\n\n"
-            f"━━━━━━━━━━━━━━━━\n"
+            f"- - -\n"
             f"🔖 Order ID: `#{oid}`\n"
             f"📦 {order['product_name']}\n"
             f"💵 ${order['price_usd']}\n"
-            f"━━━━━━━━━━━━━━━━\n"
+            f"- - -\n"
             f"شكراً لثقتك 🙏  |  _Thank you!_"
         )
         # رسالة منفصلة للمنتج
         tg_send(order['user_id'],
             f"🎁 *تفاصيل المنتج  |  Product Details*\n"
-            f"━━━━━━━━━━━━━━━━\n"
+            f"- - -\n"
             f"`{item}`\n"
-            f"━━━━━━━━━━━━━━━━\n"
+            f"- - -\n"
             f"_احفظ هذه المعلومات بأمان_"
         )
     elif order and status == 'rejected':
@@ -234,11 +234,11 @@ def api_order_status(oid):
         logger.info(f"Dashboard: order #{oid} rejected")
         tg_send(order['user_id'],
             f"🔴 *تم رفض طلبك  |  Order Rejected*\n\n"
-            f"━━━━━━━━━━━━━━━━\n"
+            f"- - -\n"
             f"🔖 Order ID: `#{oid}`\n"
             f"📦 {order['product_name']}\n"
             f"💵 ${order['price_usd']}\n"
-            f"━━━━━━━━━━━━━━━━\n"
+            f"- - -\n"
             f"_للاستفسار تواصل مع الأدمن_"
         )
     else:
@@ -268,11 +268,11 @@ def api_confirm_charge(cid):
         logger.info(f"Dashboard: charge #{cid} confirmed, user={charge['user_id']}, amount=${charge['amount_usd']}")
         tg_send(charge['user_id'],
             f"✅ *تم شحن رصيدك!  |  Balance Added!*\n\n"
-            f"━━━━━━━━━━━━━━━━\n"
+            f"- - -\n"
             f"💵 المبلغ المضاف  |  Added: `${charge['amount_usd']}`\n"
             f"💳 {method_label}\n"
             f"💰 رصيدك الحالي  |  New Balance: `${new_balance:.2f}`\n"
-            f"━━━━━━━━━━━━━━━━\n"
+            f"- - -\n"
             f"_يمكنك الشراء الآن_ 🛍️"
         )
         return jsonify({"ok": True, "new_balance": new_balance})
@@ -288,10 +288,10 @@ def api_reject_charge(cid):
         logger.info(f"Dashboard: charge #{cid} rejected, user={charge['user_id']}")
         tg_send(charge['user_id'],
             f"🔴 *تم رفض طلب الشحن  |  Top Up Rejected*\n\n"
-            f"━━━━━━━━━━━━━━━━\n"
+            f"- - -\n"
             f"💵 المبلغ  |  Amount: `${charge['amount_usd']}`\n"
             f"💳 {method_label}\n"
-            f"━━━━━━━━━━━━━━━━\n"
+            f"- - -\n"
             f"_للاستفسار تواصل مع الأدمن_"
         )
     return jsonify({"ok": True})
@@ -545,21 +545,21 @@ def api_proxy_order_status(oid):
         if status == 'completed':
             tg_send(proxy['user_id'],
                 f"✅ *تم قبول طلب البروكسي!  |  Proxy Order Accepted!*\n\n"
-                f"━━━━━━━━━━━━━━━━\n"
+                f"- - -\n"
                 f"🔖 Order ID: `#{oid}`\n"
                 f"📦 {proxy['proxy_type_label']} x{proxy['quantity']}\n"
                 f"🌍 {proxy['country']}\n"
-                f"━━━━━━━━━━━━━━━━\n"
+                f"- - -\n"
                 f"⏳ _سيتم التواصل معك وإرسال البروكسيات قريباً_ 🚀"
             )
         elif status == 'rejected':
             tg_send(proxy['user_id'],
                 f"🔴 *تم رفض طلب البروكسي  |  Proxy Order Rejected*\n\n"
-                f"━━━━━━━━━━━━━━━━\n"
+                f"- - -\n"
                 f"🔖 Order ID: `#{oid}`\n"
                 f"📦 {proxy['proxy_type_label']} x{proxy['quantity']}\n"
                 f"🌍 {proxy['country']}\n"
-                f"━━━━━━━━━━━━━━━━\n"
+                f"- - -\n"
                 f"_للاستفسار تواصل مع الأدمن_"
             )
     return jsonify({"ok": True})
@@ -608,10 +608,10 @@ def api_appsflyer_order_status(oid):
             f"🎮 *اللعبة:* {order['game_name']}\n"
             f"🔢 *رقم الطلب:* `#{oid}`\n\n"
             f"🚀 *طلبك الآن قيد التنفيذ*\n\n"
-            f"━━━━━━━━━━━━━━━━\n"
+            f"- - -\n"
             f"📩 للمتابعة تواصل مع الأدمن:\n"
             f"👤 @Allosh96ha\n"
-            f"━━━━━━━━━━━━━━━━"
+            f"- - -"
         )
 
     elif status == 'rejected':
@@ -626,10 +626,10 @@ def api_appsflyer_order_status(oid):
             f"🔢 *رقم الطلب:* `#{oid}`\n\n"
             f"💰 *تم إعادة المبلغ:* `${order['price_usd']:.2f}`\n"
             f"💳 *رصيدك الحالي:* `${new_balance:.2f}`\n\n"
-            f"━━━━━━━━━━━━━━━━\n"
+            f"- - -\n"
             f"📩 للاستفسار تواصل مع الأدمن:\n"
             f"👤 @Allosh96ha\n"
-            f"━━━━━━━━━━━━━━━━"
+            f"- - -"
         )
     else:
         return jsonify({"ok": False, "error": "Invalid status"}), 400

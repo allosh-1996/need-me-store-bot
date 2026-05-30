@@ -27,7 +27,7 @@ async def charge_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     text = (
         f"💳 *شحن الرصيد | Top Up*\n"
-        f"━━━━━━━━━━━━━━━━\n"
+        f"- - -\n"
         f"💰 رصيدك الحالي: *${balance:.2f}*\n\n"
         f"_اختر طريقة الشحن  |  Choose payment method:_"
     )
@@ -48,7 +48,7 @@ async def charge_method_selected(update: Update, context: ContextTypes.DEFAULT_T
     if method == "usdt":
         text = (
             f"💵 *USDT BEP-20*\n"
-            f"━━━━━━━━━━━━━━━━\n"
+            f"- - -\n"
             f"👛 عنوان المحفظة:\n"
             f"`{USDT_WALLET}`\n\n"
             f"⚠️ _شبكة BEP-20 فقط_\n\n"
@@ -58,7 +58,7 @@ async def charge_method_selected(update: Update, context: ContextTypes.DEFAULT_T
         from config import SYRIATEL_CASH
         text = (
             f"📱 *Syriatel Cash*\n"
-            f"━━━━━━━━━━━━━━━━\n"
+            f"- - -\n"
             f"📞 الرقم:\n"
             f"`{SYRIATEL_CASH}`\n\n"
             f"💱 سعر الصرف: *{SYP_RATE:,.0f} ل.س = $1*\n\n"
@@ -195,11 +195,11 @@ async def charge_proof(update: Update, context: ContextTypes.DEFAULT_TYPE):
     done_kb = InlineKeyboardMarkup([[InlineKeyboardButton(" Home  |  الرئيسية", callback_data="back_main")]])
     await update.message.reply_text(
         f"✅ *تم إرسال طلب الشحن!*\n"
-        f"━━━━━━━━━━━━━━━━\n"
+        f"- - -\n"
         f"🔖 رقم الطلب: `#{req_id}`\n"
         f"💵 المبلغ: *{display}*\n"
         f"💳 الطريقة: {method_label}\n"
-        f"━━━━━━━━━━━━━━━━\n"
+        f"- - -\n"
         f"⏳ _سيتم مراجعة التحويل وإضافة الرصيد قريباً_",
         parse_mode=ParseMode.MARKDOWN,
         reply_markup=done_kb
@@ -259,20 +259,20 @@ async def show_balance(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if lang == 'en':
         text = (
             f"💳 *My Balance*\n"
-            f"━━━━━━━━━━━━━━━━\n"
+            f"- - -\n"
             f"💰 Balance: *${balance:.2f}*\n\n"
             f"📥 Total Charged: `${total_charged:.2f}`\n"
             f"📤 Total Spent: `${total_spent:.2f}`\n"
-            f"━━━━━━━━━━━━━━━━"
+            f"- - -"
         )
     else:
         text = (
             f"💳 *رصيدي*\n"
-            f"━━━━━━━━━━━━━━━━\n"
+            f"- - -\n"
             f"💰 الرصيد: *${balance:.2f}*\n\n"
             f"📥 إجمالي الشحن: `${total_charged:.2f}`\n"
             f"📤 إجمالي الإنفاق: `${total_spent:.2f}`\n"
-            f"━━━━━━━━━━━━━━━━"
+            f"- - -"
         )
 
     if query:

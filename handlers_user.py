@@ -43,10 +43,10 @@ async def support_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     lang = get_user_lang(context)
     await update.message.reply_text(
         f"🛟 *{t('support_title', lang)}*\n"
-        f"━━━━━━━━━━━━━━━━\n"
+        f"- - -\n"
         f"👤 @Allosh96ha\n\n"
         f"_{t('support_body', lang)}_\n"
-        f"━━━━━━━━━━━━━━━━",
+        f"- - -",
         parse_mode=ParseMode.MARKDOWN,
         reply_markup=kb.main_menu(lang)
     )
@@ -123,12 +123,12 @@ async def show_product_detail(update: Update, context: ContextTypes.DEFAULT_TYPE
 
     text = (
         f"🛍️ *{product['name']}*\n"
-        f"━━━━━━━━━━━━━━━━\n"
+        f"- - -\n"
         f"_{product['description'] or t('no_desc', lang)}_\n\n"
         f"💵 USD: *${product['price_usd']}*\n"
         f"💴 SYP: *{product['price_syp']:,.0f} ل.س*\n\n"
         f"{stock_line}\n"
-        f"━━━━━━━━━━━━━━━━"
+        f"- - -"
     )
     back_cb = context.user_data.get('cat_source', 'products')
     await query.edit_message_text(text, parse_mode=ParseMode.MARKDOWN,
@@ -169,10 +169,10 @@ async def initiate_buy(update: Update, context: ContextTypes.DEFAULT_TYPE):
             needed = price - balance
             await query.edit_message_text(
                 f"❌ *{t('insufficient_balance', lang)}*\n"
-                f"━━━━━━━━━━━━━━━━\n"
+                f"- - -\n"
                 f"💳 {t('balance', lang)}: `${balance:.2f}`\n"
                 f"💵 {t('amount', lang)}: `${price}`\n"
-                f"━━━━━━━━━━━━━━━━\n"
+                f"- - -\n"
                 f"_{t('top_up_first', lang)}_",
                 parse_mode=ParseMode.MARKDOWN,
                 reply_markup=InlineKeyboardMarkup([
@@ -195,11 +195,11 @@ async def initiate_buy(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     await query.edit_message_text(
         f"✅ *{t('purchase_success', lang)}*\n"
-        f"━━━━━━━━━━━━━━━━\n"
+        f"- - -\n"
         f"🛍️ {product['name']}\n"
         f"💵 {t('amount', lang)}: *${price}*\n"
         f"💳 {t('balance', lang)}: `${new_balance:.2f}`\n"
-        f"━━━━━━━━━━━━━━━━\n"
+        f"- - -\n"
         f"_{t('thank_you', lang)}_",
         parse_mode=ParseMode.MARKDOWN,
         reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton(t("home", lang), callback_data="back_main")]])
@@ -209,9 +209,9 @@ async def initiate_buy(update: Update, context: ContextTypes.DEFAULT_TYPE):
         chat_id=user.id,
         text=(
             f"🎁 *{t('product_details', lang)}*\n"
-            f"━━━━━━━━━━━━━━━━\n"
+            f"- - -\n"
             f"`{item}`\n"
-            f"━━━━━━━━━━━━━━━━\n"
+            f"- - -\n"
             f"_احفظ هذه المعلومات بأمان_"
         ),
         parse_mode=ParseMode.MARKDOWN
@@ -249,11 +249,11 @@ async def my_orders(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "completed": t("status_completed", lang),
         "rejected":  t("status_rejected", lang)
     }
-    lines = [f"📦 *{t('my_orders', lang)}*\n", "━━━━━━━━━━━━━━━━"]
+    lines = [f"📦 *{t('my_orders', lang)}*\n", "- - -"]
     for o in orders:
         status = status_map.get(o["status"], "?")
         lines.append(f"{status}  `#{o['id']}` — {o['product_name']}")
-    lines.append("━━━━━━━━━━━━━━━━")
+    lines.append("- - -")
     text = "\n".join(lines)
 
     if query:
@@ -268,10 +268,10 @@ async def contact(update: Update, context: ContextTypes.DEFAULT_TYPE):
     lang = get_user_lang(context)
     await query.edit_message_text(
         f"💬 *{t('contact_title', lang)}*\n"
-        f"━━━━━━━━━━━━━━━━\n"
+        f"- - -\n"
         f"👤 @Allosh96ha\n\n"
         f"_{t('contact_reply', lang)}_\n"
-        f"━━━━━━━━━━━━━━━━",
+        f"- - -",
         parse_mode=ParseMode.MARKDOWN,
         reply_markup=kb.main_menu(lang)
     )
@@ -336,7 +336,7 @@ async def emails_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     await query.edit_message_text(
         f"*{t('emails_title', lang)}*\n\n"
-        f"━━━━━━━━━━━━━━━━\n"
+        f"- - -\n"
         f"_{t('choose_type', lang)}_",
         parse_mode=ParseMode.MARKDOWN,
         reply_markup=InlineKeyboardMarkup([
@@ -374,16 +374,16 @@ async def proxy_menu_simple(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     await query.edit_message_text(
         "🌐 *Proxy Service*\n"
-        "━━━━━━━━━━━━━━━━\n\n"
+        "- - -\n\n"
         "• HTTP / HTTPS\n"
         "• SOCKS5\n"
         "• Residential\n"
         "• Mobile 4G / 5G\n"
         "• Modem Private\n\n"
-        "━━━━━━━━━━━━━━━━\n"
+        "- - -\n"
         "📩 للطلب تواصل مع الأدمن مباشرة:\n"
         "👤 @Allosh96ha\n"
-        "━━━━━━━━━━━━━━━━",
+        "- - -",
         parse_mode=ParseMode.MARKDOWN,
         reply_markup=InlineKeyboardMarkup([
             [InlineKeyboardButton("💬 تواصل مع الأدمن", url="https://t.me/Allosh96ha")],
