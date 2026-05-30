@@ -658,7 +658,10 @@ function openModal(id) {
   if (id === 'add-product-modal') {
     // شغّل الـ platform الافتراضي iOS
     const firstBtn = document.querySelector('.ptype-btn[data-val="iOS"]')
-    if (firstBtn) selectSection(firstBtn)
+    // رجّع آخر section مختار (أو iCloud افتراضياً)
+  const lastSection = window._lastSection || 'icloud'
+  const targetBtn = document.querySelector(`.ptype-btn[data-section="${lastSection}"]`) || firstBtn
+  if (targetBtn) selectSection(targetBtn)
   }
 }
 function closeModal(id) { $(id).classList.remove('open') }
@@ -750,6 +753,7 @@ const SECTION_CONFIG = {
 }
 
 function selectSection(btn) {
+  window._lastSection = btn.dataset.section
   document.querySelectorAll('.ptype-btn').forEach(b => b.classList.remove('active'))
   btn.classList.add('active')
   const section = btn.dataset.section
