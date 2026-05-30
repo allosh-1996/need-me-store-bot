@@ -14,7 +14,9 @@ def main_menu(lang="ar"):
         ],
         [
             InlineKeyboardButton(t("btn_surveys", lang),  callback_data="surveys_menu"),
-            InlineKeyboardButton(t("btn_appsflyer", lang),callback_data="win_appsflyer"),
+        ],
+        [
+            InlineKeyboardButton(t("btn_appsflyer", lang), callback_data="win_appsflyer"),
         ],
         [
             InlineKeyboardButton(t("btn_contact", lang),  callback_data="contact"),

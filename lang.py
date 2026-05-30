@@ -44,8 +44,8 @@ STRINGS = {
         "en": "Surveys",
     },
     "btn_appsflyer": {
-        "ar": "Win AppsFlyer",
-        "en": "Win AppsFlyer",
+        "ar": "🟢 Win AppsFlyer 🟢",
+        "en": "🟢 Win AppsFlyer 🟢",
     },
     "btn_contact": {
         "ar": "تواصل",
