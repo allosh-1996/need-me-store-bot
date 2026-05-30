@@ -231,12 +231,23 @@ async def confirm_buy(update: Update, context: ContextTypes.DEFAULT_TYPE):
         f"━━━━━━━━━━━━━━━━\n"
         f"{product['name']}\n"
         f"{t('amount', lang)}: `${price}`\n"
-        f"{t('balance', lang)}: `${new_balance:.2f}`\n\n"
-        f"*{t('product_details', lang)}:*\n`{item}`\n"
+        f"{t('balance', lang)}: `${new_balance:.2f}`\n"
         f"━━━━━━━━━━━━━━━━\n"
         f"_{t('thank_you', lang)}_",
         parse_mode=ParseMode.MARKDOWN,
         reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton(t("home", lang), callback_data="back_main")]])
+    )
+    # رسالة منفصلة تحتوي المنتج فقط
+    await context.bot.send_message(
+        chat_id=user.id,
+        text=(
+            f"🎁 *{t('product_details', lang)}*\n"
+            f"━━━━━━━━━━━━━━━━\n"
+            f"`{item}`\n"
+            f"━━━━━━━━━━━━━━━━\n"
+            f"_احفظ هذه المعلومات بأمان_"
+        ),
+        parse_mode=ParseMode.MARKDOWN
     )
     try:
         await context.bot.send_message(

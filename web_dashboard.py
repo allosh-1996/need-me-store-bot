@@ -212,14 +212,21 @@ def api_order_status(oid):
         db.update_order_status(oid, status)
         logger.info(f"Dashboard: order #{oid} confirmed, stock remaining={remaining}")
         tg_send(order['user_id'],
-            f"🎉 *تم تأكيد طلبك!  |  Order Confirmed!*\n\n"
+            f"✅ *تم تأكيد طلبك!  |  Order Confirmed!*\n\n"
             f"━━━━━━━━━━━━━━━━\n"
             f"🔖 Order ID: `#{oid}`\n"
             f"📦 {order['product_name']}\n"
-            f"💵 ${order['price_usd']}\n\n"
-            f"✅ *تفاصيل المنتج:*\n`{item}`\n"
+            f"💵 ${order['price_usd']}\n"
             f"━━━━━━━━━━━━━━━━\n"
             f"شكراً لثقتك 🙏  |  _Thank you!_"
+        )
+        # رسالة منفصلة للمنتج
+        tg_send(order['user_id'],
+            f"🎁 *تفاصيل المنتج  |  Product Details*\n"
+            f"━━━━━━━━━━━━━━━━\n"
+            f"`{item}`\n"
+            f"━━━━━━━━━━━━━━━━\n"
+            f"_احفظ هذه المعلومات بأمان_"
         )
     elif order and status == 'rejected':
         db.update_order_status(oid, status)

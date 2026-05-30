@@ -214,14 +214,24 @@ async def confirm_order(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await context.bot.send_message(
             chat_id=order['user_id'],
             text=(
-                f" *Order Confirmed!  |  تم تأكيد طلبك!*\n\n"
-                f"\n"
-                f" {order['product_name']}\n\n"
-                f" *Product Details:*\n"
+                f"✅ *تم تأكيد طلبك!  |  Order Confirmed!*\n\n"
+                f"━━━━━━━━━━━━━━━━\n"
+                f"📦 {order['product_name']}\n"
+                f"💵 ${order['price_usd']}\n"
+                f"━━━━━━━━━━━━━━━━\n"
+                f"شكراً لثقتك 🙏  |  _Thank you!_"
+            ),
+            parse_mode=ParseMode.MARKDOWN
+        )
+        # رسالة منفصلة للمنتج فقط
+        await context.bot.send_message(
+            chat_id=order['user_id'],
+            text=(
+                f"🎁 *تفاصيل المنتج  |  Product Details*\n"
+                f"━━━━━━━━━━━━━━━━\n"
                 f"`{item}`\n"
-                f"\n"
-                f"شكراً لثقتك   |  _Thank you!_\n"
-                f"_For support contact admin_"
+                f"━━━━━━━━━━━━━━━━\n"
+                f"_احفظ هذه المعلومات بأمان_"
             ),
             parse_mode=ParseMode.MARKDOWN
         )
