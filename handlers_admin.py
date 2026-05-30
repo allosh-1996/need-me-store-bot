@@ -50,13 +50,13 @@ async def admin_stats(update: Update, context: ContextTypes.DEFAULT_TYPE):
     stats = db.get_stats()
     text = (
         f"📊 *إحصائيات المتجر*\n"
-        f"—————————————————\n"
+        f"\n—————————————————\n\n"
         f"👥 المستخدمين: *{stats['users']}*\n"
         f"🛍️ المنتجات: *{stats['products']}*\n\n"
         f"📦 إجمالي الطلبات: *{stats['total_orders']}*\n"
         f"⏳ معلقة: *{stats['pending_orders']}*\n"
         f"✅ مكتملة: *{stats['completed_orders']}*\n"
-        f"—————————————————"
+        f"\n—————————————————\n"
     )
     await query.edit_message_text(text, parse_mode=ParseMode.MARKDOWN,
                                    reply_markup=kb.admin_main_menu())
@@ -214,10 +214,10 @@ async def confirm_order(update: Update, context: ContextTypes.DEFAULT_TYPE):
             chat_id=order['user_id'],
             text=(
                 f"✅ *تم تأكيد طلبك!*\n"
-                f"—————————————————\n"
+                f"\n—————————————————\n\n"
                 f"🛍️ *{order['product_name']}*\n"
                 f"💵 المبلغ: *${order['price_usd']}*\n"
-                f"—————————————————\n"
+                f"\n—————————————————\n\n"
                 f"_شكراً لثقتك_ 🙏"
             ),
             parse_mode=ParseMode.MARKDOWN
@@ -227,9 +227,9 @@ async def confirm_order(update: Update, context: ContextTypes.DEFAULT_TYPE):
             chat_id=order['user_id'],
             text=(
                 f"🎁 *تفاصيل المنتج  |  Product Details*\n"
-                f"—————————————————\n"
+                f"\n—————————————————\n\n"
                 f"`{item}`\n"
-                f"—————————————————\n"
+                f"\n—————————————————\n\n"
                 f"_احفظ هذه المعلومات بأمان_"
             ),
             parse_mode=ParseMode.MARKDOWN
@@ -265,11 +265,11 @@ async def reject_order(update: Update, context: ContextTypes.DEFAULT_TYPE):
             chat_id=order['user_id'],
             text=(
                 f"❌ *تم رفض طلبك*\n"
-                f"—————————————————\n"
+                f"\n—————————————————\n\n"
                 f"🔖 رقم الطلب: `#{order_id}`\n"
                 f"🛍️ {order['product_name']}\n"
                 f"💵 ${order['price_usd']}\n"
-                f"—————————————————\n"
+                f"\n—————————————————\n\n"
                 f"_للاستفسار تواصل مع الأدمن_ 👤 @Allosh96ha"
             ),
             parse_mode=ParseMode.MARKDOWN,
@@ -472,10 +472,10 @@ async def appsflyer_accept(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 f"🎮 *اللعبة:* {order['game_name']}\n"
                 f"🔢 *رقم الطلب:* `#{order_id}`\n\n"
                 f"🚀 *طلبك الآن قيد التنفيذ*\n\n"
-                f"—————————————————\n"
+                f"\n—————————————————\n\n"
                 f"📩 للمتابعة تواصل مع الأدمن:\n"
                 f"👤 @Allosh96ha\n"
-                f"—————————————————"
+                f"\n—————————————————\n"
             ),
             parse_mode="Markdown"
         )
@@ -523,10 +523,10 @@ async def appsflyer_reject(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 f"🔢 *رقم الطلب:* `#{order_id}`\n\n"
                 f"💰 *تم إعادة المبلغ إلى رصيدك:* `${order['price_usd']:.2f}`\n"
                 f"💳 *رصيدك الحالي:* `${new_balance:.2f}`\n\n"
-                f"—————————————————\n"
+                f"\n—————————————————\n\n"
                 f"📩 للاستفسار تواصل مع الأدمن:\n"
                 f"👤 @Allosh96ha\n"
-                f"—————————————————"
+                f"\n—————————————————\n"
             ),
             parse_mode="Markdown"
         )

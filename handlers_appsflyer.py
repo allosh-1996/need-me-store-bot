@@ -78,7 +78,7 @@ async def af_game_selected(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     await query.edit_message_text(
         f"🎮 *{game_data['name']}* — `${game_data['price_usd']:.0f}`\n"
-        f"—————————————————\n"
+        f"\n—————————————————\n\n"
         f"📋 *الخطوة 1 من 4*\n\n"
         f"أرسل لي الـ *IDFA* الخاص بجهازك:\n\n"
         f"_مثال:_ `6D92078A-8246-4BA4-AE75-79F1B2D67052`",
@@ -103,7 +103,7 @@ async def af_receive_idfa(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data["af_idfa"] = idfa
     await update.message.reply_text(
         f"✅ *IDFA محفوظ*\n\n"
-        f"—————————————————\n"
+        f"\n—————————————————\n\n"
         f"📋 *الخطوة 2 من 4*\n\n"
         f"أرسل لي الـ *IDFV* الخاص بجهازك:\n\n"
         f"_مثال:_ `599F9C00-92DC-4B5C-9464-7971F01F8370`",
@@ -128,7 +128,7 @@ async def af_receive_idfv(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data["af_idfv"] = idfv
     await update.message.reply_text(
         f"✅ *IDFV محفوظ*\n\n"
-        f"—————————————————\n"
+        f"\n—————————————————\n\n"
         f"📋 *الخطوة 3 من 4*\n\n"
         f"أرسل لي *إصدار iOS* الخاص بجهازك:\n\n"
         f"_مثال:_ `17.4.1`",
@@ -144,7 +144,7 @@ async def af_receive_ios_ver(update: Update, context: ContextTypes.DEFAULT_TYPE)
     context.user_data["af_ios_ver"] = update.message.text.strip()
     await update.message.reply_text(
         f"✅ *iOS Version محفوظ*\n\n"
-        f"—————————————————\n"
+        f"\n—————————————————\n\n"
         f"📋 *الخطوة 4 من 4*\n\n"
         f"أرسل لي الـ *AppsFlyer ID* الخاص بجهازك:\n\n"
         f"_مثال:_ `1234567890123-1234567890123456`",
@@ -163,16 +163,16 @@ async def af_receive_af_id(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     summary = (
         f"🎮 *تأكيد الطلب | Order Summary*\n"
-        f"—————————————————\n"
+        f"\n—————————————————\n\n"
         f"🕹 *اللعبة:* {ud['af_game_name']}\n"
         f"💵 *السعر:* `${ud['af_price']:.0f}`\n"
         f"💰 *رصيدك:* `${balance:.2f}`\n"
-        f"—————————————————\n"
+        f"\n—————————————————\n\n"
         f"📱 *IDFA:* `{ud['af_idfa']}`\n"
         f"📱 *IDFV:* `{ud['af_idfv']}`\n"
         f"📱 *iOS Version:* `{ud['af_ios_ver']}`\n"
         f"📱 *AppsFlyer ID:* `{ud['af_af_id']}`\n"
-        f"—————————————————\n"
+        f"\n—————————————————\n\n"
         f"_تأكد من المعلومات قبل الإرسال_"
     )
     await update.message.reply_text(
@@ -231,22 +231,22 @@ async def af_confirm_send(update: Update, context: ContextTypes.DEFAULT_TYPE):
         f"🔢 *رقم الطلب:* `#{order_id}`\n"
         f"💵 *المبلغ المخصوم:* `${ud['af_price']:.0f}`\n"
         f"💰 *رصيدك الحالي:* `${new_balance:.2f}`\n\n"
-        f"—————————————————\n"
+        f"\n—————————————————\n\n"
         f"📩 للمتابعة تواصل مع الأدمن:\n"
         f"👤 @Allosh96ha\n"
-        f"—————————————————",
+        f"\n—————————————————\n",
         parse_mode=ParseMode.MARKDOWN
     )
 
     admin_text = (
         f"🔔 *طلب AppsFlyer جديد!*\n"
-        f"—————————————————\n"
+        f"\n—————————————————\n\n"
         f"🔢 *رقم الطلب:* `#{order_id}`\n"
         f"👤 *المستخدم:* {user.full_name} (@{user.username or 'N/A'})\n"
         f"🆔 *User ID:* `{user.id}`\n"
         f"🕹 *اللعبة:* {ud['af_game_name']}\n"
         f"💵 *السعر:* `${ud['af_price']:.0f}` ✅ *خُصم*\n"
-        f"—————————————————\n"
+        f"\n—————————————————\n\n"
         f"📱 *IDFA:* `{ud['af_idfa']}`\n"
         f"📱 *IDFV:* `{ud['af_idfv']}`\n"
         f"📱 *iOS Ver:* `{ud['af_ios_ver']}`\n"
