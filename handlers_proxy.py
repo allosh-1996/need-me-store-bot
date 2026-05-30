@@ -1,3 +1,4 @@
+import logging
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ContextTypes, ConversationHandler
 from telegram.constants import ParseMode
@@ -5,6 +6,8 @@ import database as db
 import keyboards as kb
 from config import ADMIN_ID, PROXY_TYPES
 from lang import t, get_user_lang
+
+logger = logging.getLogger(__name__)
 
 PROXY_TYPE, PROXY_QTY, PROXY_QTY_CUSTOM, PROXY_COUNTRY, PROXY_COUNTRY_CUSTOM, PROXY_NOTES, PROXY_CONFIRM = range(30, 37)
 
@@ -373,7 +376,7 @@ async def proxy_confirm(update: Update, context: ContextTypes.DEFAULT_TYPE):
             reply_markup=admin_kb
         )
     except Exception as e:
-        print(f"Admin notify error: {e}")
+        logger.error(f"Admin notify error in proxy_confirm: {e}")
 
     done_kb = InlineKeyboardMarkup([[
         InlineKeyboardButton(" Home  |  الرئيسية", callback_data="back_main")

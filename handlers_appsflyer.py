@@ -192,18 +192,13 @@ async def af_confirm_send(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
     ud = context.user_data
 
-    # FIX: atomic balance check + deduct using BEGIN IMMEDIATE
-    conn = db.get_conn()
+    price = ud.get("af_price", 0)
     try:
-        conn.execute("BEGIN IMMEDIATE")
-        cur = conn.execute("SELECT balance_usd FROM balances WHERE user_id=?", (user.id,))
-        row = cur.fetchone()
-        current_balance = row[0] if row else 0.0
-        price = ud.get("af_price", 0)
-
-        if current_balance < price:
-            conn.execute("ROLLBACK")
-            conn.close()
+        db.deduct_balance_atomic(user.id, price)
+    except ValueError as e:
+        err = str(e)
+        if err.startswith("insufficient_balance:"):
+            current_balance = float(err.split(":")[1])
             await query.edit_message_text(
                 f"❌ *رصيدك غير كافٍ*\n\n"
                 f"💰 رصيدك: `${current_balance:.2f}`\n"
@@ -211,25 +206,8 @@ async def af_confirm_send(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 f"_اشحن رصيدك وحاول مجدداً_",
                 parse_mode=ParseMode.MARKDOWN
             )
-            return ConversationHandler.END
-
-        # خصم atomic
-        conn.execute(
-            """UPDATE balances SET
-               balance_usd = balance_usd - ?,
-               total_spent = total_spent + ?,
-               updated_at  = CURRENT_TIMESTAMP
-               WHERE user_id=?""",
-            (price, price, user.id)
-        )
-        conn.execute("COMMIT")
-        conn.close()
-    except Exception as e:
-        try: conn.execute("ROLLBACK")
-        except Exception: pass
-        try: conn.close()
-        except Exception: pass
-        await query.edit_message_text("❌ خطأ في المعالجة، حاول مجدداً", parse_mode=ParseMode.MARKDOWN)
+        else:
+            await query.edit_message_text("❌ خطأ في المعالجة، حاول مجدداً", parse_mode=ParseMode.MARKDOWN)
         return ConversationHandler.END
 
     order_id = db.create_appsflyer_order(

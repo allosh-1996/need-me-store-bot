@@ -320,14 +320,15 @@ def api_broadcast():
         return jsonify({"ok": False, "error": "Empty message"}), 400
 
     conn = db.get_conn()
-    # FIX: is_sent=1 من البداية — الداشبورد يرسل مباشرة، job_queue لن يراها
-    cur = conn.execute("INSERT INTO broadcasts (message, is_sent) VALUES (?, 1)", (msg,))
-    broadcast_id = cur.lastrowid
-    conn.commit()
-
-    cur2 = conn.execute("SELECT id FROM users WHERE is_blocked=0")
-    users = db._fetchall_dict(cur2)
-    conn.close()
+    try:
+        # FIX: is_sent=1 من البداية — الداشبورد يرسل مباشرة، job_queue لن يراها
+        cur = conn.execute("INSERT INTO broadcasts (message, is_sent) VALUES (?, 1)", (msg,))
+        broadcast_id = cur.lastrowid
+        conn.commit()
+        cur2 = conn.execute("SELECT id FROM users WHERE is_blocked=0")
+        users = db._fetchall_dict(cur2)
+    finally:
+        conn.close()
 
     sent = 0
     failed = 0

@@ -646,6 +646,51 @@ def get_conn_raw():
 # AppsFlyer Orders
 # ══════════════════════════════════════════════════════
 
+def deduct_balance_atomic(user_id, price):
+    """
+    FIX: Atomic balance deduction for AppsFlyer and similar flows.
+    يرجع new_balance لو نجح، يرفع ValueError لو الرصيد غير كافٍ.
+    """
+    conn = get_conn()
+    try:
+        conn.execute("BEGIN IMMEDIATE")
+        cur = conn.execute("SELECT balance_usd FROM balances WHERE user_id=?", (user_id,))
+        row = cur.fetchone()
+        current_balance = row[0] if row else 0.0
+
+        if current_balance < price:
+            conn.execute("ROLLBACK")
+            conn.close()
+            raise ValueError(f"insufficient_balance:{current_balance:.2f}")
+
+        conn.execute(
+            """UPDATE balances SET
+               balance_usd = balance_usd - ?,
+               total_spent = total_spent + ?,
+               updated_at  = CURRENT_TIMESTAMP
+               WHERE user_id=?""",
+            (price, price, user_id)
+        )
+        conn.execute("COMMIT")
+        new_balance = current_balance - price
+        conn.close()
+        return new_balance
+
+    except ValueError:
+        raise
+    except Exception as e:
+        logger.error(f"deduct_balance_atomic error user={user_id}: {e}")
+        try:
+            conn.execute("ROLLBACK")
+        except Exception:
+            pass
+        try:
+            conn.close()
+        except Exception:
+            pass
+        raise ValueError(f"transaction_error:{e}")
+
+
 def create_appsflyer_order(user_id, username, full_name, game_key,
                             game_name, price_usd, idfa, idfv,
                             ios_version, appsflyer_id):

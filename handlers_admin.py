@@ -318,6 +318,8 @@ async def admin_show_products(update: Update, context: ContextTypes.DEFAULT_TYPE
 async def admin_product_detail(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
+    if not is_admin(query.from_user.id):
+        return
     product_id = int(query.data.replace("adm_prod_detail_", ""))
     product = db.get_product(product_id)
 
@@ -369,6 +371,8 @@ async def update_stock_receive(update: Update, context: ContextTypes.DEFAULT_TYP
 async def delete_product(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
+    if not is_admin(query.from_user.id):
+        return
     product_id = int(query.data.replace("adm_del_", ""))
     db.delete_product(product_id)
     logger.info(f"Admin deleted product #{product_id}")

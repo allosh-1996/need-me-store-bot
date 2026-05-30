@@ -1,3 +1,4 @@
+import logging
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ContextTypes, ConversationHandler
 from telegram.constants import ParseMode
@@ -5,6 +6,8 @@ import database as db
 import keyboards as kb
 from config import ADMIN_ID, USDT_WALLET, SYP_RATE
 from lang import t, get_user_lang
+
+logger = logging.getLogger(__name__)
 
 WAITING_METHOD, WAITING_AMOUNT, WAITING_TXHASH = range(20, 23)
 
@@ -155,7 +158,7 @@ async def charge_proof(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         db.update_charge_proof(req_id, proof)
     except Exception as e:
-        print(f"DB Error: {e}")
+        logger.error(f"DB Error in charge_proof: {e}")
         await update.message.reply_text(" خطأ في الحفظ  |  Save error, try again.")
         return ConversationHandler.END
 
@@ -192,7 +195,7 @@ async def charge_proof(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 parse_mode=ParseMode.MARKDOWN, reply_markup=admin_kb
             )
     except Exception as e:
-        print(f"Admin notify error: {e}")
+        logger.error(f"Admin notify error in charge_proof: {e}")
 
     done_kb = InlineKeyboardMarkup([[InlineKeyboardButton(" Home  |  الرئيسية", callback_data="back_main")]])
     await update.message.reply_text(
@@ -309,7 +312,7 @@ async def admin_confirm_charge(update: Update, context: ContextTypes.DEFAULT_TYP
             reply_markup=kb.main_menu("ar")
         )
     except Exception as e:
-        print(f"Notify error: {e}")
+        logger.error(f"Notify error in admin_confirm_charge: {e}")
 
     try:
         await query.edit_message_caption(
