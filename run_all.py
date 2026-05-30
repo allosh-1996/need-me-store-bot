@@ -15,11 +15,8 @@ logging.basicConfig(
 )
 
 def run_dashboard():
-    from web_dashboard import app
-    import os
-    # الداشبورد على PORT الخارجي — يستقبل كل الـ requests بما فيها /webhook
-    port = int(os.environ.get("PORT", "5000"))
-    app.run(host="0.0.0.0", port=port, debug=False, use_reloader=False)
+    from web_dashboard import run_dashboard as _run
+    _run()
 
 def run_bot():
     import main

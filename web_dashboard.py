@@ -92,26 +92,6 @@ def ping():
     return "🌙 NexVault Bot — Online ✅"
 
 
-# ═══ Webhook Proxy — يمرر updates تيليغرام للبوت ═══
-@app.route('/webhook', methods=['POST'])
-def webhook_proxy():
-    """
-    Railway يكشف PORT واحد فقط — الداشبورد يستقبل /webhook ويمرره للبوت على BOT_PORT.
-    """
-    import os as _os
-    bot_port = int(_os.environ.get("BOT_PORT", "8080"))
-    try:
-        resp = req_lib.post(
-            f"http://127.0.0.1:{bot_port}/webhook",
-            data=request.get_data(),
-            headers={"Content-Type": "application/json"},
-            timeout=5
-        )
-        return resp.content, resp.status_code
-    except Exception as e:
-        logger.error(f"Webhook proxy error: {e}")
-        return "ok", 200
-
 # ═══ Auth ═══
 @app.route('/login', methods=['GET', 'POST'])
 def login():
