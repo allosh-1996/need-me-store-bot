@@ -11,7 +11,7 @@ from lang import t, get_user_lang
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
     db.upsert_user(user.id, user.username or "", user.full_name or "")
-    lang = get_user_lang(context)
+    lang = get_user_lang(context, update.effective_user.id)
     await update.message.reply_text(
         t("welcome", lang),
         parse_mode=ParseMode.MARKDOWN,
@@ -20,7 +20,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 async def help_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    lang = get_user_lang(context)
+    lang = get_user_lang(context, update.effective_user.id)
     if lang == "en":
         text = "*Commands*\n\n`/start` — Home\n`/products` — Products\n`/charge` — Top Up\n`/help` — Help"
     else:
@@ -30,7 +30,7 @@ async def help_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def change_language_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
-    current = get_user_lang(context)
+    current = get_user_lang(context, update.effective_user.id)
     new_lang = "en" if current == "ar" else "ar"
     context.user_data["lang"] = new_lang
     db.set_user_lang(user.id, new_lang)
@@ -42,7 +42,7 @@ async def change_language_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE
 
 
 async def support_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    lang = get_user_lang(context)
+    lang = get_user_lang(context, update.effective_user.id)
     await update.message.reply_text(
         f"🛟 *{t('support_title', lang)}*\n"
         f"\n—————————————————\n\n"
@@ -58,7 +58,7 @@ async def toggle_lang(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
     user = query.from_user
-    current = get_user_lang(context)
+    current = get_user_lang(context, update.effective_user.id)
     new_lang = "en" if current == "ar" else "ar"
     context.user_data["lang"] = new_lang
     db.set_user_lang(user.id, new_lang)
@@ -73,7 +73,7 @@ async def show_products(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     if query:
         await query.answer()
-    lang = get_user_lang(context)
+    lang = get_user_lang(context, update.effective_user.id)
 
     products = db.get_all_products()
     categories = list(dict.fromkeys(p['category'] for p in products if p.get('category')))
@@ -90,7 +90,7 @@ async def show_products(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def show_category(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
-    lang = get_user_lang(context)
+    lang = get_user_lang(context, update.effective_user.id)
     category = query.data.replace("cat_", "")
 
     products = db.get_all_products()
@@ -114,7 +114,7 @@ async def show_category(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def show_product_detail(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
-    lang = get_user_lang(context)
+    lang = get_user_lang(context, update.effective_user.id)
     product_id = int(query.data.replace("prod_", ""))
 
     product, stock_count = db.get_product_with_stock(product_id)
@@ -142,7 +142,7 @@ async def show_product_detail(update: Update, context: ContextTypes.DEFAULT_TYPE
 async def initiate_buy(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
-    lang = get_user_lang(context)
+    lang = get_user_lang(context, update.effective_user.id)
 
     # Rate limiting: 3 ثواني بين كل محاولة
     now = time.time()
@@ -232,7 +232,7 @@ async def my_orders(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     if query:
         await query.answer()
-    lang = get_user_lang(context)
+    lang = get_user_lang(context, update.effective_user.id)
     user = update.effective_user
     orders = db.get_user_orders(user.id)
 
@@ -267,7 +267,7 @@ async def my_orders(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def contact(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
-    lang = get_user_lang(context)
+    lang = get_user_lang(context, update.effective_user.id)
     await query.edit_message_text(
         f"💬 *{t('contact_title', lang)}*\n"
         f"\n—————————————————\n\n"
@@ -282,7 +282,7 @@ async def contact(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def back_main(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
-    lang = get_user_lang(context)
+    lang = get_user_lang(context, update.effective_user.id)
     await query.edit_message_text(
         t("welcome", lang),
         parse_mode=ParseMode.MARKDOWN,
@@ -292,7 +292,7 @@ async def back_main(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def persistent_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
-    lang = get_user_lang(context)
+    lang = get_user_lang(context, update.effective_user.id)
     db.upsert_user(user.id, user.username or "", user.full_name or "")
     for k in ['charge_amount', 'charge_method', 'charge_display', 'charge_amount_syp', 'pending_order_id', 'buy_currency']:
         context.user_data.pop(k, None)
@@ -307,7 +307,7 @@ async def persistent_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def icloud_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
-    lang = get_user_lang(context)
+    lang = get_user_lang(context, update.effective_user.id)
 
     context.user_data['cat_source'] = 'back_main'
 
@@ -332,7 +332,7 @@ async def icloud_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def emails_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
-    lang = get_user_lang(context)
+    lang = get_user_lang(context, update.effective_user.id)
 
     context.user_data['cat_source'] = 'emails_menu'
 
@@ -353,7 +353,7 @@ async def emails_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def surveys_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
-    lang = get_user_lang(context)
+    lang = get_user_lang(context, update.effective_user.id)
 
     context.user_data['cat_source'] = 'surveys_menu'
 

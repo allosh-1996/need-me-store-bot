@@ -24,7 +24,7 @@ AF_GAME, AF_IDFA, AF_IDFV, AF_IOS_VER, AF_AF_ID, AF_CONFIRM = range(40, 46)
 async def appsflyer_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
-    lang = get_user_lang(context)
+    lang = get_user_lang(context, update.effective_user.id)
 
     keyboard = []
     for game_key, game_data in APPSFLYER_GAMES.items():

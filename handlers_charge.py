@@ -218,7 +218,7 @@ async def charge_cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def charge_back_to_main(update: Update, context: ContextTypes.DEFAULT_TYPE):
     """رجوع للقائمة الرئيسية — يشتغل مع callback أو message"""
-    lang = get_user_lang(context)
+    lang = get_user_lang(context, update.effective_user.id)
     for k in ['charge_amount','charge_method','charge_display','charge_amount_syp']:
         context.user_data.pop(k, None)
 
@@ -244,7 +244,7 @@ async def show_balance(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await query.answer()
 
     user = update.effective_user
-    lang = get_user_lang(context)
+    lang = get_user_lang(context, update.effective_user.id)
     balance = db.get_balance(user.id)
 
     details = db.get_balance_details(user.id)

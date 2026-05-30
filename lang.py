@@ -234,28 +234,22 @@ def t(key: str, lang: str) -> str:
     return entry.get(lang) or entry.get("ar") or key
 
 
-def get_user_lang(context) -> str:
+def get_user_lang(context, user_id=None) -> str:
     """
     جيب لغة المستخدم:
     1. من user_data (session cache — أسرع)
-    2. من قاعدة البيانات لو ما موجودة في الجلسة
+    2. من قاعدة البيانات لو مُرِّر user_id وما كانت في الجلسة
     الافتراضي عربي.
     """
-    # من الجلسة أولاً
     lang = context.user_data.get("lang")
     if lang:
         return lang
 
-    # من قاعدة البيانات
-    user = context._user_id if hasattr(context, "_user_id") else None
-    if user is None and hasattr(context, "effective_user") and context.effective_user:
-        user = context.effective_user.id
-
-    if user:
+    if user_id:
         try:
             import database as db
-            lang = db.get_user_lang(user)
-            context.user_data["lang"] = lang  # cache في الجلسة
+            lang = db.get_user_lang(user_id)
+            context.user_data["lang"] = lang
             return lang
         except Exception:
             pass

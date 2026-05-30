@@ -509,9 +509,6 @@ def deduct_balance(user_id, amount):
     )
     conn.commit()
 
-def has_enough_balance(user_id, amount):
-    return get_balance(user_id) >= amount
-
 def get_balance_details(user_id):
     conn = get_conn()
     cur = conn.execute(
@@ -541,11 +538,6 @@ def update_charge_proof(req_id, proof):
     conn = get_conn()
     conn.execute("UPDATE charge_requests SET proof=? WHERE id=?", (proof, req_id))
     conn.commit()
-
-def get_pending_charges():
-    conn = get_conn()
-    cur = conn.execute("SELECT * FROM charge_requests WHERE status='pending' ORDER BY created_at DESC")
-    return _fetchall_dict(cur)
 
 def get_charge_request(req_id):
     conn = get_conn()

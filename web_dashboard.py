@@ -453,7 +453,6 @@ def api_proxy_orders():
 @auth_required
 def api_proxy_order_status(oid):
     status = request.json.get('status')
-    proxy = db.get_pending_proxy_orders()
     proxy = next((p for p in db.get_proxy_orders() if p['id'] == oid), None)
     db.update_proxy_order_status(oid, status)
     logger.info(f"Dashboard: proxy order #{oid} status={status}")
