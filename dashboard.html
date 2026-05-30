@@ -758,7 +758,7 @@ function selectSection(btn) {
 
   // إخفاء كل الحقول الإضافية أولاً
   $('subtype-group').style.display = 'none'
-  $('game-name-group').style.display = 'none'
+  const _gng = $('game-name-group'); if(_gng) _gng.style.display = 'none'
   $('subtype-btns').innerHTML = ''
 
   if (section === 'icloud') {
