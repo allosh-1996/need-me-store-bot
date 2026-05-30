@@ -12,7 +12,6 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
     db.upsert_user(user.id, user.username or "", user.full_name or "")
     lang = get_user_lang(context)
-    await update.message.reply_text("👋", reply_markup=ReplyKeyboardRemove())
     await update.message.reply_text(
         t("welcome", lang),
         parse_mode=ParseMode.MARKDOWN,
