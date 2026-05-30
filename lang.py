@@ -110,12 +110,12 @@ STRINGS = {
         "en": "Select a product",
     },
     "in_stock": {
-        "ar": "متوفر",
-        "en": "In Stock",
+        "ar": "🟢 متوفر",
+        "en": "🟢 In Stock",
     },
     "out_of_stock": {
-        "ar": "غير متوفر",
-        "en": "Out of Stock",
+        "ar": "🔴 غير متوفر",
+        "en": "🔴 Out of Stock",
     },
     "no_desc": {
         "ar": "لا يوجد وصف",
