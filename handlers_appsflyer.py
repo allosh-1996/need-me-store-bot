@@ -64,7 +64,7 @@ async def af_game_selected(update: Update, context: ContextTypes.DEFAULT_TYPE):
             f"_اشحن رصيدك أولاً ثم حاول مجدداً_",
             parse_mode=ParseMode.MARKDOWN,
             reply_markup=InlineKeyboardMarkup([
-                [InlineKeyboardButton("💳 شحن الرصيد", callback_data="charge_menu")],
+                [InlineKeyboardButton("💳 شحن الرصيد", callback_data="charge_start")],
                 [InlineKeyboardButton("🔙 رجوع", callback_data="win_appsflyer")],
             ])
         )
