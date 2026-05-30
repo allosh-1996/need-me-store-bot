@@ -576,7 +576,6 @@ tr:hover td{background:var(--surface2)}
       <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:4px" id="subtype-btns"></div>
     </div>
 
-    <input type="hidden" id="p-category" value="">
     <input type="hidden" id="p-platform" value="general">
 
     <!-- الاسم والسعر -->
@@ -748,6 +747,8 @@ const SECTION_CONFIG = {
   emails:     { label: 'نوع الايميل', cats: ['Outlook','Gmail','Hotmail'] },
   surveys:    { label: 'نوع السيرفي', cats: ['Toluna','Qmee','My Points','Swagbucks'] },
 }
+// متغير عالمي للـ category المختارة
+window._selectedCategory = ''
 
 function selectSection(btn) {
   window._lastSection = btn.dataset.section
@@ -762,7 +763,7 @@ function selectSection(btn) {
   $('subtype-btns').innerHTML = ''
 
   if (section === 'icloud') {
-    $('p-category').value = 'Apple iCloud'
+    window._selectedCategory = 'Apple iCloud'
     $('p-platform').value = 'general'
     $('subtype-group').style.display = 'none'
 
@@ -772,7 +773,7 @@ function selectSection(btn) {
     $('subtype-btns').innerHTML = cfg.cats.map(c =>
       `<button type="button" class="cat-btn" data-val="${c}" onclick="selectSubtype(this)">${c}</button>`
     ).join('')
-    $('p-category').value = cfg.cats[0]
+    window._selectedCategory = cfg.cats[0]
     $('subtype-btns').querySelector('.cat-btn').classList.add('active')
     $('p-platform').value = 'general'
 
@@ -782,7 +783,7 @@ function selectSection(btn) {
     $('subtype-btns').innerHTML = cfg.cats.map(c =>
       `<button type="button" class="cat-btn" data-val="${c}" onclick="selectSubtype(this)">${c}</button>`
     ).join('')
-    $('p-category').value = cfg.cats[0]
+    window._selectedCategory = cfg.cats[0]
     $('subtype-btns').querySelector('.cat-btn').classList.add('active')
     $('p-platform').value = 'general'
   }
@@ -791,7 +792,7 @@ function selectSection(btn) {
 function selectSubtype(btn) {
   document.querySelectorAll('#subtype-btns .cat-btn').forEach(b => b.classList.remove('active'))
   btn.classList.add('active')
-  $('p-category').value = btn.dataset.val
+  window._selectedCategory = btn.dataset.val
 }
 
 // عداد المخزون في المودال
@@ -801,11 +802,8 @@ function updateStockCount(textareaId, countId) {
 }
 
 async function addProduct() {
-  // احسب الـ category من الـ section الحالي مباشرة
-  const activeSection = window._lastSection || 'icloud'
-  let finalCat = $('p-category').value
-  if (activeSection === 'icloud') finalCat = 'Apple iCloud'
-  if (!finalCat) { toast('⚠️ اختر القسم أولاً', false); return }
+  const finalCat = window._selectedCategory || ''
+  if (!finalCat) { toast('⚠️ اضغط على القسم أولاً (iCloud / ايميلات / Surveys)', false); return }
 
   const d = {
     name: $('p-name').value.trim() || finalCat,
