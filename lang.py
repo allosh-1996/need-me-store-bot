@@ -136,8 +136,8 @@ STRINGS = {
         "en": "Choose Payment Method",
     },
     "buy_from_balance": {
-        "ar": "شراء من الرصيد",
-        "en": "Buy with Balance",
+        "ar": "✅ تأكيد الشراء",
+        "en": "✅ Confirm Purchase",
     },
     "insufficient_balance": {
         "ar": "رصيدك غير كافٍ",
