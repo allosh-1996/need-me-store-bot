@@ -563,7 +563,7 @@ tr:hover td{background:var(--surface2)}
     <div class="form-group">
       <label>القسم</label>
       <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:6px;margin-top:4px">
-        <button type="button" class="ptype-btn active" data-section="icloud" onclick="selectSection(this)">🍏 iCloud</button>
+        <button type="button" class="ptype-btn" data-section="icloud" onclick="selectSection(this)">🍏 iCloud</button>
         <button type="button" class="ptype-btn" data-section="emails" onclick="selectSection(this)">📧 ايميلات</button>
 
         <button type="button" class="ptype-btn" data-section="surveys" onclick="selectSection(this)">📊 Surveys</button>
@@ -661,7 +661,11 @@ function openModal(id) {
     // رجّع آخر section مختار (أو iCloud افتراضياً)
   const lastSection = window._lastSection || 'icloud'
   const targetBtn = document.querySelector(`.ptype-btn[data-section="${lastSection}"]`) || firstBtn
-  if (targetBtn) selectSection(targetBtn)
+  if (targetBtn) {
+    // شيل active من كل الأزرار أولاً
+    document.querySelectorAll('.ptype-btn').forEach(b => b.classList.remove('active'))
+    selectSection(targetBtn)
+  }
   }
 }
 function closeModal(id) { $(id).classList.remove('open') }
