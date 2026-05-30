@@ -224,12 +224,25 @@ def main():
 
     logger.info(f"🚀 البوت شغال! Admin ID: {ADMIN_ID}")
 
-    app.run_polling(
+    # Webhook mode — أسرع من Polling
+    # WEBHOOK_URL يُضبط تلقائياً من domain Railway
+    webhook_url = os.environ.get(
+        "WEBHOOK_URL",
+        "https://need-me-store-bot-production.up.railway.app/webhook"
+    )
+
+    # البوت يشتغل على BOT_PORT داخلياً (8080 افتراضياً)
+    # الداشبورد Flask يشتغل على PORT الخارجي ويمرر /webhook للبوت
+    bot_port = int(os.environ.get("BOT_PORT", "8080"))
+
+    logger.info(f"🌐 Webhook mode: {webhook_url} on bot_port={bot_port}")
+
+    app.run_webhook(
+        listen="0.0.0.0",
+        port=bot_port,
+        url_path="/webhook",
+        webhook_url=webhook_url,
         allowed_updates=Update.ALL_TYPES,
-        read_timeout=10,
-        write_timeout=10,
-        connect_timeout=10,
-        pool_timeout=5,
         drop_pending_updates=True,
     )
 
