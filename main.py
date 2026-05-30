@@ -17,7 +17,6 @@ from keep_alive import keep_alive
 import handlers_user as hu
 import handlers_admin as ha
 import handlers_charge as hc
-import handlers_proxy as hp
 import handlers_appsflyer as haf
 
 logging.basicConfig(
@@ -194,9 +193,6 @@ def main():
     app.add_handler(CallbackQueryHandler(ha.admin_product_detail, pattern=r'^adm_prod_detail_\d+$'))
     app.add_handler(CallbackQueryHandler(ha.delete_product,       pattern=r'^adm_del_\d+$'))
 
-    # ── Callbacks البروكسي (admin) ──
-    app.add_handler(CallbackQueryHandler(hp.proxy_admin_done,   pattern=r'^prx_done_\d+'))
-    app.add_handler(CallbackQueryHandler(hp.proxy_admin_reject, pattern=r'^prx_reject_\d+'))
 
     # ── Broadcast Job ──
     async def send_pending_broadcasts(context):
