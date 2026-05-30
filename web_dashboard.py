@@ -480,12 +480,17 @@ def api_user_notifications(uid):
 @app.route('/api/users/<int:uid>/delete', methods=['POST'])
 @auth_required
 def api_delete_user(uid):
+    """
+    FIX: Soft delete — يضع is_blocked=1 بدل الحذف الدائم.
+    البيانات تبقى محفوظة ويمكن استرجاعها، والمستخدم يختفي من الواجهة.
+    """
     conn = db.get_conn()
-    conn.execute("DELETE FROM users WHERE id=?", (uid,))
-    conn.execute("DELETE FROM balances WHERE user_id=?", (uid,))
-    conn.commit()
-    conn.close()
-    logger.info(f"Dashboard: user {uid} deleted")
+    try:
+        conn.execute("UPDATE users SET is_blocked=1 WHERE id=?", (uid,))
+        conn.commit()
+    finally:
+        conn.close()
+    logger.info(f"Dashboard: user {uid} soft-deleted (is_blocked=1)")
     return jsonify({"ok": True})
 
 @app.route('/api/notifications')

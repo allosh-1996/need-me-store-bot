@@ -1,3 +1,4 @@
+import time
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, ReplyKeyboardRemove
 from telegram.ext import ContextTypes, ConversationHandler
 from telegram.constants import ParseMode
@@ -140,6 +141,15 @@ async def initiate_buy(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
     lang = get_user_lang(context)
+
+    # Rate limiting: منع الضغط المتكرر على زر الشراء (3 ثواني بين كل محاولة)
+    now = time.time()
+    last_buy = context.user_data.get("last_buy_attempt", 0)
+    if now - last_buy < 3:
+        await query.answer("⏳ انتظر لحظة قبل المحاولة مجدداً", show_alert=True)
+        return
+    context.user_data["last_buy_attempt"] = now
+
     product_id = int(query.data.split("_")[1])
 
     user = update.effective_user
