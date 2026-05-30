@@ -1,106 +1,123 @@
 """
-Web Dashboard Backend
-Flask server for the admin dashboard
-FIX: Health endpoint مدمج هنا (port 5000) — لا حاجة لـ keep_alive Flask server.
-FIX: DASHBOARD_PASSWORD الافتراضي None — يرفع RuntimeError في production بدون كلمة سر.
+Web Dashboard Backend — NexVault Bot
+Flask server للداشبورد مع health endpoint مدمج (port 5000).
 """
-from flask import Flask, render_template, request, jsonify, session, redirect, url_for, send_from_directory
-import database as db
-from database import _fetchall_dict, _fetchone_dict
-import os
-import requests as req_lib
-from config import ADMIN_ID, BOT_TOKEN
-import secrets as _secrets
+import time
 import logging
+import os
+import hashlib
+import secrets as _secrets
+
+import requests as req_lib
+from flask import Flask, render_template, request, jsonify, session, redirect, send_from_directory
+
+import database as db
+from config import ADMIN_ID, BOT_TOKEN
 
 logger = logging.getLogger(__name__)
 
 app = Flask(__name__, template_folder='.')
 
-def tg_send(chat_id, text):
-    """إرسال رسالة تيليغرام من الداشبورد"""
-    try:
-        req_lib.post(
-            f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage",
-            json={"chat_id": chat_id, "text": text, "parse_mode": "Markdown"},
-            timeout=5
-        )
-    except Exception as e:
-        logger.error(f"TG send error: {e}")
+# ════════════════════════════════════════
+# tg_send — مع Retry + Exponential Backoff
+# ════════════════════════════════════════
 
-# ═══════════════════════════════════════════════════════════════
-# FIX: أمان الداشبورد
-# DASHBOARD_SECRET  — مفتاح تشفير الجلسات (مطلوب في production)
-# DASHBOARD_PASSWORD — كلمة سر الداشبورد (مطلوبة دائماً، لا افتراضي)
-# ═══════════════════════════════════════════════════════════════
+def tg_send(chat_id, text, retries=3):
+    """
+    إرسال رسالة تيليغرام مع retry تلقائي عند 429 (Too Many Requests).
+    retries: عدد المحاولات الإضافية بعد الأولى.
+    """
+    url = f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage"
+    payload = {"chat_id": chat_id, "text": text, "parse_mode": "Markdown"}
+
+    for attempt in range(retries + 1):
+        try:
+            resp = req_lib.post(url, json=payload, timeout=5)
+            if resp.status_code == 200:
+                return True
+            if resp.status_code == 429:
+                retry_after = resp.json().get("parameters", {}).get("retry_after", 2 ** attempt)
+                logger.warning(f"tg_send 429 — retry after {retry_after}s (attempt {attempt + 1})")
+                time.sleep(retry_after)
+                continue
+            # أخطاء أخرى (403 مثلاً — المستخدم حجب البوت) لا تستحق retry
+            logger.warning(f"tg_send {resp.status_code} for chat_id={chat_id}")
+            return False
+        except Exception as e:
+            logger.error(f"tg_send error (attempt {attempt + 1}): {e}")
+            if attempt < retries:
+                time.sleep(2 ** attempt)
+
+    return False
+
+# ════════════════════════════════════════
+# Security Config
+# ════════════════════════════════════════
+
 _is_production = bool(
     os.environ.get("RAILWAY_ENVIRONMENT") or
-    os.environ.get("RAILWAY_PROJECT_ID") or   # Railway دايماً بيحط هذا
+    os.environ.get("RAILWAY_PROJECT_ID") or
     os.environ.get("RENDER") or
     os.environ.get("PRODUCTION")
 )
 
 _dashboard_secret = os.environ.get("DASHBOARD_SECRET")
-DASHBOARD_PASSWORD = os.environ.get("DASHBOARD_PASSWORD")  # FIX: لا افتراضي
+DASHBOARD_PASSWORD = os.environ.get("DASHBOARD_PASSWORD")
 
-# في production: ارفض الشغل بدون credentials
 if _is_production:
     if not DASHBOARD_PASSWORD:
         raise RuntimeError(
             "❌ DASHBOARD_PASSWORD غير محدد!\n"
-            "أضف DASHBOARD_PASSWORD في Railway Variables.\n"
-            "مثال: python3 -c \"import secrets; print(secrets.token_urlsafe(16))\""
+            "أضف DASHBOARD_PASSWORD في Railway Variables."
         )
     if not _dashboard_secret:
         raise RuntimeError(
             "❌ DASHBOARD_SECRET غير محدد!\n"
-            "أضف DASHBOARD_SECRET في Railway Variables.\n"
-            "مثال: python3 -c \"import secrets; print(secrets.token_hex(32))\""
+            "أضف DASHBOARD_SECRET في Railway Variables."
         )
 else:
-    # في dev: تحذيرات واضحة لكن لا يوقف
     if not DASHBOARD_PASSWORD:
         DASHBOARD_PASSWORD = "dev_only_change_in_production"
-        logger.warning("⚠️  DASHBOARD_PASSWORD not set — using dev default. Set it in production!")
+        logger.warning("⚠️  DASHBOARD_PASSWORD not set — using dev default.")
     if not _dashboard_secret:
         _dashboard_secret = _secrets.token_hex(32)
-        logger.warning("⚠️  DASHBOARD_SECRET not set — using random key (sessions reset on restart)")
+        logger.warning("⚠️  DASHBOARD_SECRET not set — using random key.")
 
 app.secret_key = _dashboard_secret
-
-# FIX: Session cookie على HTTPS — بدونها الـ session ما بتنحفظ على Railway
-app.config['SESSION_COOKIE_SECURE'] = _is_production  # FIX: only HTTPS in production
+app.config['SESSION_COOKIE_SECURE'] = _is_production
 app.config['SESSION_COOKIE_HTTPONLY'] = True
 app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
 app.config['SESSION_COOKIE_NAME'] = 'nx_session'
 
-# Token-based auth كبديل للـ session (للموبايل)
-import hashlib
 _auth_token = hashlib.sha256(
-    (DASHBOARD_PASSWORD or 'dev').encode() + 
+    (DASHBOARD_PASSWORD or 'dev').encode() +
     (_dashboard_secret or 'dev').encode()
 ).hexdigest()[:32]
 app.config['AUTH_TOKEN'] = _auth_token
 
-# ═══ Health Check (FIX: مدمج هنا بدل keep_alive Flask) ═══
-@app.route('/health')
-def health():
-    return {"status": "alive", "bot": "NexVault"}, 200
+# ════════════════════════════════════════
+# Auth
+# ════════════════════════════════════════
 
-@app.route('/ping')
-def ping():
-    return "🌙 NexVault Bot — Online ✅"
+def auth_required(f):
+    from functools import wraps
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        token = request.headers.get('X-Auth-Token') or request.args.get('_t')
+        if session.get('admin') or (token and token == app.config.get('AUTH_TOKEN')):
+            return f(*args, **kwargs)
+        if request.path.startswith('/api/'):
+            return jsonify({'error': 'unauthorized'}), 401
+        return redirect('/login')
+    return decorated
 
-
-# ═══ Auth ═══
 @app.route('/login', methods=['GET', 'POST'])
 def login():
     error = None
     if request.method == 'POST':
         if request.form.get('password') == DASHBOARD_PASSWORD:
             session['admin'] = True
-            logger.info(f"Dashboard login successful from IP: {request.remote_addr}")
-            session['admin'] = True
+            logger.info(f"Dashboard login from IP: {request.remote_addr}")
             token = app.config.get('AUTH_TOKEN', '')
             return redirect(f'/?_t={token}')
         logger.warning(f"Dashboard login failed from IP: {request.remote_addr}")
@@ -112,20 +129,18 @@ def logout():
     session.clear()
     return redirect('/login')
 
-def auth_required(f):
-    from functools import wraps
-    @wraps(f)
-    def decorated(*args, **kwargs):
-        # تحقق من session أو X-Auth-Token header
-        token = request.headers.get('X-Auth-Token') or request.args.get('_t')
-        if session.get('admin') or (token and token == app.config.get('AUTH_TOKEN')):
-            return f(*args, **kwargs)
-        if request.path.startswith('/api/'):
-            return jsonify({'error': 'unauthorized'}), 401
-        return redirect('/login')
-    return decorated
+# ════════════════════════════════════════
+# Health & Static
+# ════════════════════════════════════════
 
-# ═══ Pages ═══
+@app.route('/health')
+def health():
+    return {"status": "alive", "bot": "NexVault"}, 200
+
+@app.route('/ping')
+def ping():
+    return "🌙 NexVault Bot — Online ✅"
+
 @app.route('/')
 @auth_required
 def dashboard():
@@ -139,7 +154,10 @@ def styles():
 def theme():
     return send_from_directory('.', 'theme.js')
 
-# ═══ APIs ═══
+# ════════════════════════════════════════
+# Stats & Products
+# ════════════════════════════════════════
+
 @app.route('/api/stats')
 @auth_required
 def api_stats():
@@ -148,21 +166,20 @@ def api_stats():
 @app.route('/api/products')
 @auth_required
 def api_products():
-    products = db.get_all_products(active_only=False)
-    return jsonify([dict(p) for p in products])
+    return jsonify([dict(p) for p in db.get_all_products(active_only=False)])
 
 @app.route('/api/products/add', methods=['POST'])
 @auth_required
 def api_add_product():
     d = request.json
     pid = db.add_product(
-        name=d.get('name',''),
-        description=d.get('description',''),
+        name=d.get('name', ''),
+        description=d.get('description', ''),
         price_usd=float(d.get('price_usd', 0)),
         price_syp=float(d.get('price_syp', 0)),
-        category=d.get('category',''),
-        stock=d.get('stock',''),
-        platform=d.get('platform', 'iOS')  # FIX: platform was missing
+        category=d.get('category', ''),
+        stock=d.get('stock', ''),
+        platform=d.get('platform', 'iOS')
     )
     logger.info(f"Dashboard: product #{pid} added")
     return jsonify({"id": pid, "ok": True})
@@ -183,25 +200,22 @@ def api_update_stock(pid):
     logger.info(f"Dashboard: stock updated for product #{pid}: {count} units")
     return jsonify({"ok": True, "count": count})
 
+# ════════════════════════════════════════
+# Orders
+# ════════════════════════════════════════
+
 @app.route('/api/orders')
 @auth_required
 def api_orders():
     status = request.args.get('status', '')
-    conn = db.get_conn()
-    if status:
-        cur = conn.execute("SELECT o.*, b.balance_usd FROM orders o LEFT JOIN balances b ON o.user_id=b.user_id WHERE o.status=? ORDER BY o.created_at DESC", (status,))
-    else:
-        cur = conn.execute("SELECT o.*, b.balance_usd FROM orders o LEFT JOIN balances b ON o.user_id=b.user_id ORDER BY o.created_at DESC LIMIT 100")
-    rows = _fetchall_dict(cur)
-    conn.close()
+    limit = int(request.args.get('limit', 100))
+    offset = int(request.args.get('offset', 0))
+    rows = db.get_orders_paginated(status=status, limit=limit, offset=offset)
     return jsonify(rows)
 
 @app.route('/api/orders/<int:oid>/status', methods=['POST'])
 @auth_required
 def api_order_status(oid):
-    """
-    FIX: عند التأكيد يستخدم pop_stock_item() لسحب وحدة فريدة atomic.
-    """
     status = request.json.get('status')
     order = db.get_order(oid)
 
@@ -221,7 +235,6 @@ def api_order_status(oid):
             f"\n—————————————————\n\n"
             f"شكراً لثقتك 🙏  |  _Thank you!_"
         )
-        # رسالة منفصلة للمنتج
         tg_send(order['user_id'],
             f"🎁 *تفاصيل المنتج  |  Product Details*\n"
             f"\n—————————————————\n\n"
@@ -246,21 +259,18 @@ def api_order_status(oid):
 
     return jsonify({"ok": True})
 
+# ════════════════════════════════════════
+# Charges
+# ════════════════════════════════════════
+
 @app.route('/api/charges')
 @auth_required
 def api_charges():
-    conn = db.get_conn()
-    cur = conn.execute("SELECT * FROM charge_requests ORDER BY created_at DESC LIMIT 100")
-    rows = _fetchall_dict(cur)
-    conn.close()
-    return jsonify(rows)
+    return jsonify(db.get_charges_recent())
 
 @app.route('/api/charges/<int:cid>/confirm', methods=['POST'])
 @auth_required
 def api_confirm_charge(cid):
-    """
-    FIX: يضيف الرصيد تلقائياً عبر db.confirm_charge()
-    """
     charge = db.confirm_charge(cid)
     if charge:
         new_balance = db.get_balance(charge['user_id'])
@@ -296,65 +306,38 @@ def api_reject_charge(cid):
         )
     return jsonify({"ok": True})
 
+@app.route('/api/charges/<int:cid>/proof_image')
+@auth_required
+def api_charge_proof_image(cid):
+    charge = db.get_charge_request(cid)
+    if not charge or not charge.get("proof"):
+        return jsonify({"ok": False, "error": "No proof found"}), 404
+
+    file_id = charge["proof"]
+    try:
+        resp = req_lib.get(
+            f"https://api.telegram.org/bot{BOT_TOKEN}/getFile",
+            params={"file_id": file_id},
+            timeout=5
+        )
+        result = resp.json()
+        if not result.get("ok"):
+            return jsonify({"ok": False, "error": "Telegram API error", "is_file_id": True, "file_id": file_id}), 200
+        file_path = result["result"]["file_path"]
+        image_url = f"https://api.telegram.org/file/bot{BOT_TOKEN}/{file_path}"
+        return jsonify({"ok": True, "url": image_url, "file_id": file_id})
+    except Exception as e:
+        logger.error(f"Proof image error: {e}")
+        return jsonify({"ok": False, "error": str(e), "file_id": file_id}), 200
+
+# ════════════════════════════════════════
+# Users
+# ════════════════════════════════════════
+
 @app.route('/api/users')
 @auth_required
 def api_users():
-    conn = db.get_conn()
-    cur = conn.execute("""SELECT u.*,
-                        COALESCE(b.balance_usd, 0) as balance,
-                        COALESCE(b.total_charged, 0) as total_charged,
-                        COALESCE(b.total_spent, 0) as total_spent
-                 FROM users u LEFT JOIN balances b ON u.id=b.user_id
-                 ORDER BY u.joined_at DESC""")
-    rows = _fetchall_dict(cur)
-    conn.close()
-    return jsonify(rows)
-
-@app.route('/api/broadcast', methods=['POST'])
-@auth_required
-def api_broadcast():
-    """
-    FIX: يحدد is_sent=1 فوراً قبل الإرسال — يمنع job_queue من إرسالها مرة ثانية.
-    """
-    msg = request.json.get('message', '')
-    if not msg:
-        return jsonify({"ok": False, "error": "Empty message"}), 400
-
-    conn = db.get_conn()
-    try:
-        # FIX: is_sent=1 من البداية — الداشبورد يرسل مباشرة، job_queue لن يراها
-        cur = conn.execute("INSERT INTO broadcasts (message, is_sent) VALUES (?, 1)", (msg,))
-        broadcast_id = cur.lastrowid
-        conn.commit()
-        cur2 = conn.execute("SELECT id FROM users WHERE is_blocked=0")
-        users = db._fetchall_dict(cur2)
-    finally:
-        conn.close()
-
-    sent = 0
-    failed = 0
-    for user in users:
-        try:
-            resp = req_lib.post(
-                f"https://api.telegram.org/bot{BOT_TOKEN}/sendMessage",
-                json={"chat_id": user["id"], "text": msg, "parse_mode": "Markdown"},
-                timeout=5
-            )
-            if resp.status_code == 200:
-                sent += 1
-            else:
-                failed += 1
-        except Exception as e:
-            failed += 1
-            logger.error(f"Broadcast error for {user['id']}: {e}")
-
-    conn3 = db.get_conn()
-    conn3.execute("UPDATE broadcasts SET sent_count=? WHERE id=?", (sent, broadcast_id))
-    conn3.commit()
-    conn3.close()
-
-    logger.info(f"Dashboard broadcast #{broadcast_id}: sent={sent}, failed={failed}")
-    return jsonify({"ok": True, "sent": sent, "failed": failed})
+    return jsonify(db.get_users_with_balances())
 
 @app.route('/api/users/<int:uid>/add_balance', methods=['POST'])
 @auth_required
@@ -391,154 +374,87 @@ def api_deduct_balance(uid):
     )
     return jsonify({"ok": True, "new_balance": new_balance})
 
-@app.route('/api/users/<int:uid>/balance', methods=['GET'])
+@app.route('/api/users/<int:uid>/balance')
 @auth_required
 def api_get_balance(uid):
-    balance = db.get_balance(uid)
-    conn = db.get_conn()
-    cur = conn.execute("SELECT total_charged, total_spent FROM balances WHERE user_id=?", (uid,))
-    row = _fetchone_dict(cur)
-    conn.close()
-    return jsonify({
-        "balance": balance,
-        "total_charged": row['total_charged'] if row else 0,
-        "total_spent": row['total_spent'] if row else 0
-    })
-
-# ===== Notifications APIs =====
-
-@app.route('/api/notifications/all')
-@auth_required
-def api_notifications_all():
-    conn = db.get_conn()
-    cur1 = conn.execute("""SELECT id, user_id, username, full_name, amount_usd, method,
-        tx_hash, proof, status, created_at FROM charge_requests ORDER BY created_at DESC LIMIT 100""")
-    charges = [dict(r, type='charge', icon='💰',
-        title=f"شحن رصيد — ${r['amount_usd']}",
-        subtitle=f"{r['full_name']} · {'USDT' if r['method']=='usdt' else 'Syriatel'}")
-        for r in _fetchall_dict(cur1)]
-
-    cur2 = conn.execute("""SELECT id, user_id, username, full_name, product_name,
-        price_usd, currency, payment_method, payment_proof, status, notes,
-        delivered_item, created_at FROM orders ORDER BY created_at DESC LIMIT 100""")
-    orders = [dict(r, type='order', icon='🛍️',
-        title=f"طلب شراء — {r['product_name']}",
-        subtitle=f"{r['full_name']} · ${r['price_usd']}")
-        for r in _fetchall_dict(cur2)]
-
-    cur3 = conn.execute("""SELECT id, user_id, username, full_name, proxy_type_label,
-        quantity, country, notes, status, created_at FROM proxy_orders ORDER BY created_at DESC LIMIT 100""")
-    proxies = [dict(r, type='proxy', icon='🌐',
-        title=f"بروكسي — {r['proxy_type_label']} x{r['quantity']}",
-        subtitle=f"{r['full_name']} · {r['country']}")
-        for r in _fetchall_dict(cur3)]
-
-    cur4 = conn.execute("""SELECT id, user_id, username, full_name, game_name,
-        price_usd, idfa, idfv, ios_version, appsflyer_id, status, created_at
-        FROM appsflyer_orders ORDER BY created_at DESC LIMIT 100""")
-    appsflyer = [dict(r, type='appsflyer', icon='🎮',
-        title=f"AppsFlyer — {r['game_name']}",
-        subtitle=f"{r['full_name']} · ${r['price_usd']}")
-        for r in _fetchall_dict(cur4)]
-
-    conn.close()
-    all_notifs = sorted(charges + orders + proxies + appsflyer, key=lambda x: x['created_at'], reverse=True)
-    return jsonify(all_notifs)
-
-@app.route('/api/notifications/user/<int:uid>')
-@auth_required
-def api_user_notifications(uid):
-    conn = db.get_conn()
-    cur1 = conn.execute("""SELECT id, user_id, username, full_name, amount_usd, method,
-        tx_hash, proof, status, created_at FROM charge_requests
-        WHERE user_id=? ORDER BY created_at DESC""", (uid,))
-    charges = [dict(r, type='charge', icon='💰',
-        title=f"شحن رصيد — ${r['amount_usd']}",
-        subtitle=f"{'USDT' if r['method']=='usdt' else 'Syriatel Cash'}")
-        for r in _fetchall_dict(cur1)]
-
-    cur2 = conn.execute("""SELECT id, user_id, username, full_name, product_name,
-        price_usd, currency, payment_method, payment_proof, status, notes,
-        delivered_item, created_at FROM orders
-        WHERE user_id=? ORDER BY created_at DESC""", (uid,))
-    orders = [dict(r, type='order', icon='🛍️',
-        title=f"طلب شراء — {r['product_name']}",
-        subtitle=f"${r['price_usd']}")
-        for r in _fetchall_dict(cur2)]
-
-    cur3 = conn.execute("""SELECT id, user_id, username, full_name, proxy_type_label,
-        quantity, country, notes, status, created_at FROM proxy_orders
-        WHERE user_id=? ORDER BY created_at DESC""", (uid,))
-    proxies = [dict(r, type='proxy', icon='🌐',
-        title=f"بروكسي — {r['proxy_type_label']} x{r['quantity']}",
-        subtitle=f"{r['country']}")
-        for r in _fetchall_dict(cur3)]
-
-    conn.close()
-    all_notifs = sorted(charges + orders + proxies, key=lambda x: x['created_at'], reverse=True)
-    return jsonify(all_notifs)
+    return jsonify(db.get_balance_by_user(uid))
 
 @app.route('/api/users/<int:uid>/delete', methods=['POST'])
 @auth_required
 def api_delete_user(uid):
-    """
-    FIX: Soft delete — يضع is_blocked=1 بدل الحذف الدائم.
-    البيانات تبقى محفوظة ويمكن استرجاعها، والمستخدم يختفي من الواجهة.
-    """
-    conn = db.get_conn()
-    try:
-        conn.execute("UPDATE users SET is_blocked=1 WHERE id=?", (uid,))
-        conn.commit()
-    finally:
-        conn.close()
-    logger.info(f"Dashboard: user {uid} soft-deleted (is_blocked=1)")
+    db.block_user(uid)
+    logger.info(f"Dashboard: user {uid} blocked (soft delete)")
     return jsonify({"ok": True})
+
+# ════════════════════════════════════════
+# Notifications
+# ════════════════════════════════════════
 
 @app.route('/api/notifications')
 @auth_required
 def api_notifications():
-    conn = db.get_conn()
-    cur1 = conn.execute("SELECT id, full_name, amount_usd, method, created_at FROM charge_requests WHERE status='pending' ORDER BY created_at DESC LIMIT 20")
-    charges = [{"type": "charge", "id": r["id"], "name": r["full_name"],
-                "amount": r["amount_usd"], "method": r["method"],
-                "time": r["created_at"]} for r in _fetchall_dict(cur1)]
-
-    cur2 = conn.execute("SELECT id, full_name, product_name, price_usd, created_at FROM orders WHERE status='pending' ORDER BY created_at DESC LIMIT 20")
-    orders = [{"type": "order", "id": r["id"], "name": r["full_name"],
-               "product": r["product_name"], "amount": r["price_usd"],
-               "time": r["created_at"]} for r in _fetchall_dict(cur2)]
-
-    cur3 = conn.execute("SELECT id, full_name, proxy_type_label, quantity, country, created_at FROM proxy_orders WHERE status='pending' ORDER BY created_at DESC LIMIT 20")
-    proxies = [{"type": "proxy", "id": r["id"], "name": r["full_name"],
-                "product": f"{r['proxy_type_label']} x{r['quantity']} ({r['country']})",
-                "amount": 0, "time": r["created_at"]} for r in _fetchall_dict(cur3)]
-
-    cur4 = conn.execute("SELECT id, full_name, game_name, price_usd, created_at FROM appsflyer_orders WHERE status=\'pending\' ORDER BY created_at DESC LIMIT 20")
-    appsflyer = [{"type": "appsflyer", "id": r["id"], "name": r["full_name"],
-                  "product": r["game_name"], "amount": r["price_usd"],
-                  "time": r["created_at"]} for r in _fetchall_dict(cur4)]
-
-    conn.close()
-    notifications = sorted(charges + orders + proxies + appsflyer, key=lambda x: x["time"], reverse=True)
+    notifications = db.get_pending_notifications()
     return jsonify({"notifications": notifications, "count": len(notifications)})
+
+@app.route('/api/notifications/all')
+@auth_required
+def api_notifications_all():
+    return jsonify(db.get_all_notifications_full())
+
+@app.route('/api/notifications/user/<int:uid>')
+@auth_required
+def api_user_notifications(uid):
+    return jsonify(db.get_user_notifications(uid))
+
+# ════════════════════════════════════════
+# Broadcast
+# ════════════════════════════════════════
+
+@app.route('/api/broadcast', methods=['POST'])
+@auth_required
+def api_broadcast():
+    msg = request.json.get('message', '')
+    if not msg:
+        return jsonify({"ok": False, "error": "Empty message"}), 400
+
+    conn = db.get_conn()
+    cur = conn.execute("INSERT INTO broadcasts (message, is_sent) VALUES (?, 1)", (msg,))
+    broadcast_id = cur.lastrowid
+    conn.commit()
+
+    users = db.get_all_users()
+    sent = 0
+    failed = 0
+
+    for user in users:
+        ok = tg_send(user["id"], msg)
+        if ok:
+            sent += 1
+        else:
+            failed += 1
+
+    conn2 = db.get_conn()
+    conn2.execute("UPDATE broadcasts SET sent_count=? WHERE id=?", (sent, broadcast_id))
+    conn2.commit()
+
+    logger.info(f"Dashboard broadcast #{broadcast_id}: sent={sent}, failed={failed}")
+    return jsonify({"ok": True, "sent": sent, "failed": failed})
+
+# ════════════════════════════════════════
+# Proxy Orders
+# ════════════════════════════════════════
 
 @app.route('/api/proxy_orders')
 @auth_required
 def api_proxy_orders():
-    conn = db.get_conn()
-    cur = conn.execute("SELECT * FROM proxy_orders ORDER BY created_at DESC LIMIT 100")
-    rows = _fetchall_dict(cur)
-    conn.close()
-    return jsonify(rows)
+    return jsonify(db.get_proxy_orders())
 
 @app.route('/api/proxy_orders/<int:oid>/status', methods=['POST'])
 @auth_required
 def api_proxy_order_status(oid):
     status = request.json.get('status')
-    conn = db.get_conn()
-    cur = conn.execute("SELECT * FROM proxy_orders WHERE id=?", (oid,))
-    proxy = _fetchone_dict(cur)
-    conn.close()
+    proxy = db.get_pending_proxy_orders()
+    proxy = next((p for p in db.get_proxy_orders() if p['id'] == oid), None)
     db.update_proxy_order_status(oid, status)
     logger.info(f"Dashboard: proxy order #{oid} status={status}")
     if proxy:
@@ -564,43 +480,28 @@ def api_proxy_order_status(oid):
             )
     return jsonify({"ok": True})
 
-
-# ═══ AppsFlyer Orders ═══
+# ════════════════════════════════════════
+# AppsFlyer Orders
+# ════════════════════════════════════════
 
 @app.route('/api/appsflyer_orders')
 @auth_required
 def api_appsflyer_orders():
-    """كل طلبات AppsFlyer مع فلتر اختياري بالحالة"""
     status = request.args.get('status', '')
-    conn = db.get_conn()
-    if status:
-        cur = conn.execute(
-            "SELECT * FROM appsflyer_orders WHERE status=? ORDER BY created_at DESC LIMIT 100",
-            (status,)
-        )
-    else:
-        cur = conn.execute(
-            "SELECT * FROM appsflyer_orders ORDER BY created_at DESC LIMIT 100"
-        )
-    rows = _fetchall_dict(cur)
-    conn.close()
-    return jsonify(rows)
+    return jsonify(db.get_appsflyer_orders(status=status))
 
 @app.route('/api/appsflyer_orders/<int:oid>/status', methods=['POST'])
 @auth_required
 def api_appsflyer_order_status(oid):
-    """قبول أو رفض طلب AppsFlyer من الداشبورد"""
     status = request.json.get('status')
     order = db.get_appsflyer_order(oid)
 
     if not order:
         return jsonify({"ok": False, "error": "Not found"}), 404
-
     if order["status"] != "pending":
         return jsonify({"ok": False, "error": "Already processed"}), 400
 
     if status == 'accepted':
-        # الرصيد خُصم مسبقاً — فقط حدّث الحالة وأرسل إشعار
         db.update_appsflyer_order_status(oid, "accepted")
         logger.info(f"Dashboard: AppsFlyer order #{oid} accepted")
         tg_send(order["user_id"],
@@ -613,9 +514,7 @@ def api_appsflyer_order_status(oid):
             f"👤 @Allosh96ha\n"
             f"\n—————————————————\n"
         )
-
     elif status == 'rejected':
-        # رجّع الرصيد + حدّث الحالة + أرسل إشعار
         db.add_balance(order["user_id"], order["price_usd"])
         new_balance = db.get_balance(order["user_id"])
         db.update_appsflyer_order_status(oid, "rejected")
@@ -635,39 +534,6 @@ def api_appsflyer_order_status(oid):
         return jsonify({"ok": False, "error": "Invalid status"}), 400
 
     return jsonify({"ok": True})
-
-
-@app.route('/api/charges/<int:cid>/proof_image')
-@auth_required
-def api_charge_proof_image(cid):
-    """جيب صورة إيصال الشحن من تيليغرام"""
-    conn = db.get_conn()
-    cur = conn.execute("SELECT proof, method FROM charge_requests WHERE id=?", (cid,))
-    row = _fetchone_dict(cur)
-    conn.close()
-
-    if not row or not row.get("proof"):
-        return jsonify({"ok": False, "error": "No proof found"}), 404
-
-    file_id = row["proof"]
-
-    # جيب رابط الصورة من تيليغرام
-    try:
-        resp = req_lib.get(
-            f"https://api.telegram.org/bot{BOT_TOKEN}/getFile",
-            params={"file_id": file_id},
-            timeout=5
-        )
-        result = resp.json()
-        if not result.get("ok"):
-            return jsonify({"ok": False, "error": "Telegram API error", "is_file_id": True, "file_id": file_id}), 200
-
-        file_path = result["result"]["file_path"]
-        image_url = f"https://api.telegram.org/file/bot{BOT_TOKEN}/{file_path}"
-        return jsonify({"ok": True, "url": image_url, "file_id": file_id})
-    except Exception as e:
-        logger.error(f"Proof image error: {e}")
-        return jsonify({"ok": False, "error": str(e), "file_id": file_id}), 200
 
 
 def run_dashboard():

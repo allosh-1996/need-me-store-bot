@@ -186,13 +186,12 @@ def main():
     # ── Callbacks الأدمن ──
     app.add_handler(CallbackQueryHandler(ha.admin_panel,          pattern='^adm_back$'))
     app.add_handler(CallbackQueryHandler(ha.admin_stats,          pattern='^adm_stats$'))
-    app.add_handler(CallbackQueryHandler(ha.show_pending_orders,  pattern='^adm_orders$'))
+    app.add_handler(CallbackQueryHandler(ha.show_pending_orders,  pattern=r'^adm_orders'))   # يشمل adm_orders و adm_orders_p2 الخ
     app.add_handler(CallbackQueryHandler(ha.confirm_order,        pattern=r'^adm_confirm_\d+$'))
     app.add_handler(CallbackQueryHandler(ha.reject_order,         pattern=r'^adm_reject_\d+$'))
     app.add_handler(CallbackQueryHandler(ha.admin_show_products,  pattern='^adm_products$'))
     app.add_handler(CallbackQueryHandler(ha.admin_product_detail, pattern=r'^adm_prod_detail_\d+$'))
     app.add_handler(CallbackQueryHandler(ha.delete_product,       pattern=r'^adm_del_\d+$'))
-
 
     # ── Broadcast Job ──
     async def send_pending_broadcasts(context):
@@ -217,7 +216,6 @@ def main():
     async def auto_register(update: Update, context):
         user = update.effective_user
         if user and not user.is_bot:
-            # تحقق من user_data أولاً — لو المستخدم مسجل بالجلسة ما نحتاج Turso
             if not context.user_data.get("_registered"):
                 db.upsert_user(user.id, user.username or "", user.full_name or "")
                 context.user_data["_registered"] = True

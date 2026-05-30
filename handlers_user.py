@@ -29,9 +29,11 @@ async def help_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 async def change_language_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    user = update.effective_user
     current = get_user_lang(context)
     new_lang = "en" if current == "ar" else "ar"
     context.user_data["lang"] = new_lang
+    db.set_user_lang(user.id, new_lang)
     await update.message.reply_text(
         t("welcome", new_lang),
         parse_mode=ParseMode.MARKDOWN,
@@ -55,9 +57,11 @@ async def support_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def toggle_lang(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
+    user = query.from_user
     current = get_user_lang(context)
     new_lang = "en" if current == "ar" else "ar"
     context.user_data["lang"] = new_lang
+    db.set_user_lang(user.id, new_lang)
     await query.edit_message_text(
         t("welcome", new_lang),
         parse_mode=ParseMode.MARKDOWN,
@@ -140,7 +144,7 @@ async def initiate_buy(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await query.answer()
     lang = get_user_lang(context)
 
-    # Rate limiting: منع الضغط المتكرر على زر الشراء (3 ثواني بين كل محاولة)
+    # Rate limiting: 3 ثواني بين كل محاولة
     now = time.time()
     last_buy = context.user_data.get("last_buy_attempt", 0)
     if now - last_buy < 3:
@@ -149,7 +153,6 @@ async def initiate_buy(update: Update, context: ContextTypes.DEFAULT_TYPE):
     context.user_data["last_buy_attempt"] = now
 
     product_id = int(query.data.split("_")[1])
-
     user = update.effective_user
     product, stock_count = db.get_product_with_stock(product_id)
 
@@ -159,7 +162,6 @@ async def initiate_buy(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     price = product["price_usd"]
 
-    # خصم مباشر بدون خطوة تأكيد
     try:
         item, new_balance, remaining = db.buy_with_balance(user.id, product_id, price)
     except ValueError as e:
