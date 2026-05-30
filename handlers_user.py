@@ -377,22 +377,16 @@ async def surveys_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     context.user_data['cat_source'] = 'surveys_menu'
 
-    products = db.get_all_products()
-    survey_products = [p for p in products if p.get('category', '').lower().startswith('survey')]
-
-    if not survey_products:
-        await query.edit_message_text(
-            f"*Surveys*\n\n_{t('no_surveys', lang)}_",
-            parse_mode=ParseMode.MARKDOWN,
-            reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton(t("back", lang), callback_data="back_main")]])
-        )
-        return
-
-    categories = list(dict.fromkeys(p['category'] for p in survey_products if p.get('category')))
     await query.edit_message_text(
-        f"*Surveys*\n\n_{t('choose_survey_category', lang)}_",
+        f"*📊 Surveys*\n\n_{t('choose_type', lang)}_",
         parse_mode=ParseMode.MARKDOWN,
-        reply_markup=kb.categories_menu(categories, back_cb="back_main", lang=lang)
+        reply_markup=InlineKeyboardMarkup([
+            [InlineKeyboardButton("Toluna",    callback_data="cat_Toluna")],
+            [InlineKeyboardButton("Qmee",      callback_data="cat_Qmee")],
+            [InlineKeyboardButton("My Points", callback_data="cat_My Points")],
+            [InlineKeyboardButton("Swagbucks", callback_data="cat_Swagbucks")],
+            [InlineKeyboardButton(t("back", lang), callback_data="back_main")],
+        ])
     )
 
 

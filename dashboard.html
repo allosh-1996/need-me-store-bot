@@ -753,7 +753,7 @@ async function loadProducts() {
 const SECTION_CONFIG = {
   icloud:     { label: null,    cats: null },
   emails:     { label: 'نوع الايميل', cats: ['Outlook','Gmail','Hotmail'] },
-  surveys:    { label: 'نوع السيرفي', cats: ['Toluna','My points','أخرى'] },
+  surveys:    { label: 'نوع السيرفي', cats: ['Toluna','Qmee','My Points','Swagbucks'] },
 }
 
 function selectSection(btn) {
@@ -788,27 +788,16 @@ function selectSection(btn) {
     $('subtype-btns').innerHTML = cfg.cats.map(c =>
       `<button type="button" class="cat-btn" data-val="${c}" onclick="selectSubtype(this)">${c}</button>`
     ).join('')
-    $('p-category').value = 'Survey Accounts'
+    $('p-category').value = cfg.cats[0]
     $('subtype-btns').querySelector('.cat-btn').classList.add('active')
     $('p-platform').value = 'general'
-    // اسم المنتج الافتراضي = أول نوع سيرفي
-    if (!$('p-name').value) $('p-name').value = cfg.cats[0]
   }
 }
 
 function selectSubtype(btn) {
   document.querySelectorAll('#subtype-btns .cat-btn').forEach(b => b.classList.remove('active'))
   btn.classList.add('active')
-  // للسيرفي: category ثابتة = "Survey Accounts"، اسم المنتج = النوع المختار
-  const section = document.querySelector('.ptype-btn.active')?.dataset.section
-  if (section === 'surveys') {
-    $('p-category').value = 'Survey Accounts'
-    if (!$('p-name').value || SECTION_CONFIG.surveys.cats.includes($('p-name').value)) {
-      $('p-name').value = btn.dataset.val
-    }
-  } else {
-    $('p-category').value = btn.dataset.val
-  }
+  $('p-category').value = btn.dataset.val
 }
 
 // عداد المخزون في المودال
