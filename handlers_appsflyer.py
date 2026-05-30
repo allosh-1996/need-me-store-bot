@@ -1,3 +1,4 @@
+import re
 """
 handlers_appsflyer.py — NexVault Bot
 نظام طلبات Win AppsFlyer الكامل
@@ -10,6 +11,11 @@ import database as db
 from config import ADMIN_ID, APPSFLYER_GAMES
 from lang import get_user_lang
 from lang import t
+
+
+UUID_PATTERN = re.compile(
+    r'^[0-9A-Fa-f]{8}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{12}$'
+)
 
 # ═══ حالات المحادثة ═══
 AF_GAME, AF_IDFA, AF_IDFV, AF_IOS_VER, AF_AF_ID, AF_CONFIRM = range(40, 46)
@@ -85,7 +91,16 @@ async def af_game_selected(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 async def af_receive_idfa(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    context.user_data["af_idfa"] = update.message.text.strip()
+    idfa = update.message.text.strip()
+    if not UUID_PATTERN.match(idfa):
+        await update.message.reply_text(
+            "❌ *IDFA غير صحيح*\n\n"
+            "_يجب أن يكون بصيغة UUID مثل:_\n"
+            "`6D92078A-8246-4BA4-AE75-79F1B2D67052`",
+            parse_mode=ParseMode.MARKDOWN
+        )
+        return AF_IDFA
+    context.user_data["af_idfa"] = idfa
     await update.message.reply_text(
         f"✅ *IDFA محفوظ*\n\n"
         f"━━━━━━━━━━━━━━━━\n"
@@ -101,7 +116,16 @@ async def af_receive_idfa(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 async def af_receive_idfv(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    context.user_data["af_idfv"] = update.message.text.strip()
+    idfv = update.message.text.strip()
+    if not UUID_PATTERN.match(idfv):
+        await update.message.reply_text(
+            "❌ *IDFV غير صحيح*\n\n"
+            "_يجب أن يكون بصيغة UUID مثل:_\n"
+            "`599F9C00-92DC-4B5C-9464-7971F01F8370`",
+            parse_mode=ParseMode.MARKDOWN
+        )
+        return AF_IDFV
+    context.user_data["af_idfv"] = idfv
     await update.message.reply_text(
         f"✅ *IDFV محفوظ*\n\n"
         f"━━━━━━━━━━━━━━━━\n"

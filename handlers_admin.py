@@ -1,3 +1,4 @@
+import asyncio
 import logging
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ContextTypes, ConversationHandler
@@ -402,6 +403,7 @@ async def broadcast_send(update: Update, context: ContextTypes.DEFAULT_TYPE):
             sent += 1
         except Exception:
             failed += 1
+        await asyncio.sleep(0.05)
 
     logger.info(f"Admin broadcast sent: {sent} success, {failed} failed")
     await update.message.reply_text(
