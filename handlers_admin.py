@@ -49,15 +49,14 @@ async def admin_stats(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     stats = db.get_stats()
     text = (
-        f" *Store Stats  |  إحصائيات المتجر*\n\n"
-        f"\n"
-        f" Users  |  المستخدمين: `{stats['users']}`\n"
-        f" Products  |  المنتجات: `{stats['products']}`\n"
-        f"\n"
-        f" Total Orders: `{stats['total_orders']}`\n"
-        f"⏳ Pending  |  معلقة: `{stats['pending_orders']}`\n"
-        f" Completed  |  مكتملة: `{stats['completed_orders']}`\n"
-        f""
+        f"📊 *إحصائيات المتجر*\n"
+        f"━━━━━━━━━━━━━━━━\n"
+        f"👥 المستخدمين: *{stats['users']}*\n"
+        f"🛍️ المنتجات: *{stats['products']}*\n\n"
+        f"📦 إجمالي الطلبات: *{stats['total_orders']}*\n"
+        f"⏳ معلقة: *{stats['pending_orders']}*\n"
+        f"✅ مكتملة: *{stats['completed_orders']}*\n"
+        f"━━━━━━━━━━━━━━━━"
     )
     await query.edit_message_text(text, parse_mode=ParseMode.MARKDOWN,
                                    reply_markup=kb.admin_main_menu())
@@ -214,12 +213,12 @@ async def confirm_order(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await context.bot.send_message(
             chat_id=order['user_id'],
             text=(
-                f"✅ *تم تأكيد طلبك!  |  Order Confirmed!*\n\n"
+                f"✅ *تم تأكيد طلبك!*\n"
                 f"━━━━━━━━━━━━━━━━\n"
-                f"📦 {order['product_name']}\n"
-                f"💵 ${order['price_usd']}\n"
+                f"🛍️ *{order['product_name']}*\n"
+                f"💵 المبلغ: *${order['price_usd']}*\n"
                 f"━━━━━━━━━━━━━━━━\n"
-                f"شكراً لثقتك 🙏  |  _Thank you!_"
+                f"_شكراً لثقتك_ 🙏"
             ),
             parse_mode=ParseMode.MARKDOWN
         )
@@ -265,14 +264,13 @@ async def reject_order(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await context.bot.send_message(
             chat_id=order['user_id'],
             text=(
-                f" *تم رفض طلبك  |  Order Rejected*\n\n"
-                f"\n"
-                f" Order ID: `#{order_id}`\n"
-                f" {order['product_name']}\n"
-                f" ${order['price_usd']}\n"
-                f"\n"
-                f"_للاستفسار تواصل مع الأدمن_\n"
-                f"_Contact admin for more info_"
+                f"❌ *تم رفض طلبك*\n"
+                f"━━━━━━━━━━━━━━━━\n"
+                f"🔖 رقم الطلب: `#{order_id}`\n"
+                f"🛍️ {order['product_name']}\n"
+                f"💵 ${order['price_usd']}\n"
+                f"━━━━━━━━━━━━━━━━\n"
+                f"_للاستفسار تواصل مع الأدمن_ 👤 @Allosh96ha"
             ),
             parse_mode=ParseMode.MARKDOWN,
             reply_markup=kb.main_menu("ar")

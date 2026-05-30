@@ -26,10 +26,9 @@ async def charge_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     ])
 
     text = (
-        f" *Top Up  |  شحن الرصيد*\n\n"
-        f"\n"
-        f" Current Balance  |  رصيدك: `${balance:.2f}`\n"
-        f"\n"
+        f"💳 *شحن الرصيد | Top Up*\n"
+        f"━━━━━━━━━━━━━━━━\n"
+        f"💰 رصيدك الحالي: *${balance:.2f}*\n\n"
         f"_اختر طريقة الشحن  |  Choose payment method:_"
     )
 
@@ -48,26 +47,22 @@ async def charge_method_selected(update: Update, context: ContextTypes.DEFAULT_T
 
     if method == "usdt":
         text = (
-            f" *USDT BEP-20 Top Up*\n\n"
-            f"\n"
-            f" Wallet Address  |  عنوان المحفظة:\n"
+            f"💵 *USDT BEP-20*\n"
+            f"━━━━━━━━━━━━━━━━\n"
+            f"👛 عنوان المحفظة:\n"
             f"`{USDT_WALLET}`\n\n"
-            f" *BEP-20 Network Only*\n"
-            f"\n"
-            f" كم دولار تريد تشحن؟\n"
-            f"_How much USD to top up?_"
+            f"⚠️ _شبكة BEP-20 فقط_\n\n"
+            f"كم دولار تريد تشحن؟"
         )
     else:
         from config import SYRIATEL_CASH
         text = (
-            f" *Syriatel Cash Top Up*\n\n"
-            f"\n"
-            f" Number  |  الرقم:\n"
+            f"📱 *Syriatel Cash*\n"
+            f"━━━━━━━━━━━━━━━━\n"
+            f"📞 الرقم:\n"
             f"`{SYRIATEL_CASH}`\n\n"
-            f"💱 سعر الصرف: `{SYP_RATE:,.0f} ل.س = $1`\n"
-            f"_Exchange rate: {SYP_RATE:,.0f} SYP = $1_\n\n"
-            f" كم ليرة تريد تشحن؟\n"
-            f"_How much SYP?_"
+            f"💱 سعر الصرف: *{SYP_RATE:,.0f} ل.س = $1*\n\n"
+            f"كم ليرة تريد تشحن؟"
         )
 
     await query.edit_message_text(text, parse_mode=ParseMode.MARKDOWN)
@@ -199,14 +194,13 @@ async def charge_proof(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     done_kb = InlineKeyboardMarkup([[InlineKeyboardButton(" Home  |  الرئيسية", callback_data="back_main")]])
     await update.message.reply_text(
-        f" *Top Up Request Sent!  |  تم إرسال طلب الشحن!*\n\n"
-        f"\n"
-        f" Request ID: `#{req_id}`\n"
-        f" Amount: `{display}`\n"
-        f" Method: {method_label}\n"
-        f"\n"
-        f"⏳ _سيتم مراجعة التحويل وإضافة الرصيد قريباً_\n"
-        f"_Balance will be added after review_",
+        f"✅ *تم إرسال طلب الشحن!*\n"
+        f"━━━━━━━━━━━━━━━━\n"
+        f"🔖 رقم الطلب: `#{req_id}`\n"
+        f"💵 المبلغ: *{display}*\n"
+        f"💳 الطريقة: {method_label}\n"
+        f"━━━━━━━━━━━━━━━━\n"
+        f"⏳ _سيتم مراجعة التحويل وإضافة الرصيد قريباً_",
         parse_mode=ParseMode.MARKDOWN,
         reply_markup=done_kb
     )

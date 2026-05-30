@@ -42,9 +42,9 @@ async def change_language_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE
 async def support_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     lang = get_user_lang(context)
     await update.message.reply_text(
-        f"*{t('support_title', lang)}*\n\n"
+        f"🛟 *{t('support_title', lang)}*\n"
         f"━━━━━━━━━━━━━━━━\n"
-        f"@Allosh96ha\n\n"
+        f"👤 @Allosh96ha\n\n"
         f"_{t('support_body', lang)}_\n"
         f"━━━━━━━━━━━━━━━━",
         parse_mode=ParseMode.MARKDOWN,
@@ -122,11 +122,11 @@ async def show_product_detail(update: Update, context: ContextTypes.DEFAULT_TYPE
     stock_line = f"{t('in_stock', lang)} ({stock_count} units)" if has_stock else t('out_of_stock', lang)
 
     text = (
-        f"*{product['name']}*\n\n"
+        f"🛍️ *{product['name']}*\n"
         f"━━━━━━━━━━━━━━━━\n"
-        f"{product['description'] or t('no_desc', lang)}\n\n"
-        f"USD: `${product['price_usd']}`\n"
-        f"SYP: `{product['price_syp']:,.0f}`\n\n"
+        f"_{product['description'] or t('no_desc', lang)}_\n\n"
+        f"💵 USD: *${product['price_usd']}*\n"
+        f"💴 SYP: *{product['price_syp']:,.0f} ل.س*\n\n"
         f"{stock_line}\n"
         f"━━━━━━━━━━━━━━━━"
     )
@@ -168,9 +168,11 @@ async def initiate_buy(update: Update, context: ContextTypes.DEFAULT_TYPE):
             balance = float(err.split(":")[1])
             needed = price - balance
             await query.edit_message_text(
-                f"*{t('insufficient_balance', lang)}*\n\n"
-                f"{t('balance', lang)}: `${balance:.2f}`\n"
-                f"{t('amount', lang)}: `${price}`\n\n"
+                f"❌ *{t('insufficient_balance', lang)}*\n"
+                f"━━━━━━━━━━━━━━━━\n"
+                f"💳 {t('balance', lang)}: `${balance:.2f}`\n"
+                f"💵 {t('amount', lang)}: `${price}`\n"
+                f"━━━━━━━━━━━━━━━━\n"
                 f"_{t('top_up_first', lang)}_",
                 parse_mode=ParseMode.MARKDOWN,
                 reply_markup=InlineKeyboardMarkup([
@@ -192,11 +194,11 @@ async def initiate_buy(update: Update, context: ContextTypes.DEFAULT_TYPE):
     db.update_order_status(order_id, 'completed', 'balance')
 
     await query.edit_message_text(
-        f"*{t('purchase_success', lang)}*\n\n"
+        f"✅ *{t('purchase_success', lang)}*\n"
         f"━━━━━━━━━━━━━━━━\n"
-        f"{product['name']}\n"
-        f"{t('amount', lang)}: `${price}`\n"
-        f"{t('balance', lang)}: `${new_balance:.2f}`\n"
+        f"🛍️ {product['name']}\n"
+        f"💵 {t('amount', lang)}: *${price}*\n"
+        f"💳 {t('balance', lang)}: `${new_balance:.2f}`\n"
         f"━━━━━━━━━━━━━━━━\n"
         f"_{t('thank_you', lang)}_",
         parse_mode=ParseMode.MARKDOWN,
@@ -247,7 +249,7 @@ async def my_orders(update: Update, context: ContextTypes.DEFAULT_TYPE):
         "completed": t("status_completed", lang),
         "rejected":  t("status_rejected", lang)
     }
-    lines = [f"*{t('my_orders', lang)}*\n", "━━━━━━━━━━━━━━━━"]
+    lines = [f"📦 *{t('my_orders', lang)}*\n", "━━━━━━━━━━━━━━━━"]
     for o in orders:
         status = status_map.get(o["status"], "?")
         lines.append(f"{status}  `#{o['id']}` — {o['product_name']}")
@@ -265,9 +267,9 @@ async def contact(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await query.answer()
     lang = get_user_lang(context)
     await query.edit_message_text(
-        f"*{t('contact_title', lang)}*\n\n"
+        f"💬 *{t('contact_title', lang)}*\n"
         f"━━━━━━━━━━━━━━━━\n"
-        f"@Allosh96ha\n\n"
+        f"👤 @Allosh96ha\n\n"
         f"_{t('contact_reply', lang)}_\n"
         f"━━━━━━━━━━━━━━━━",
         parse_mode=ParseMode.MARKDOWN,
