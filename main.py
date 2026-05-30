@@ -133,6 +133,14 @@ def main():
                 MessageHandler(filters.TEXT & ~filters.COMMAND, haf.af_receive_af_id),
                 CallbackQueryHandler(haf.af_cancel, pattern='^af_cancel$'),
             ],
+            haf.AF_LEVELS: [
+                CallbackQueryHandler(haf.af_level_toggle,   pattern=r'^af_lvl_\d+$'),
+                CallbackQueryHandler(haf.af_level_custom,   pattern='^af_lvl_custom$'),
+                CallbackQueryHandler(haf.af_levels_back,    pattern='^af_lvl_back$'),
+                CallbackQueryHandler(haf.af_levels_done,    pattern='^af_lvl_done$'),
+                CallbackQueryHandler(haf.af_cancel,         pattern='^af_cancel$'),
+                MessageHandler(filters.TEXT & ~filters.COMMAND, haf.af_receive_custom_levels),
+            ],
             haf.AF_CONFIRM: [
                 CallbackQueryHandler(haf.af_confirm_send, pattern='^af_confirm_send$'),
                 CallbackQueryHandler(haf.af_cancel, pattern='^af_cancel$'),

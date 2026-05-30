@@ -122,6 +122,13 @@ def init_db():
     except Exception:
         pass  # العمود موجود مسبقاً
 
+    # أضف عمود levels لطلبات AppsFlyer القديمة إذا ما كان موجوداً
+    try:
+        conn.execute("ALTER TABLE appsflyer_orders ADD COLUMN levels TEXT")
+        conn.commit()
+    except Exception:
+        pass  # العمود موجود مسبقاً
+
     conn.execute('''CREATE TABLE IF NOT EXISTS broadcasts (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         message TEXT,
@@ -177,6 +184,7 @@ def init_db():
         idfv         TEXT,
         ios_version  TEXT,
         appsflyer_id TEXT,
+        levels       TEXT,
         status       TEXT DEFAULT 'pending',
         created_at   TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )''')
@@ -892,15 +900,15 @@ def deduct_balance_atomic(user_id, price):
 
 def create_appsflyer_order(user_id, username, full_name, game_key,
                             game_name, price_usd, idfa, idfv,
-                            ios_version, appsflyer_id):
+                            ios_version, appsflyer_id, levels=""):
     conn = get_conn()
     c = conn.execute(
         '''INSERT INTO appsflyer_orders
            (user_id, username, full_name, game_key, game_name, price_usd,
-            idfa, idfv, ios_version, appsflyer_id, status)
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending')''',
+            idfa, idfv, ios_version, appsflyer_id, levels, status)
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'pending')''',
         (user_id, username, full_name, game_key, game_name, price_usd,
-         idfa, idfv, ios_version, appsflyer_id)
+         idfa, idfv, ios_version, appsflyer_id, levels)
     )
     conn.commit()
     return c.lastrowid
