@@ -764,6 +764,7 @@ function selectSection(btn) {
   if (section === 'icloud') {
     $('p-category').value = 'Apple iCloud'
     $('p-platform').value = 'general'
+    $('subtype-group').style.display = 'none'
 
   } else if (section === 'emails') {
     $('subtype-label').textContent = 'نوع الايميل'
@@ -800,10 +801,14 @@ function updateStockCount(textareaId, countId) {
 }
 
 async function addProduct() {
-  const finalCat = $('p-category').value
+  // احسب الـ category من الـ section الحالي مباشرة
+  const activeSection = window._lastSection || 'icloud'
+  let finalCat = $('p-category').value
+  if (activeSection === 'icloud') finalCat = 'Apple iCloud'
+  if (!finalCat) { toast('⚠️ اختر القسم أولاً', false); return }
 
   const d = {
-    name: $('p-name').value.trim(),
+    name: $('p-name').value.trim() || finalCat,
     description: $('p-desc').value.trim(),
     price_usd: $('p-usd').value,
     price_syp: $('p-syp').value,
@@ -813,7 +818,6 @@ async function addProduct() {
   }
   if (!d.name) { toast('اسم المنتج مطلوب', false); return }
   if (!d.price_usd) { toast('السعر بالدولار مطلوب', false); return }
-  if (!d.category) { toast('⚠️ اختر القسم أولاً (iCloud / ايميلات / Surveys)', false); return }
 
   const res = await api('/api/products/add', 'POST', d)
   if (!res) return
