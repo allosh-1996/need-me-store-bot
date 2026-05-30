@@ -503,10 +503,12 @@ def api_appsflyer_order_status(oid):
     if status == 'accepted':
         db.update_appsflyer_order_status(oid, "accepted")
         logger.info(f"Dashboard: AppsFlyer order #{oid} accepted")
+        levels_info = f"\n🎯 *الليفلات:* `{order['levels']}`" if order.get('levels') else ""
         tg_send(order["user_id"],
             f"✅ *تم قبول طلبك!*\n\n"
             f"🎮 *اللعبة:* {order['game_name']}\n"
-            f"🔢 *رقم الطلب:* `#{oid}`\n\n"
+            f"🔢 *رقم الطلب:* `#{oid}`"
+            f"{levels_info}\n\n"
             f"🚀 *طلبك الآن قيد التنفيذ*\n\n"
             f"\n—————————————————\n\n"
             f"📩 للمتابعة تواصل مع الأدمن:\n"

@@ -730,10 +730,11 @@ def get_pending_notifications():
                 "amount": 0, "time": r["created_at"]} for r in _fetchall_dict(cur3)]
 
     cur4 = conn.execute(
-        "SELECT id, full_name, game_name, price_usd, created_at FROM appsflyer_orders WHERE status='pending' ORDER BY created_at DESC LIMIT 20"
+        "SELECT id, full_name, game_name, price_usd, levels, created_at FROM appsflyer_orders WHERE status='pending' ORDER BY created_at DESC LIMIT 20"
     )
     appsflyer = [{"type": "appsflyer", "id": r["id"], "name": r["full_name"],
                   "product": r["game_name"], "amount": r["price_usd"],
+                  "levels": r["levels"] or "",
                   "time": r["created_at"]} for r in _fetchall_dict(cur4)]
 
     notifications = sorted(charges + orders + proxies + appsflyer, key=lambda x: x["time"], reverse=True)
@@ -774,12 +775,12 @@ def get_all_notifications_full():
 
     cur4 = conn.execute(
         """SELECT id, user_id, username, full_name, game_name,
-           price_usd, idfa, idfv, ios_version, appsflyer_id, status, created_at
+           price_usd, idfa, idfv, ios_version, appsflyer_id, levels, status, created_at
            FROM appsflyer_orders ORDER BY created_at DESC LIMIT 100"""
     )
     appsflyer = [dict(r, type='appsflyer', icon='🎮',
         title=f"AppsFlyer — {r['game_name']}",
-        subtitle=f"{r['full_name']} · ${r['price_usd']}")
+        subtitle=f"{r['full_name']} · ${r['price_usd']} | 🎯 {r['levels'] or '—'}")
         for r in _fetchall_dict(cur4)]
 
     return sorted(charges + orders + proxies + appsflyer, key=lambda x: x['created_at'], reverse=True)
