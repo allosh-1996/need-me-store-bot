@@ -1,11 +1,12 @@
-import time
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup, ReplyKeyboardRemove
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ContextTypes, ConversationHandler
 from telegram.constants import ParseMode
+
 import database as db
 import keyboards as kb
-from config import ADMIN_ID
+from config import ADMIN_IDS
 from lang import t, get_user_lang
+from utils import rate_limit
 
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -16,6 +17,21 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         t("welcome", lang), parse_mode=ParseMode.MARKDOWN, reply_markup=kb.main_menu(lang)
     )
 
+async def persistent_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    if query:
+        await query.answer()
+    user = update.effective_user
+    db.upsert_user(user.id, user.username or "", user.full_name or "")
+    lang = get_user_lang(context, user.id)
+    if query:
+        await query.edit_message_text(
+            t("welcome", lang), parse_mode=ParseMode.MARKDOWN, reply_markup=kb.main_menu(lang)
+        )
+    else:
+        await update.message.reply_text(
+            t("welcome", lang), parse_mode=ParseMode.MARKDOWN, reply_markup=kb.main_menu(lang)
+        )
 
 async def help_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     lang = get_user_lang(context, update.effective_user.id)
@@ -24,7 +40,6 @@ async def help_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     else:
         text = "*الاوامر*\n\n`/start` — الرئيسية\n`/products` — المنتجات\n`/charge` — شحن رصيد\n`/help` — مساعدة"
     await update.message.reply_text(text, parse_mode=ParseMode.MARKDOWN)
-
 
 async def change_language_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user     = update.effective_user
@@ -36,22 +51,18 @@ async def change_language_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE
         t("welcome", new_lang), parse_mode=ParseMode.MARKDOWN, reply_markup=kb.main_menu(new_lang)
     )
 
-
 async def support_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     lang = get_user_lang(context, update.effective_user.id)
     await update.message.reply_text(
-        f"🛟 *{t('support_title', lang)}*\n"
-        f"\n—————————————————\n\n"
-        f"👤 @Allosh96ha\n\n"
-        f"_{t('support_body', lang)}_\n"
-        f"\n—————————————————\n",
+        f"🛟 *{t('support_title', lang)}*\n\n—————————————————\n\n"
+        f"👤 @Allosh96ha\n\n_{t('support_body', lang)}_\n\n—————————————————\n",
         parse_mode=ParseMode.MARKDOWN,
         reply_markup=kb.main_menu(lang),
     )
 
-
+@rate_limit(seconds=2)
 async def toggle_lang(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    query = update.callback_query
+    query    = update.callback_query
     await query.answer()
     user     = query.from_user
     current  = get_user_lang(context, user.id)
@@ -62,360 +73,312 @@ async def toggle_lang(update: Update, context: ContextTypes.DEFAULT_TYPE):
         t("welcome", new_lang), parse_mode=ParseMode.MARKDOWN, reply_markup=kb.main_menu(new_lang)
     )
 
-
+@rate_limit(seconds=2)
 async def show_products(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     if query:
         await query.answer()
     lang = get_user_lang(context, update.effective_user.id)
-
-    products   = db.get_all_products()
-    categories = list(dict.fromkeys(p["category"] for p in products if p.get("category")))
-
-    text = f"*NexVault Shop*\n\n_{t('choose_category', lang)}_"
+    keyboard = [
+        [InlineKeyboardButton("🍏 iOS",    callback_data="platform_iOS"),
+         InlineKeyboardButton("🤖 Android", callback_data="platform_Android")],
+        [InlineKeyboardButton(t("back", lang), callback_data="back_main")],
+    ]
+    text = f"*{t('choose_platform', lang)}*"
     if query:
-        await query.edit_message_text(
-            text, parse_mode=ParseMode.MARKDOWN,
-            reply_markup=kb.categories_menu(categories, back_cb="back_main", lang=lang),
-        )
+        await query.edit_message_text(text, parse_mode=ParseMode.MARKDOWN,
+                                      reply_markup=InlineKeyboardMarkup(keyboard))
     else:
-        await update.message.reply_text(
-            text, parse_mode=ParseMode.MARKDOWN,
-            reply_markup=kb.categories_menu(categories, back_cb="back_main", lang=lang),
-        )
+        await update.message.reply_text(text, parse_mode=ParseMode.MARKDOWN,
+                                        reply_markup=InlineKeyboardMarkup(keyboard))
 
+async def products_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await show_products(update, context)
 
-async def show_category(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    query = update.callback_query
+@rate_limit(seconds=2)
+async def show_platform(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query    = update.callback_query
     await query.answer()
+    platform = query.data.replace("platform_", "")
     lang     = get_user_lang(context, update.effective_user.id)
-    category = query.data.replace("cat_", "")
-
-    products     = db.get_all_products()
-    cat_products = [p for p in products if p["category"] == category]
-    back_cb      = context.user_data.get("cat_source", "products")
-
-    if not cat_products:
+    context.user_data["platform"] = platform
+    categories = db.get_categories(platform)
+    if not categories:
         await query.edit_message_text(
-            t("no_products_category", lang),
-            parse_mode=ParseMode.MARKDOWN,
-            reply_markup=InlineKeyboardMarkup(
-                [[InlineKeyboardButton(t("back", lang), callback_data=back_cb)]]
-            ),
+            t("no_products_platform", lang), parse_mode=ParseMode.MARKDOWN,
+            reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton(t("back", lang), callback_data="products")]])
         )
         return
-
-    text = f"*{category}*\n\n_{t('choose_product', lang)}_"
     await query.edit_message_text(
-        text, parse_mode=ParseMode.MARKDOWN,
-        reply_markup=kb.products_menu(cat_products, lang=lang, back_cb=back_cb),
+        f"*{t('choose_category', lang)}*", parse_mode=ParseMode.MARKDOWN,
+        reply_markup=kb.categories_menu(categories, back_cb="products", lang=lang)
     )
 
-
-async def show_product_detail(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    query = update.callback_query
+@rate_limit(seconds=2)
+async def show_category(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query    = update.callback_query
     await query.answer()
-    lang       = get_user_lang(context, update.effective_user.id)
-    product_id = int(query.data.replace("prod_", ""))
+    category = query.data.replace("cat_", "")
+    lang     = get_user_lang(context, update.effective_user.id)
+    context.user_data["category"] = category
+    products = db.get_products_by_category(category)
+    if not products:
+        await query.edit_message_text(
+            t("no_products_category", lang), parse_mode=ParseMode.MARKDOWN,
+            reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton(t("back", lang), callback_data="products")]])
+        )
+        return
+    await query.edit_message_text(
+        f"*{t('choose_product', lang)}*", parse_mode=ParseMode.MARKDOWN,
+        reply_markup=kb.products_menu(products, lang=lang)
+    )
 
-    product, stock_count = db.get_product_with_stock(product_id)
+@rate_limit(seconds=2)
+async def show_product_detail(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query      = update.callback_query
+    await query.answer()
+    product_id = int(query.data.replace("prod_", ""))
+    lang       = get_user_lang(context, update.effective_user.id)
+    product    = db.get_product(product_id)
     if not product:
         await query.edit_message_text(t("error_not_found", lang))
         return
-
-    has_stock  = stock_count > 0
-    stock_line = (
-        f"{t('in_stock', lang)} ({stock_count} units)" if has_stock else t("out_of_stock", lang)
-    )
-
+    has_stock  = product["stock_count"] > 0
+    stock_text = t("in_stock", lang) if has_stock else t("out_of_stock", lang)
     text = (
-        f"🛍️ *{product['name']}*\n"
-        f"\n—————————————————\n\n"
-        f"_{product['description'] or t('no_desc', lang)}_\n\n"
-        f"💵 USD: *${product['price_usd']}*\n"
-        f"💴 SYP: *{product['price_syp']:,.0f} ل.س*\n\n"
-        f"{stock_line}\n"
-        f"\n—————————————————\n"
+        f"*{product['name']}*\n\n—————————————————\n\n"
+        f"📝 {product['description'] or t('no_desc', lang)}\n\n"
+        f"💵 ${product['price_usd']}\n📦 {stock_text}\n\n—————————————————\n"
     )
-    back_cb = context.user_data.get("cat_source", "products")
     await query.edit_message_text(
         text, parse_mode=ParseMode.MARKDOWN,
-        reply_markup=kb.product_detail_menu(product_id, has_stock, lang=lang, back_cb=back_cb),
+        reply_markup=kb.product_detail_menu(product_id, has_stock=has_stock, lang=lang)
     )
 
-
-async def initiate_buy(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    query = update.callback_query
+@rate_limit(seconds=5)
+async def buy_product(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query      = update.callback_query
     await query.answer()
-    lang = get_user_lang(context, update.effective_user.id)
-
-    # Rate limiting: 3 seconds between attempts
-    now      = time.time()
-    last_buy = context.user_data.get("last_buy_attempt", 0)
-    if now - last_buy < 3:
-        await query.answer("⏳ انتظر لحظة قبل المحاولة مجدداً", show_alert=True)
+    parts      = query.data.split("_")
+    product_id = int(parts[1])
+    currency   = parts[2] if len(parts) > 2 else "USD"
+    user       = query.from_user
+    lang       = get_user_lang(context, user.id)
+    product    = db.get_product(product_id)
+    if not product:
+        await query.edit_message_text(t("error_not_found", lang))
         return
-    context.user_data["last_buy_attempt"] = now
-
-    product_id           = int(query.data.split("_")[1])
-    user                 = update.effective_user
-    product, stock_count = db.get_product_with_stock(product_id)
-
-    if not product or stock_count == 0:
-        await query.edit_message_text(t("no_products_category", lang), parse_mode=ParseMode.MARKDOWN)
-        return
-
-    price = product["price_usd"]
-
-    try:
-        item, new_balance, remaining = db.buy_with_balance(user.id, product_id, price)
-    except ValueError as e:
-        err = str(e)
-        if err.startswith("insufficient_balance:"):
-            balance = float(err.split(":")[1])
-            needed  = price - balance
-            await query.edit_message_text(
-                f"❌ *{t('insufficient_balance', lang)}*\n"
-                f"\n—————————————————\n\n"
-                f"💳 {t('balance', lang)}: `${balance:.2f}`\n"
-                f"💵 {t('amount', lang)}: `${price}`\n"
-                f"\n—————————————————\n\n"
-                f"_{t('top_up_first', lang)}_",
-                parse_mode=ParseMode.MARKDOWN,
-                reply_markup=InlineKeyboardMarkup([
-                    [InlineKeyboardButton(
-                        f"💳 {t('top_up', lang)} — ${needed:.2f}", callback_data="charge_start"
-                    )],
-                    [InlineKeyboardButton(t("back", lang), callback_data=f"prod_{product_id}")],
-                ]),
-            )
-        else:
-            await query.edit_message_text(t("no_products_category", lang), parse_mode=ParseMode.MARKDOWN)
-        return
-
-    order_id = db.create_order(
-        user_id=user.id, username=user.username or "",
-        full_name=user.full_name or "", product_id=product_id,
-        product_name=product["name"], price_usd=price,
-        price_syp=product["price_syp"], currency="USD",
-        payment_method="balance", delivered_item=item,
-    )
-    db.update_order_status(order_id, "completed", "balance")
-
-    await query.edit_message_text(
-        f"✅ *{t('purchase_success', lang)}*\n"
-        f"\n—————————————————\n\n"
-        f"🛍️ {product['name']}\n"
-        f"💵 {t('amount', lang)}: *${price}*\n"
-        f"💳 {t('balance', lang)}: `${new_balance:.2f}`\n"
-        f"\n—————————————————\n\n"
-        f"_{t('thank_you', lang)}_",
-        parse_mode=ParseMode.MARKDOWN,
-        reply_markup=InlineKeyboardMarkup(
-            [[InlineKeyboardButton(t("home", lang), callback_data="back_main")]]
-        ),
-    )
-
-    # Separate message with the product item
-    save_note = "Keep this information safe" if lang == "en" else "احفظ هذه المعلومات بأمان"
-    await context.bot.send_message(
-        chat_id=user.id,
-        text=(
-            f"🎁 *{t('product_details', lang)}*\n"
-            f"\n—————————————————\n\n"
-            f"`{item}`\n"
-            f"\n—————————————————\n\n"
-            f"_{save_note}_"
-        ),
-        parse_mode=ParseMode.MARKDOWN,
-    )
-
-    try:
-        await context.bot.send_message(
-            chat_id=ADMIN_ID,
-            text=(
-                f"*New Sale #{order_id}*\n"
-                f"{user.full_name}\n"
-                f"{product['name']}\n"
-                f"${price} (Balance)\n"
-                f"Stock remaining: {remaining}"
-            ),
+    price_usd = float(product["price_usd"] or 0)
+    price_syp = float(product["price_syp"] or 0)
+    balance   = db.get_balance(user.id)
+    if balance < price_usd:
+        await query.edit_message_text(
+            f"❌ *{t('insufficient_balance', lang)}*\n\n"
+            f"💰 {t('current_balance', lang)}: `${balance:.2f}`\n"
+            f"💵 {t('price', lang)}: `${price_usd}`\n\n_{t('top_up_first', lang)}_",
             parse_mode=ParseMode.MARKDOWN,
+            reply_markup=InlineKeyboardMarkup([
+                [InlineKeyboardButton(t("top_up_title", lang), callback_data="charge_start")],
+                [InlineKeyboardButton(t("back", lang), callback_data=f"prod_{product_id}")],
+            ])
         )
-    except Exception:
-        pass
-
-
-async def my_orders(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    query = update.callback_query
-    if query:
-        await query.answer()
-    lang   = get_user_lang(context, update.effective_user.id)
-    user   = update.effective_user
-    orders = db.get_user_orders(user.id)
-
-    back_kb = InlineKeyboardMarkup(
-        [[InlineKeyboardButton(t("back", lang), callback_data="back_main")]]
-    )
-
-    if not orders:
-        text = f"*{t('my_orders', lang)}*\n\n_{t('no_orders', lang)}_"
-        if query:
-            await query.edit_message_text(text, parse_mode=ParseMode.MARKDOWN, reply_markup=back_kb)
-        else:
-            await update.message.reply_text(text, parse_mode=ParseMode.MARKDOWN, reply_markup=back_kb)
         return
-
-    status_map = {
-        "pending":   t("status_pending", lang),
-        "completed": t("status_completed", lang),
-        "rejected":  t("status_rejected", lang),
-    }
-    lines = [f"📦 *{t('my_orders', lang)}*\n", "\n—————————————————\n"]
-    for o in orders:
-        status = status_map.get(o["status"], "?")
-        lines.append(f"{status}  `#{o['id']}` — {o['product_name']}")
-    lines.append("\n—————————————————\n")
-    text = "\n".join(lines)
-
-    if query:
-        await query.edit_message_text(text, parse_mode=ParseMode.MARKDOWN, reply_markup=back_kb)
-    else:
-        await update.message.reply_text(text, parse_mode=ParseMode.MARKDOWN, reply_markup=back_kb)
-
-
-async def contact(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    query = update.callback_query
-    await query.answer()
-    lang = get_user_lang(context, update.effective_user.id)
+    if product["stock_count"] == 0:
+        await query.edit_message_text(
+            f"❌ *{t('out_of_stock', lang)}*", parse_mode=ParseMode.MARKDOWN,
+            reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton(t("back", lang), callback_data="products")]])
+        )
+        return
+    try:
+        order_id = db.create_order_atomic(
+            user_id=user.id, username=user.username or "", full_name=user.full_name or "",
+            product_id=product_id, product_name=product["name"],
+            price_usd=price_usd, price_syp=price_syp, currency=currency,
+        )
+    except ValueError:
+        await query.edit_message_text(
+            f"❌ *{t('insufficient_balance', lang)}*", parse_mode=ParseMode.MARKDOWN,
+        )
+        return
+    for admin_id in ADMIN_IDS:
+        try:
+            await context.bot.send_message(
+                chat_id=admin_id,
+                text=(
+                    f"🛍️ *طلب جديد | New Order*\n\n—————————————————\n\n"
+                    f"🔖 Order ID: `#{order_id}`\n👤 {user.full_name} (@{user.username or '—'})\n"
+                    f"🆔 `{user.id}`\n📦 {product['name']}\n💵 ${price_usd}\n\n—————————————————"
+                ),
+                parse_mode=ParseMode.MARKDOWN,
+            )
+        except Exception:
+            pass
     await query.edit_message_text(
-        f"💬 *{t('contact_title', lang)}*\n"
-        f"\n—————————————————\n\n"
-        f"👤 @Allosh96ha\n\n"
-        f"_{t('contact_reply', lang)}_\n"
-        f"\n—————————————————\n",
+        f"✅ *{t('order_placed', lang)}*\n\n—————————————————\n\n"
+        f"🔖 Order ID: `#{order_id}`\n📦 {product['name']}\n💵 ${price_usd}\n\n"
+        f"_{t('order_processing', lang)}_\n\n—————————————————\n",
         parse_mode=ParseMode.MARKDOWN,
-        reply_markup=kb.main_menu(lang),
+        reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton(t("home", lang), callback_data="back_main")]])
     )
 
-
-async def back_main(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    query = update.callback_query
+@rate_limit(seconds=3)
+async def show_balance(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query   = update.callback_query
     await query.answer()
-    lang = get_user_lang(context, update.effective_user.id)
+    user    = query.from_user
+    lang    = get_user_lang(context, user.id)
+    balance = db.get_balance(user.id)
     await query.edit_message_text(
-        t("welcome", lang), parse_mode=ParseMode.MARKDOWN, reply_markup=kb.main_menu(lang)
+        f"💰 *{t('balance_title', lang)}*\n\n—————————————————\n\n"
+        f"💵 *${balance:.2f}*\n\n—————————————————\n",
+        parse_mode=ParseMode.MARKDOWN,
+        reply_markup=InlineKeyboardMarkup([
+            [InlineKeyboardButton(t("top_up_title", lang), callback_data="charge_start")],
+            [InlineKeyboardButton(t("back", lang), callback_data="back_main")],
+        ])
     )
 
-
-async def persistent_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user = update.effective_user
-    lang = get_user_lang(context, user.id)
-    db.upsert_user(user.id, user.username or "", user.full_name or "")
-    for k in ["charge_amount", "charge_method", "charge_display",
-              "charge_amount_syp", "pending_order_id", "buy_currency"]:
-        context.user_data.pop(k, None)
-    await update.message.reply_text(
-        t("welcome", lang), parse_mode=ParseMode.MARKDOWN, reply_markup=kb.main_menu(lang)
-    )
-    return ConversationHandler.END
-
-
-async def icloud_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def contact_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
-    lang = get_user_lang(context, update.effective_user.id)
+    lang  = get_user_lang(context, update.effective_user.id)
+    await query.edit_message_text(
+        f"🛟 *{t('support_title', lang)}*\n\n—————————————————\n\n"
+        f"👤 @Allosh96ha\n\n_{t('support_body', lang)}_\n\n—————————————————\n",
+        parse_mode=ParseMode.MARKDOWN,
+        reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton(t("back", lang), callback_data="back_main")]])
+    )
 
-    context.user_data["cat_source"] = "back_main"
+@rate_limit(seconds=3)
+async def proxy_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+    lang  = get_user_lang(context, update.effective_user.id)
+    from config import PROXY_TYPES
+    keyboard = [[InlineKeyboardButton(label, callback_data=f"proxy_type_{key}")] for key, label in PROXY_TYPES.items()]
+    keyboard.append([InlineKeyboardButton(t("back", lang), callback_data="back_main")])
+    await query.edit_message_text(
+        "🌐 *Proxy*\n\n—————————————————\n\nاختر نوع البروكسي:\n_Choose proxy type:_",
+        parse_mode=ParseMode.MARKDOWN,
+        reply_markup=InlineKeyboardMarkup(keyboard)
+    )
 
-    products        = db.get_all_products()
-    icloud_products = [p for p in products if p.get("category") == "Apple iCloud"]
+@rate_limit(seconds=3)
+async def proxy_type_selected(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query      = update.callback_query
+    await query.answer()
+    proxy_type = query.data.replace("proxy_type_", "")
+    user       = query.from_user
+    lang       = get_user_lang(context, user.id)
+    from config import PROXY_TYPES
+    label = PROXY_TYPES.get(proxy_type, proxy_type)
+    context.user_data["proxy_type"]            = proxy_type
+    context.user_data["proxy_type_label"]      = label
+    context.user_data["waiting_proxy_details"] = True
+    await query.edit_message_text(
+        f"🌐 *{label}*\n\n—————————————————\n\n"
+        f"أرسل تفاصيل طلبك:\n• الكمية\n• الدولة\n• أي ملاحظات\n\n"
+        f"_Send your order details:_\n_- Quantity, Country, Notes_",
+        parse_mode=ParseMode.MARKDOWN,
+        reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton(t("back", lang), callback_data="proxy_menu")]])
+    )
 
-    if not icloud_products:
+async def proxy_details_received(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """يستقبل نص تفاصيل طلب البروكسي."""
+    if not context.user_data.get("waiting_proxy_details"):
+        return
+    user       = update.effective_user
+    lang       = get_user_lang(context, user.id)
+    proxy_type = context.user_data.get("proxy_type", "")
+    label      = context.user_data.get("proxy_type_label", "")
+    details    = update.message.text.strip()[:500]
+    order_id   = db.create_proxy_order(
+        user_id=user.id, username=user.username or "", full_name=user.full_name or "",
+        proxy_type=proxy_type, proxy_type_label=label,
+        quantity=1, country="—", notes=details,
+    )
+    for admin_id in ADMIN_IDS:
+        try:
+            await context.bot.send_message(
+                chat_id=admin_id,
+                text=(
+                    f"🌐 *طلب بروكسي جديد*\n\n—————————————————\n\n"
+                    f"🔖 ID: `#{order_id}`\n👤 {user.full_name} (@{user.username or '—'})\n"
+                    f"🆔 `{user.id}`\n📦 {label}\n📝 {details}\n\n—————————————————"
+                ),
+                parse_mode=ParseMode.MARKDOWN,
+            )
+        except Exception:
+            pass
+    context.user_data["waiting_proxy_details"] = False
+    await update.message.reply_text(
+        f"✅ *تم إرسال طلبك*\n\n🔖 Order ID: `#{order_id}`\n📦 {label}\n\n_سيتم التواصل معك قريباً_",
+        parse_mode=ParseMode.MARKDOWN,
+        reply_markup=kb.main_menu(lang)
+    )
+
+@rate_limit(seconds=3)
+async def surveys_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query    = update.callback_query
+    await query.answer()
+    lang     = get_user_lang(context, update.effective_user.id)
+    products = db.get_products_by_category("Survey Accounts")
+    if not products:
         await query.edit_message_text(
             t("no_products_category", lang),
-            parse_mode=ParseMode.MARKDOWN,
-            reply_markup=InlineKeyboardMarkup(
-                [[InlineKeyboardButton(t("back", lang), callback_data="back_main")]]
-            ),
+            reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton(t("back", lang), callback_data="back_main")]])
         )
         return
-
     await query.edit_message_text(
-        f"*iCloud*\n\n_{t('choose_product', lang)}_",
-        parse_mode=ParseMode.MARKDOWN,
-        reply_markup=kb.products_menu(icloud_products, lang=lang, back_cb="back_main"),
+        f"📊 *Surveys*\n\n{t('choose_product', lang)}", parse_mode=ParseMode.MARKDOWN,
+        reply_markup=kb.products_menu(products, lang=lang, back_cb="back_main")
     )
 
+@rate_limit(seconds=2)
+async def icloud_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """iCloud — يعرض منتجات فئة Apple iCloud."""
+    query    = update.callback_query
+    await query.answer()
+    lang     = get_user_lang(context, update.effective_user.id)
+    products = db.get_products_by_category("Apple iCloud")
+    if not products:
+        products = db.get_products_by_platform("iOS")
+    if not products:
+        await query.edit_message_text(
+            t("no_products_platform", lang),
+            reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton(t("back", lang), callback_data="back_main")]])
+        )
+        return
+    await query.edit_message_text(
+        f"🍏 *iCloud*\n\n{t('choose_product', lang)}", parse_mode=ParseMode.MARKDOWN,
+        reply_markup=kb.products_menu(products, lang=lang, back_cb="back_main")
+    )
 
+@rate_limit(seconds=2)
 async def emails_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    query = update.callback_query
+    """Emails — يعرض فئات الإيميلات."""
+    query      = update.callback_query
     await query.answer()
-    lang = get_user_lang(context, update.effective_user.id)
-
-    context.user_data["cat_source"] = "emails_menu"
-
+    lang       = get_user_lang(context, update.effective_user.id)
+    categories = [c for c in db.get_categories() if any(
+        x in c.lower() for x in ["email", "outlook", "gmail", "hotmail", "mail"]
+    )]
+    if not categories:
+        products = db.get_products_by_category("Emails")
+        if products:
+            await query.edit_message_text(
+                f"📧 *{t('btn_emails', lang)}*\n\n{t('choose_product', lang)}",
+                parse_mode=ParseMode.MARKDOWN,
+                reply_markup=kb.products_menu(products, lang=lang, back_cb="back_main")
+            )
+            return
+        await query.edit_message_text(
+            t("no_products_platform", lang),
+            reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton(t("back", lang), callback_data="back_main")]])
+        )
+        return
     await query.edit_message_text(
-        f"*{t('emails_title', lang)}*\n\n"
-        f"\n—————————————————\n\n"
-        f"_{t('choose_type', lang)}_",
+        f"📧 *{t('btn_emails', lang)}*\n\n{t('choose_category', lang)}",
         parse_mode=ParseMode.MARKDOWN,
-        reply_markup=InlineKeyboardMarkup([
-            [InlineKeyboardButton("Outlook", callback_data="cat_Outlook")],
-            [InlineKeyboardButton("Gmail",   callback_data="cat_Gmail")],
-            [InlineKeyboardButton("Hotmail", callback_data="cat_Hotmail")],
-            [InlineKeyboardButton(t("back", lang), callback_data="back_main")],
-        ]),
-    )
-
-
-async def surveys_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    query = update.callback_query
-    await query.answer()
-    lang = get_user_lang(context, update.effective_user.id)
-
-    context.user_data["cat_source"] = "surveys_menu"
-
-    await query.edit_message_text(
-        f"*📊 Surveys*\n\n_{t('choose_type', lang)}_",
-        parse_mode=ParseMode.MARKDOWN,
-        reply_markup=InlineKeyboardMarkup([
-            [InlineKeyboardButton("Toluna",    callback_data="cat_Toluna")],
-            [InlineKeyboardButton("Qmee",      callback_data="cat_Qmee")],
-            [InlineKeyboardButton("My Points", callback_data="cat_My Points")],
-            [InlineKeyboardButton("Swagbucks", callback_data="cat_Swagbucks")],
-            [InlineKeyboardButton(t("back", lang), callback_data="back_main")],
-        ]),
-    )
-
-
-async def proxy_menu_simple(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    query = update.callback_query
-    await query.answer()
-    lang = get_user_lang(context, update.effective_user.id)
-
-    contact_line = (
-        "📩 To order, contact admin directly:\n👤 @Allosh96ha"
-        if lang == "en"
-        else "📩 للطلب تواصل مع الأدمن مباشرة:\n👤 @Allosh96ha"
-    )
-    back_label   = "🔙 Back" if lang == "en" else "🔙 رجوع"
-    contact_btn  = "💬 Contact Admin" if lang == "en" else "💬 تواصل مع الأدمن"
-
-    await query.edit_message_text(
-        f"🌐 *Proxy Service*\n"
-        f"—————————————————\n\n"
-        f"• HTTP / HTTPS\n"
-        f"• SOCKS5\n"
-        f"• Residential\n"
-        f"• Mobile 4G / 5G\n"
-        f"• Modem Private\n\n"
-        f"\n—————————————————\n\n"
-        f"{contact_line}\n"
-        f"\n—————————————————\n",
-        parse_mode=ParseMode.MARKDOWN,
-        reply_markup=InlineKeyboardMarkup([
-            [InlineKeyboardButton(contact_btn, url="https://t.me/Allosh96ha")],
-            [InlineKeyboardButton(back_label, callback_data="back_main")],
-        ]),
+        reply_markup=kb.categories_menu(categories, back_cb="back_main", lang=lang)
     )
