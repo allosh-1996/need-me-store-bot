@@ -1,84 +1,105 @@
-# NexVault Bot — FIXES
+# NexVault Bot — Change Log
 
-> تاريخ الإصلاح: 2026-05-27
-
----
-
-## 🔴 FIX 1: فقدان البيانات عند الـ Restart (database.py)
-
-**المشكلة:** `DB_PATH` كان `/tmp/store.db` — على Railway يُحذف مع كل restart أو redeploy.
-
-**الإصلاح:**
-- `DB_PATH` الافتراضي أصبح `/data/store.db`
-- الكود يحاول إنشاء المجلد تلقائياً لو ما موجود
-- لو فشل إنشاء المجلد (dev environment) يرجع لـ `/tmp` مع تحذير واضح
-
-**خطوات Railway:**
-1. اذهب لـ Settings → Volumes
-2. أضف Volume: Mount Path = `/data`
-3. أضف env var: `DB_PATH=/data/store.db`
+> Last updated: 2026-05-31
 
 ---
 
-## 🔴 FIX 2: نظام المخزون (database.py + handlers)
+## v2 — Full Clean Rewrite (2026-05-31)
 
-**المشكلة:** كل المستخدمين اللي يشتروا نفس المنتج يحصلوا على نفس المحتوى (نفس الحساب/الإيميل).
-
-**الإصلاح:**
-- أضيفت دالة `pop_stock_item(product_id)` في `database.py`
-- تسحب أول سطر من المخزون وتحذفه — كل مشتري يحصل على وحدة فريدة
-- أضيفت دالة `get_stock_count(product_id)` لعرض العدد الحقيقي
-- أضيف عمود `delivered_item` في جدول `orders` لحفظ الوحدة المُرسلة
-- تم تعديل: `handlers_user.py` (confirm_buy) + `handlers_admin.py` (confirm_order) + `web_dashboard.py` (api_order_status)
-
-**طريقة إضافة المخزون الصحيحة:**
-```
-account1@email.com:password1
-account2@email.com:password2
-account3@email.com:password3
-```
-كل سطر = وحدة مستقلة. عند كل بيع يُسحب سطر واحد ويُحذف.
+All files below were rewritten from scratch, not patched.
 
 ---
 
-## 🟡 FIX 3: Broadcast مكرر (web_dashboard.py)
+### database.py
 
-**المشكلة:** الداشبورد يرسل broadcast فوراً، والـ job_queue في main.py يراقب كل 30 ثانية ويرسل broadcasts غير مرسلة — النتيجة: كل رسالة تتبعث مرتين.
+**Problem 1 — RuntimeError at import time**
+The env-var validation (`TURSO_URL / TURSO_TOKEN`) ran at module level, meaning
+any `import database` would crash before the bot even started if the vars were missing.
 
-**الإصلاح:**
-- تصحيح INSERT ليستخدم `c.lastrowid` بدل `RETURNING id` (توافق أفضل مع SQLite)
-- `is_sent=1` يُحدَّث فوراً بعد الإرسال من الداشبورد
-- الـ job_queue يشوف `is_sent=1` فلا يعيد الإرسال
-
----
-
-## 🟡 FIX 4: أمان الداشبورد (web_dashboard.py)
-
-**المشكلة:** `DASHBOARD_SECRET` عشوائي مع كل restart (sessions تنكسر) + `DASHBOARD_PASSWORD` الافتراضي `admin123`.
-
-**الإصلاح:**
-- في **production** (Railway/Render): الكود يرفع `RuntimeError` لو `DASHBOARD_SECRET` أو `DASHBOARD_PASSWORD` ما تحدد
-- في **dev**: تحذيرات واضحة بدل صمت
-
-**env vars مطلوبة:**
-```
-DASHBOARD_SECRET=<random 64 chars>
-DASHBOARD_PASSWORD=<strong password>
-```
-
-**لتوليد DASHBOARD_SECRET:**
-```bash
-python3 -c "import secrets; print(secrets.token_hex(32))"
-```
+**Fix:** Validation moved inside `get_conn()`. The module now imports safely in all
+environments; the error is raised only when a DB call is actually attempted.
 
 ---
 
-## ملخص الملفات المعدّلة
+**Problem 2 — Negative balance possible via `add_balance()`**
+`add_balance(user_id, -100)` would silently subtract without checking the current
+balance, leaving users with negative balances.
 
-| الملف | التغييرات |
-|---|---|
-| `database.py` | DB_PATH → /data، pop_stock_item()، get_stock_count()، migration عمود delivered_item |
-| `handlers_user.py` | confirm_buy يستخدم pop_stock_item، show_product_detail يعرض العدد الحقيقي |
-| `handlers_admin.py` | confirm_order يستخدم pop_stock_item |
-| `web_dashboard.py` | api_order_status يستخدم pop_stock_item، broadcast fix، security fix |
+**Fix:** `add_balance()` now delegates negative amounts to `deduct_balance_atomic()`,
+which wraps the deduction in `BEGIN IMMEDIATE` and raises `ValueError` if the balance
+is insufficient. A negative balance is now impossible.
 
+---
+
+**Problem 3 — Thread-local connections never closed**
+`threading.local()` connections were created per-thread but never closed. Over time
+(many threads, long uptime) this silently accumulated open connections.
+
+**Fix:** `close_thread_conn()` was already present but never called. The function is
+retained and documented. Callers (Flask teardown, thread cleanup) should invoke it.
+The connection is now also re-created if the thread-local slot is `None`, so there is
+no stale-connection risk on reconnect.
+
+---
+
+**Problem 4 — `deduct_balance()` was a loose wrapper**
+The old `deduct_balance()` issued a plain `UPDATE` with no balance check, bypassing
+the atomic guard in `deduct_balance_atomic()`.
+
+**Fix:** `deduct_balance()` is now a thin alias for `deduct_balance_atomic()`.
+One code path, one guarantee.
+
+---
+
+### web_dashboard.py
+
+**Problem — Broadcast was a blocking HTTP request**
+`api_broadcast()` looped over all users synchronously inside the Flask request.
+With 1 000+ users at ~1 s per `tg_send`, the HTTP request would hang for 1 000 s
+and time out before completing.
+
+**Fix:** Broadcast now runs in a daemon `threading.Thread` (`_broadcast_worker`).
+The API endpoint returns immediately with a `job_id`. The caller can poll
+`GET /api/broadcast/status/<job_id>` to track `sent / failed / total` in real time.
+
+Batch size: 25 messages per batch, 1 s delay between batches — stays under
+Telegram's 30 msg/s limit.
+
+---
+
+### handlers_admin.py
+
+**Problem — Notifications used a hardcoded Arabic language**
+`reject_order()` and `confirm_order()` always sent messages in Arabic, even when
+the user had selected English.
+
+**Fix:** Both handlers now call `db.get_user_lang(order["user_id"])` before sending
+and pass the result to `t()`. Same fix applied to `appsflyer_accept()` and
+`appsflyer_reject()`.
+
+---
+
+### handlers_user.py
+
+**Problem — Hardcoded Arabic string in `initiate_buy()`**
+The product-delivery message ended with a hardcoded Arabic string
+`"احفظ هذه المعلومات بأمان"` regardless of the user's language setting.
+
+**Fix:** The string is now conditional on `lang`:
+```python
+save_note = "Keep this information safe" if lang == "en" else "احفظ هذه المعلومات بأمان"
+```
+
+`proxy_menu_simple()` had the same issue — all button labels and body text are now
+driven by `lang`.
+
+---
+
+## v1 — Initial Fixes (2026-05-27)
+
+| Fix | File | Description |
+|-----|------|-------------|
+| DB persistence | database.py | Migrated from SQLite `/tmp` to Turso cloud DB |
+| Stock pop | database.py | `pop_stock_item()` — atomic, unique per buyer |
+| Broadcast dedup | web_dashboard.py | `is_sent=1` set immediately; job_queue skips sent rows |
+| Dashboard security | web_dashboard.py | `DASHBOARD_SECRET` + `DASHBOARD_PASSWORD` required in production |
