@@ -218,6 +218,33 @@ STRINGS = {
     "lang_changed_ar": {"ar": "تم التبديل للعربية", "en": "تم التبديل للعربية"},
     "lang_changed_en": {"ar": "Switched to English", "en": "Switched to English"},
 
+
+    # ═══ keys جديدة مطلوبة للكود الجديد ═══
+    "order_placed": {
+        "ar": "تم استلام طلبك",
+        "en": "Order Received",
+    },
+    "order_processing": {
+        "ar": "طلبك قيد المعالجة — سيتم التواصل معك قريباً",
+        "en": "Your order is being processed — we will contact you soon",
+    },
+    "balance_title": {
+        "ar": "رصيدي",
+        "en": "My Balance",
+    },
+    "charge_submitted": {
+        "ar": "تم إرسال طلب الشحن",
+        "en": "Top Up Request Submitted",
+    },
+    "charge_pending": {
+        "ar": "سيتم مراجعة طلبك وإضافة الرصيد خلال دقائق",
+        "en": "Your request will be reviewed and balance added within minutes",
+    },
+    "price": {
+        "ar": "السعر",
+        "en": "Price",
+    },
+
     # ═══ الأدمن ═══
     "order_confirmed": {"ar": "تم تأكيد طلبك!", "en": "Order Confirmed!"},
     "order_rejected": {"ar": "تم رفض طلبك", "en": "Order Rejected"},
