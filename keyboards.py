@@ -43,7 +43,7 @@ def categories_menu(categories, back_cb="products", lang="ar"):
 def products_menu(products, lang="ar", back_cb="products"):
     keyboard = []
     for p in products:
-        stock_count = len([l for l in (p['stock'] or '').strip().splitlines() if l.strip()])
+        stock_count = p.get('stock_count', 0)
         status = t("in_stock", lang) if stock_count > 0 else t("out_of_stock", lang)
         price_text = f"${p['price_usd']}" if p['price_usd'] else ""
         keyboard.append([InlineKeyboardButton(
