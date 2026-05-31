@@ -2,5 +2,5 @@
 builder = "dockerfile"
 
 [deploy]
-startCommand = "python run_all.py"
+startCommand = "python migrate_stock.py && python run_all.py"
 restartPolicyType = "always"
