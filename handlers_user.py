@@ -443,3 +443,19 @@ async def surveys_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
         f"📊 *Surveys*\n\n{t('choose_product', lang)}", parse_mode=ParseMode.MARKDOWN,
         reply_markup=kb.products_menu(products, lang=lang, back_cb="back_main")
     )
+
+
+# ─────────────────────────────────────────
+# Universal cancel — /start inside any conversation
+# ─────────────────────────────────────────
+
+async def universal_cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """يلغي أي conversation مفتوح ويرجع للرئيسية — يُستخدم كـ fallback لـ /start."""
+    context.user_data.clear()
+    user = update.effective_user
+    db.upsert_user(user.id, user.username or "", user.full_name or "")
+    lang = get_user_lang(context, user.id)
+    await update.message.reply_text(
+        t("welcome", lang), parse_mode=ParseMode.MARKDOWN, reply_markup=kb.main_menu(lang)
+    )
+    return ConversationHandler.END

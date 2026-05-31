@@ -70,7 +70,7 @@ def main():
             ha.ADM_PROD_CATEGORY:  [MessageHandler(filters.TEXT & ~filters.COMMAND, ha.add_product_category)],
             ha.ADM_PROD_STOCK:     [MessageHandler(filters.TEXT & ~filters.COMMAND, ha.add_product_stock)],
         },
-        fallbacks=[CommandHandler("cancel", ha.cancel), CommandHandler("start", hu.persistent_start)],
+        fallbacks=[CommandHandler("cancel", ha.cancel), CommandHandler("start", hu.universal_cancel)],
         per_user=True, per_chat=True, per_message=False,
     )
 
@@ -80,7 +80,7 @@ def main():
         states={
             ha.ADM_STOCK_UPDATE: [MessageHandler(filters.TEXT & ~filters.COMMAND, ha.update_stock_receive)],
         },
-        fallbacks=[CommandHandler("cancel", ha.cancel), CommandHandler("start", hu.persistent_start)],
+        fallbacks=[CommandHandler("cancel", ha.cancel), CommandHandler("start", hu.universal_cancel)],
         per_user=True, per_chat=True, per_message=False,
     )
 
@@ -90,7 +90,7 @@ def main():
         states={
             ha.ADM_BROADCAST_MSG: [MessageHandler(filters.TEXT & ~filters.COMMAND, ha.broadcast_send)],
         },
-        fallbacks=[CommandHandler("cancel", ha.cancel), CommandHandler("start", hu.persistent_start)],
+        fallbacks=[CommandHandler("cancel", ha.cancel), CommandHandler("start", hu.universal_cancel)],
         per_user=True, per_chat=True, per_message=False,
     )
 
@@ -114,7 +114,7 @@ def main():
         },
         fallbacks=[
             CommandHandler("cancel", hc.charge_cancel),
-            CommandHandler("start",  hu.persistent_start),
+            CommandHandler("start",  hc.charge_cancel),
             CallbackQueryHandler(hc.charge_cancel_conv, pattern="^charge_cancel_conv$"),
         ],
         per_user=True, per_chat=True, per_message=False,
@@ -140,7 +140,7 @@ def main():
         },
         fallbacks=[
             CommandHandler("cancel",  ha.cancel),
-            CommandHandler("start",   hu.persistent_start),
+            CommandHandler("start",   ha.cancel),
             CallbackQueryHandler(haf.af_cancel, pattern="^af_cancel$"),
         ],
         per_user=True, per_chat=True, per_message=False,
