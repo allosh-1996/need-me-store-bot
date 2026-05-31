@@ -17,9 +17,8 @@ _CANCEL_CB = "charge_cancel_conv"
 
 
 def _cancel_kb(lang: str) -> InlineKeyboardMarkup:
-    return InlineKeyboardMarkup([[
-        InlineKeyboardButton("❌ " + t("cancel", lang), callback_data=_CANCEL_CB)
-    ]])
+    label = "❌ إلغاء العملية" if lang == "ar" else "❌ Cancel"
+    return InlineKeyboardMarkup([[InlineKeyboardButton(label, callback_data=_CANCEL_CB)]])
 
 
 # ─────────────────────────────────────────
@@ -220,7 +219,7 @@ async def charge_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # ─────────────────────────────────────────
 
 async def charge_cancel_conv(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """زر إلغاء داخل الـ conversation."""
+    """زر إلغاء العملية داخل الـ conversation."""
     query = update.callback_query
     await query.answer()
     context.user_data.clear()
