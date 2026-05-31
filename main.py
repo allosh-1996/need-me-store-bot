@@ -10,13 +10,14 @@ from telegram.ext import (
     Application, CommandHandler, CallbackQueryHandler,
     MessageHandler, ConversationHandler, filters,
 )
+from telegram.constants import ParseMode
 
 import database as db
-from config import BOT_TOKEN, ADMIN_ID
+from config import BOT_TOKEN, ADMIN_IDS
 from keep_alive import keep_alive
-import handlers_user as hu
-import handlers_admin as ha
-import handlers_charge as hc
+import handlers_user     as hu
+import handlers_admin    as ha
+import handlers_charge   as hc
 import handlers_appsflyer as haf
 
 logging.basicConfig(
@@ -25,6 +26,19 @@ logging.basicConfig(
     handlers=[logging.StreamHandler()],
 )
 logger = logging.getLogger(__name__)
+
+
+async def error_handler(update: object, context) -> None:
+    logger.error("Unhandled exception:", exc_info=context.error)
+    for admin_id in ADMIN_IDS:
+        try:
+            await context.bot.send_message(
+                chat_id=admin_id,
+                text=f"⚠️ *خطأ في البوت*\n\n`{type(context.error).__name__}: {context.error}`",
+                parse_mode=ParseMode.MARKDOWN,
+            )
+        except Exception:
+            pass
 
 
 def main():
@@ -45,7 +59,7 @@ def main():
 
     app = Application.builder().token(BOT_TOKEN).build()
 
-    # ── ConversationHandler: Add Product ──
+    # ── Add Product ──
     add_product_conv = ConversationHandler(
         entry_points=[CallbackQueryHandler(ha.add_product_start, pattern="^adm_add_product$")],
         states={
@@ -60,7 +74,7 @@ def main():
         per_user=True, per_chat=True, per_message=False,
     )
 
-    # ── ConversationHandler: Update Stock ──
+    # ── Update Stock ──
     stock_conv = ConversationHandler(
         entry_points=[CallbackQueryHandler(ha.update_stock_start, pattern=r"^adm_stock_\d+$")],
         states={
@@ -70,183 +84,104 @@ def main():
         per_user=True, per_chat=True, per_message=False,
     )
 
-    # ── ConversationHandler: Broadcast ──
+    # ── Broadcast ──
     broadcast_conv = ConversationHandler(
         entry_points=[CallbackQueryHandler(ha.broadcast_start, pattern="^adm_broadcast$")],
         states={
-            ha.ADM_BROADCAST_MSG: [
-                MessageHandler((filters.TEXT & ~filters.COMMAND) | filters.PHOTO, ha.broadcast_send)
-            ],
+            ha.ADM_BROADCAST_MSG: [MessageHandler(filters.TEXT & ~filters.COMMAND, ha.broadcast_send)],
         },
         fallbacks=[CommandHandler("cancel", ha.cancel), CommandHandler("start", hu.persistent_start)],
         per_user=True, per_chat=True, per_message=False,
     )
 
-    # ── ConversationHandler: Top Up ──
+    # ── Charge ──
     charge_conv = ConversationHandler(
-        entry_points=[
-            CallbackQueryHandler(hc.charge_start, pattern="^charge_start$"),
-            CommandHandler("charge", hc.charge_start),
-        ],
+        entry_points=[CallbackQueryHandler(hc.charge_start, pattern="^charge_start$")],
         states={
-            hc.WAITING_METHOD: [
-                CallbackQueryHandler(hc.charge_method_selected, pattern=r"^chg_method_"),
-                CallbackQueryHandler(hc.charge_back_to_main,    pattern="^back_main$"),
-            ],
-            hc.WAITING_AMOUNT: [
-                MessageHandler(filters.TEXT & ~filters.COMMAND, hc.charge_amount),
-                CallbackQueryHandler(hc.charge_back_to_main,    pattern="^back_main$"),
-            ],
+            hc.WAITING_METHOD: [CallbackQueryHandler(hc.charge_method_selected, pattern="^chg_method_")],
+            hc.WAITING_AMOUNT: [MessageHandler(filters.TEXT & ~filters.COMMAND, hc.charge_amount)],
             hc.WAITING_TXHASH: [
-                MessageHandler(
-                    filters.PHOTO | filters.Document.ALL | (filters.TEXT & ~filters.COMMAND),
-                    hc.charge_proof,
-                ),
-                CallbackQueryHandler(hc.charge_back_to_main, pattern="^back_main$"),
+                MessageHandler(filters.TEXT & ~filters.COMMAND, hc.charge_txhash),
+                MessageHandler(filters.PHOTO, hc.charge_photo),
             ],
         },
-        fallbacks=[
-            CommandHandler("cancel", hc.charge_cancel),
-            CommandHandler("start",  hc.charge_back_to_main),
-        ],
+        fallbacks=[CommandHandler("cancel", hc.charge_cancel), CommandHandler("start", hu.persistent_start)],
         per_user=True, per_chat=True, per_message=False,
     )
 
-    # ── ConversationHandler: Win AppsFlyer ──
-    appsflyer_conv = ConversationHandler(
+    # ── AppsFlyer ──
+    af_conv = ConversationHandler(
         entry_points=[CallbackQueryHandler(haf.appsflyer_menu, pattern="^win_appsflyer$")],
         states={
-            haf.AF_GAME: [
-                CallbackQueryHandler(haf.af_game_selected, pattern=r"^af_game_\w+$"),
-                CallbackQueryHandler(haf.af_cancel,        pattern="^af_cancel$"),
+            haf.AF_GAME:    [CallbackQueryHandler(haf.af_game_selected,       pattern="^af_game_")],
+            haf.AF_IDFA:    [MessageHandler(filters.TEXT & ~filters.COMMAND,  haf.af_receive_idfa)],
+            haf.AF_IDFV:    [MessageHandler(filters.TEXT & ~filters.COMMAND,  haf.af_receive_idfv)],
+            haf.AF_IOS_VER: [MessageHandler(filters.TEXT & ~filters.COMMAND,  haf.af_receive_ios_ver)],
+            haf.AF_AF_ID:   [MessageHandler(filters.TEXT & ~filters.COMMAND,  haf.af_receive_af_id)],
+            haf.AF_LEVELS:  [
+                CallbackQueryHandler(haf.af_level_toggle,         pattern=r"^af_lvl_\d+$"),
+                CallbackQueryHandler(haf.af_level_custom,         pattern="^af_lvl_custom$"),
+                CallbackQueryHandler(haf.af_levels_back,          pattern="^af_lvl_back$"),
+                CallbackQueryHandler(haf.af_levels_done,          pattern="^af_lvl_done$"),
+                MessageHandler(filters.TEXT & ~filters.COMMAND,   haf.af_receive_custom_levels),
             ],
-            haf.AF_IDFA: [
-                MessageHandler(filters.TEXT & ~filters.COMMAND, haf.af_receive_idfa),
-                CallbackQueryHandler(haf.af_cancel, pattern="^af_cancel$"),
-            ],
-            haf.AF_IDFV: [
-                MessageHandler(filters.TEXT & ~filters.COMMAND, haf.af_receive_idfv),
-                CallbackQueryHandler(haf.af_cancel, pattern="^af_cancel$"),
-            ],
-            haf.AF_IOS_VER: [
-                MessageHandler(filters.TEXT & ~filters.COMMAND, haf.af_receive_ios_ver),
-                CallbackQueryHandler(haf.af_cancel, pattern="^af_cancel$"),
-            ],
-            haf.AF_AF_ID: [
-                MessageHandler(filters.TEXT & ~filters.COMMAND, haf.af_receive_af_id),
-                CallbackQueryHandler(haf.af_cancel, pattern="^af_cancel$"),
-            ],
-            haf.AF_LEVELS: [
-                CallbackQueryHandler(haf.af_level_toggle,  pattern=r"^af_lvl_\d+$"),
-                CallbackQueryHandler(haf.af_level_custom,  pattern="^af_lvl_custom$"),
-                CallbackQueryHandler(haf.af_levels_back,   pattern="^af_lvl_back$"),
-                CallbackQueryHandler(haf.af_levels_done,   pattern="^af_lvl_done$"),
-                CallbackQueryHandler(haf.af_cancel,        pattern="^af_cancel$"),
-                MessageHandler(filters.TEXT & ~filters.COMMAND, haf.af_receive_custom_levels),
-            ],
-            haf.AF_CONFIRM: [
-                CallbackQueryHandler(haf.af_confirm_send, pattern="^af_confirm_send$"),
-                CallbackQueryHandler(haf.af_cancel,       pattern="^af_cancel$"),
-            ],
+            haf.AF_CONFIRM: [CallbackQueryHandler(haf.af_confirm_send, pattern="^af_confirm_send$")],
         },
         fallbacks=[
-            CommandHandler("cancel", haf.af_cancel_text),
-            CommandHandler("start",  hu.persistent_start),
+            CommandHandler("cancel",  ha.cancel),
+            CommandHandler("start",   hu.persistent_start),
+            CallbackQueryHandler(haf.af_cancel, pattern="^af_cancel$"),
         ],
         per_user=True, per_chat=True, per_message=False,
     )
 
     # ── Commands ──
-    app.add_handler(CommandHandler("start",           hu.start))
-    app.add_handler(CommandHandler("help",            hu.help_cmd))
-    app.add_handler(CommandHandler("products",        hu.show_products))
-    app.add_handler(CommandHandler("orders",          hu.my_orders))
-    app.add_handler(CommandHandler("admin",           ha.admin_panel))
-    app.add_handler(CommandHandler("change_language", hu.change_language_cmd))
-    app.add_handler(CommandHandler("support",         hu.support_cmd))
+    app.add_handler(CommandHandler("start",    hu.start))
+    app.add_handler(CommandHandler("help",     hu.help_cmd))
+    app.add_handler(CommandHandler("products", hu.products_cmd))
+    app.add_handler(CommandHandler("charge",   hc.charge_cmd))
+    app.add_handler(CommandHandler("lang",     hu.change_language_cmd))
+    app.add_handler(CommandHandler("support",  hu.support_cmd))
+    app.add_handler(CommandHandler("admin",    ha.admin_panel))
 
     # ── Conversations ──
     app.add_handler(add_product_conv)
     app.add_handler(stock_conv)
     app.add_handler(broadcast_conv)
     app.add_handler(charge_conv)
-    app.add_handler(appsflyer_conv)
+    app.add_handler(af_conv)
 
-    # ── Balance Callbacks ──
-    app.add_handler(CallbackQueryHandler(hc.show_balance,         pattern="^show_balance$"))
-    app.add_handler(CallbackQueryHandler(hc.admin_confirm_charge, pattern=r"^chg_confirm_\d+$"))
-    app.add_handler(CallbackQueryHandler(hc.admin_reject_charge,  pattern=r"^chg_reject_\d+$"))
-
-    # ── User Callbacks ──
-    app.add_handler(CallbackQueryHandler(hu.show_products,       pattern="^products$"))
-    app.add_handler(CallbackQueryHandler(hu.show_category,       pattern=r"^cat_"))
-    app.add_handler(CallbackQueryHandler(hu.show_product_detail, pattern=r"^prod_\d+$"))
-    app.add_handler(CallbackQueryHandler(hu.initiate_buy,        pattern=r"^buy_\d+_\w+$"))
+    # ── Callbacks ──
+    app.add_handler(CallbackQueryHandler(hu.persistent_start,    pattern="^back_main$"))
     app.add_handler(CallbackQueryHandler(hu.toggle_lang,         pattern="^toggle_lang$"))
-    app.add_handler(CallbackQueryHandler(hu.emails_menu,         pattern="^emails_menu$"))
+    app.add_handler(CallbackQueryHandler(hu.show_products,       pattern="^products$"))
+    app.add_handler(CallbackQueryHandler(hu.show_platform,       pattern="^platform_"))
+    app.add_handler(CallbackQueryHandler(hu.show_category,       pattern="^cat_"))
+    app.add_handler(CallbackQueryHandler(hu.show_product_detail, pattern="^prod_"))
+    app.add_handler(CallbackQueryHandler(hu.buy_product,         pattern="^buy_"))
+    app.add_handler(CallbackQueryHandler(hu.show_balance,        pattern="^show_balance$"))
+    app.add_handler(CallbackQueryHandler(hu.contact_handler,     pattern="^contact$"))
+    app.add_handler(CallbackQueryHandler(hu.proxy_menu,          pattern="^proxy_menu$"))
+    app.add_handler(CallbackQueryHandler(hu.proxy_type_selected, pattern="^proxy_type_"))
     app.add_handler(CallbackQueryHandler(hu.surveys_menu,        pattern="^surveys_menu$"))
     app.add_handler(CallbackQueryHandler(hu.icloud_menu,         pattern="^icloud_menu$"))
-    app.add_handler(CallbackQueryHandler(hu.proxy_menu_simple,   pattern="^proxy_menu$"))
-    app.add_handler(CallbackQueryHandler(hu.contact,             pattern="^contact$"))
-    app.add_handler(CallbackQueryHandler(hu.back_main,           pattern="^back_main$"))
-
-    # ── AppsFlyer Admin Callbacks ──
-    app.add_handler(CallbackQueryHandler(ha.appsflyer_accept, pattern=r"^af_accept_\d+$"))
-    app.add_handler(CallbackQueryHandler(ha.appsflyer_reject, pattern=r"^af_reject_\d+$"))
-
-    # ── Admin Callbacks ──
-    app.add_handler(CallbackQueryHandler(ha.admin_panel,         pattern="^adm_back$"))
+    app.add_handler(CallbackQueryHandler(hu.emails_menu,         pattern="^emails_menu$"))
+    app.add_handler(CallbackQueryHandler(ha.admin_panel,         pattern="^adm_panel$"))
     app.add_handler(CallbackQueryHandler(ha.admin_stats,         pattern="^adm_stats$"))
-    app.add_handler(CallbackQueryHandler(ha.show_pending_orders, pattern=r"^adm_orders"))
-    app.add_handler(CallbackQueryHandler(ha.confirm_order,       pattern=r"^adm_confirm_\d+$"))
-    app.add_handler(CallbackQueryHandler(ha.reject_order,        pattern=r"^adm_reject_\d+$"))
-    app.add_handler(CallbackQueryHandler(ha.admin_show_products, pattern="^adm_products$"))
-    app.add_handler(CallbackQueryHandler(ha.admin_product_detail,pattern=r"^adm_prod_detail_\d+$"))
-    app.add_handler(CallbackQueryHandler(ha.delete_product,      pattern=r"^adm_del_\d+$"))
+    app.add_handler(CallbackQueryHandler(ha.admin_products,      pattern="^adm_products$"))
+    app.add_handler(CallbackQueryHandler(ha.admin_orders,        pattern="^adm_orders$"))
+    app.add_handler(CallbackQueryHandler(ha.admin_order_action,  pattern="^adm_order_"))
 
-    # ── Scheduled Broadcast Job ──
-    # NOTE: This job only processes rows with is_sent=0 that were queued via the
-    # Telegram bot's /broadcast command. Dashboard broadcasts set is_sent=1 immediately
-    # so this job never re-sends them — no double-send possible.
-    async def send_pending_broadcasts(context):
-        for bc in db.get_pending_broadcasts():
-            if not db.claim_broadcast_for_job(bc["id"]):
-                continue
-            users = db.get_all_users()
-            sent  = 0
-            for user in users:
-                try:
-                    await context.bot.send_message(
-                        chat_id=user["id"], text=bc["message"], parse_mode="Markdown"
-                    )
-                    sent += 1
-                except Exception:
-                    pass
-            db.mark_broadcast_sent(bc["id"], sent)
-            logger.info(f"📢 Broadcast #{bc['id']} sent to {sent} users")
+    # ── Proxy text handler (يجب أن يكون بعد كل الـ ConversationHandlers) ──
+    app.add_handler(MessageHandler(
+        filters.TEXT & ~filters.COMMAND,
+        hu.proxy_details_received
+    ))
 
-    app.job_queue.run_repeating(send_pending_broadcasts, interval=30, first=10)
+    app.add_error_handler(error_handler)
 
-    # ── Auto-Register (group=-1 runs before all other handlers) ──
-    async def auto_register(update: Update, context):
-        user = update.effective_user
-        if user and not user.is_bot and not context.user_data.get("_registered"):
-            db.upsert_user(user.id, user.username or "", user.full_name or "")
-            context.user_data["_registered"] = True
-
-    app.add_handler(MessageHandler(filters.ALL, auto_register), group=-1)
-    app.add_handler(CallbackQueryHandler(auto_register),        group=-1)
-
-    logger.info(f"🚀 Bot running — Admin ID: {ADMIN_ID}")
-
-    app.run_polling(
-        allowed_updates=Update.ALL_TYPES,
-        read_timeout=10,
-        write_timeout=10,
-        connect_timeout=10,
-        pool_timeout=5,
-        drop_pending_updates=True,
-    )
+    logger.info("🚀 NexVault Bot starting...")
+    app.run_polling(allowed_updates=Update.ALL_TYPES, drop_pending_updates=True)
 
 
 if __name__ == "__main__":
