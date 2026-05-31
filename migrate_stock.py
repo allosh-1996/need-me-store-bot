@@ -34,7 +34,7 @@ def migrate():
 
         existing = conn.execute(
             "SELECT COUNT(*) FROM stock_items WHERE product_id = ?",
-            [product_id]
+            (product_id,)
         ).fetchone()[0]
         if existing > 0:
             print(f"⏭️  #{product_id} {name} — تم migration مسبقاً ({existing} items)")
@@ -44,7 +44,7 @@ def migrate():
             "INSERT INTO stock_items (product_id, content) VALUES (?, ?)",
             [(product_id, line) for line in lines]
         )
-        conn.execute("UPDATE products SET stock = '' WHERE id = ?", [product_id])
+        conn.execute("UPDATE products SET stock = '' WHERE id = ?", (product_id,))
         total_items    += len(lines)
         total_products += 1
         print(f"✅ #{product_id} {name} — {len(lines)} items migrated")

@@ -156,7 +156,7 @@ def upsert_user(user_id: int, username: str, full_name: str):
         ON CONFLICT(id) DO UPDATE SET
             username  = excluded.username,
             full_name = excluded.full_name
-    """, [user_id, username, full_name])
+    """, (user_id, username, full_name))
     conn.commit()
 
 def set_user_lang(user_id: int, lang: str):
@@ -263,7 +263,7 @@ def add_product(name: str, description: str, price_usd: float, price_syp: float,
     cur  = conn.execute("""
         INSERT INTO products (name, description, price_usd, price_syp, category, platform)
         VALUES (?, ?, ?, ?, ?, ?)
-    """, [name, description, price_usd, price_syp, category, platform])
+    """, (name, description, price_usd, price_syp, category, platform))
     product_id = cur.lastrowid
     conn.commit()
     lines = [l.strip() for l in stock.splitlines() if l.strip()]
@@ -328,7 +328,7 @@ def get_stock_count(product_id: int) -> int:
     conn = get_conn()
     cur  = conn.execute(
         "SELECT COUNT(*) FROM stock_items WHERE product_id = ? AND sold = 0",
-        [product_id]
+        (product_id,)
     )
     return cur.fetchone()[0]
 
@@ -412,8 +412,8 @@ def create_order_atomic(user_id: int, username: str, full_name: str,
                 (user_id, username, full_name, product_id, product_name,
                  price_usd, price_syp, currency, payment_method, status)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'balance', 'pending')
-        """, [user_id, username, full_name, product_id, product_name,
-              price_usd, price_syp, currency])
+        """, (user_id, username, full_name, product_id, product_name,
+              price_usd, price_syp, currency))
         order_id = cur.lastrowid
         conn.execute("COMMIT")
         return order_id
@@ -464,7 +464,7 @@ def create_charge_request(user_id: int, username: str, full_name: str,
             INSERT INTO charge_requests
                 (user_id, username, full_name, method, amount_usd, amount_raw, tx_hash, proof)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-        """, [user_id, username, full_name, method, amount_usd, amount_raw, tx_hash, proof])
+        """, (user_id, username, full_name, method, amount_usd, amount_raw, tx_hash, proof))
         conn.commit()
         return cur.lastrowid
     except Exception as e:
@@ -522,7 +522,7 @@ def create_proxy_order(user_id: int, username: str, full_name: str,
         INSERT INTO proxy_orders
             (user_id, username, full_name, proxy_type, proxy_type_label, quantity, country, notes)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-    """, [user_id, username, full_name, proxy_type, proxy_type_label, quantity, country, notes])
+    """, (user_id, username, full_name, proxy_type, proxy_type_label, quantity, country, notes))
     conn.commit()
     return cur.lastrowid
 
@@ -553,8 +553,8 @@ def create_appsflyer_order(user_id: int, username: str, full_name: str,
             (user_id, username, full_name, game_key, game_name, price_usd,
              idfa, idfv, ios_version, appsflyer_id, levels)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    """, [user_id, username, full_name, game_key, game_name, price_usd,
-          idfa, idfv, ios_version, appsflyer_id, levels])
+    """, (user_id, username, full_name, game_key, game_name, price_usd,
+          idfa, idfv, ios_version, appsflyer_id, levels))
     conn.commit()
     return cur.lastrowid
 
