@@ -173,7 +173,6 @@ def main():
     app.add_handler(CallbackQueryHandler(hu.show_balance,        pattern="^show_balance$"))
     app.add_handler(CallbackQueryHandler(hu.contact_handler,     pattern="^contact$"))
     app.add_handler(CallbackQueryHandler(hu.proxy_menu,          pattern="^proxy_menu$"))
-    app.add_handler(CallbackQueryHandler(hu.proxy_type_selected, pattern="^proxy_type_"))
     app.add_handler(CallbackQueryHandler(hu.surveys_menu,        pattern="^surveys_menu$"))
     app.add_handler(CallbackQueryHandler(hu.icloud_menu,         pattern="^icloud_menu$"))
     app.add_handler(CallbackQueryHandler(hu.emails_menu,         pattern="^emails_menu$"))
@@ -182,12 +181,6 @@ def main():
     app.add_handler(CallbackQueryHandler(ha.admin_products,      pattern="^adm_products$"))
     app.add_handler(CallbackQueryHandler(ha.admin_orders,        pattern="^adm_orders$"))
     app.add_handler(CallbackQueryHandler(ha.admin_order_action,  pattern="^adm_order_"))
-
-    # ── Proxy text handler (يجب أن يكون بعد كل الـ ConversationHandlers) ──
-    app.add_handler(MessageHandler(
-        filters.TEXT & ~filters.COMMAND,
-        hu.proxy_details_received
-    ))
 
     app.add_error_handler(error_handler)
 

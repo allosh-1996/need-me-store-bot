@@ -298,76 +298,20 @@ async def contact_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # Proxy
 # ─────────────────────────────────────────
 
-@rate_limit(seconds=3)
 async def proxy_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
     lang  = get_user_lang(context, update.effective_user.id)
-    from config import PROXY_TYPES
-    keyboard = [[InlineKeyboardButton(label, callback_data=f"proxy_type_{key}")]
-                for key, label in PROXY_TYPES.items()]
-    keyboard.append([InlineKeyboardButton(t("back", lang), callback_data="back_main")])
     await query.edit_message_text(
-        "🌐 *Proxy*\n\n—————————————————\n\nاختر نوع البروكسي:\n_Choose proxy type:_",
+        "🌐 *Proxy*\n\n—————————————————\n\n"
+        "لطلب البروكسي تواصل مع الأدمن مباشرة:\n\n"
+        "👤 @Allosh96ha\n\n"
+        "—————————————————",
         parse_mode=ParseMode.MARKDOWN,
-        reply_markup=InlineKeyboardMarkup(keyboard)
+        reply_markup=InlineKeyboardMarkup([[
+            InlineKeyboardButton(t("back", lang), callback_data="back_main")
+        ]])
     )
-
-
-@rate_limit(seconds=3)
-async def proxy_type_selected(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    query      = update.callback_query
-    await query.answer()
-    proxy_type = query.data.replace("proxy_type_", "")
-    user       = query.from_user
-    lang       = get_user_lang(context, user.id)
-    from config import PROXY_TYPES
-    label = PROXY_TYPES.get(proxy_type, proxy_type)
-    context.user_data["proxy_type"]            = proxy_type
-    context.user_data["proxy_type_label"]      = label
-    context.user_data["waiting_proxy_details"] = True
-    await query.edit_message_text(
-        f"🌐 *{label}*\n\n—————————————————\n\n"
-        f"أرسل تفاصيل طلبك:\n• الكمية\n• الدولة\n• أي ملاحظات\n\n"
-        f"_Send your order details:_\n_- Quantity, Country, Notes_",
-        parse_mode=ParseMode.MARKDOWN,
-        reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton(t("back", lang), callback_data="proxy_menu")]])
-    )
-
-
-async def proxy_details_received(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if not context.user_data.get("waiting_proxy_details"):
-        return
-    user       = update.effective_user
-    lang       = get_user_lang(context, user.id)
-    proxy_type = context.user_data.get("proxy_type", "")
-    label      = context.user_data.get("proxy_type_label", "")
-    details    = update.message.text.strip()[:500]
-    order_id   = db.create_proxy_order(
-        user_id=user.id, username=user.username or "", full_name=user.full_name or "",
-        proxy_type=proxy_type, proxy_type_label=label,
-        quantity=1, country="—", notes=details,
-    )
-    for admin_id in ADMIN_IDS:
-        try:
-            await context.bot.send_message(
-                chat_id=admin_id,
-                text=(
-                    f"🌐 *طلب بروكسي جديد*\n\n—————————————————\n\n"
-                    f"🔖 ID: `#{order_id}`\n👤 {user.full_name} (@{user.username or '—'})\n"
-                    f"🆔 `{user.id}`\n📦 {label}\n📝 {details}\n\n—————————————————"
-                ),
-                parse_mode=ParseMode.MARKDOWN,
-            )
-        except Exception:
-            pass
-    context.user_data["waiting_proxy_details"] = False
-    await update.message.reply_text(
-        f"✅ *تم إرسال طلبك*\n\n🔖 Order ID: `#{order_id}`\n📦 {label}\n\n_سيتم التواصل معك قريباً_",
-        parse_mode=ParseMode.MARKDOWN,
-        reply_markup=kb.main_menu(lang)
-    )
-
 
 # ─────────────────────────────────────────
 # Section menus — Emails / iCloud / Surveys
