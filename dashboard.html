@@ -721,7 +721,7 @@ async function loadProducts() {
   if (!data || !data.length) { tb.innerHTML = '<tr><td colspan="7" class="empty">لا يوجد منتجات</td></tr>'; return }
   const platIcon = {iOS:'🍏',Android:'🤖',Surveys:'📊','iOS & Android':'📱'}
   tb.innerHTML = data.filter(p => p.active).map(p => {
-    const stockCount = (p.stock||'').split('\n').filter(l=>l.trim()).length
+    const stockCount = p.stock_count ?? 0
     const plat = p.platform || 'iOS'
     const icon = platIcon[plat] || '📦'
     return `<tr>
