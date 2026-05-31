@@ -153,10 +153,18 @@ def init_db():
 
     # Migrations — safe: ignore if column already exists
     _migrations = [
+        # users
         "ALTER TABLE users ADD COLUMN balance   REAL    DEFAULT 0",
         "ALTER TABLE users ADD COLUMN lang      TEXT    DEFAULT 'ar'",
         "ALTER TABLE users ADD COLUMN blocked   INTEGER DEFAULT 0",
         "ALTER TABLE users ADD COLUMN joined_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP",
+        # charge_requests
+        "ALTER TABLE charge_requests ADD COLUMN amount_raw REAL",
+        "ALTER TABLE charge_requests ADD COLUMN proof      TEXT",
+        # proxy_orders
+        "ALTER TABLE proxy_orders ADD COLUMN proxy_type_label TEXT",
+        # appsflyer_orders
+        "ALTER TABLE appsflyer_orders ADD COLUMN levels TEXT",
     ]
     for sql in _migrations:
         try:
