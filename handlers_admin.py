@@ -3,10 +3,12 @@ import logging
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ContextTypes, ConversationHandler
 from telegram.constants import ParseMode
+
 import database as db
 import keyboards as kb
-from config import ADMIN_ID
+from config import ADMIN_IDS
 from lang import t
+from utils import rate_limit, validate_text, validate_amount
 
 logger = logging.getLogger(__name__)
 
@@ -15,26 +17,13 @@ logger = logging.getLogger(__name__)
 
 ORDERS_PAGE_SIZE = 8
 
-
-def is_admin(user_id):
-    result = user_id == ADMIN_ID
-    if result:
-        logger.info(f"Admin access granted: user_id={user_id}")
-    else:
-        logger.warning(f"Unauthorized admin access attempt: user_id={user_id}")
-    return result
-
-
-# ════════════════════════════════════════
-# Admin Panel
-# ════════════════════════════════════════
+def is_admin(user_id: int) -> bool:
+    return user_id in ADMIN_IDS
 
 async def admin_panel(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not is_admin(update.effective_user.id):
         return
-
-    text = " *Admin Panel  |  لوحة التحكم*\n\n NexVault — Admin\n"
-
+    text = "🔐 *Admin Panel | لوحة التحكم*\n\n NexVault — Admin\n"
     if update.callback_query:
         await update.callback_query.answer()
         await update.callback_query.edit_message_text(
@@ -45,13 +34,12 @@ async def admin_panel(update: Update, context: ContextTypes.DEFAULT_TYPE):
             text, parse_mode=ParseMode.MARKDOWN, reply_markup=kb.admin_main_menu()
         )
 
-
+@rate_limit(seconds=3)
 async def admin_stats(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
     if not is_admin(query.from_user.id):
         return
-
     stats = db.get_stats()
     text = (
         f"📊 *إحصائيات المتجر*\n"
@@ -63,14 +51,7 @@ async def admin_stats(update: Update, context: ContextTypes.DEFAULT_TYPE):
         f"✅ مكتملة: *{stats['completed_orders']}*\n"
         f"\n—————————————————\n"
     )
-    await query.edit_message_text(
-        text, parse_mode=ParseMode.MARKDOWN, reply_markup=kb.admin_main_menu()
-    )
-
-
-# ════════════════════════════════════════
-# Add Product
-# ════════════════════════════════════════
+    await query.edit_message_text(text, parse_mode=ParseMode.MARKDOWN, reply_markup=kb.admin_main_menu())
 
 async def add_product_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
@@ -78,371 +59,101 @@ async def add_product_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not is_admin(query.from_user.id):
         return
     await query.edit_message_text(
-        " *Add Product  |  إضافة منتج*\n\n أرسل اسم المنتج:\n_Send product name:_",
+        "➕ *Add Product | إضافة منتج*\n\nأرسل اسم المنتج:\n_Send product name:_",
         parse_mode=ParseMode.MARKDOWN,
     )
     return ADM_PROD_NAME
 
-
 async def add_product_name(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    context.user_data["new_product"] = {"name": update.message.text}
-    await update.message.reply_text(
-        " أرسل الوصف (أو `-` للتخطي):\n_Description (or `-` to skip):_",
-        parse_mode=ParseMode.MARKDOWN,
-    )
+    valid, err = validate_text(update.message.text, "name")
+    if not valid:
+        await update.message.reply_text(err)
+        return ADM_PROD_NAME
+    context.user_data["prod_name"] = update.message.text.strip()
+    await update.message.reply_text("📝 أرسل الوصف (أو أرسل `-` لتخطيه):\n_Send description (or `-` to skip):_")
     return ADM_PROD_DESC
 
-
 async def add_product_desc(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    desc = update.message.text
-    context.user_data["new_product"]["description"] = "" if desc == "-" else desc
-    await update.message.reply_text(" السعر بالدولار  |  Price in USD:")
+    text = update.message.text.strip()
+    context.user_data["prod_desc"] = "" if text == "-" else text[:300]
+    await update.message.reply_text("💵 أرسل السعر بالدولار:\n_Send price in USD:_")
     return ADM_PROD_PRICE_USD
 
-
 async def add_product_price_usd(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    try:
-        context.user_data["new_product"]["price_usd"] = float(update.message.text)
-        await update.message.reply_text(" السعر بالليرة السورية  |  Price in SYP:")
-        return ADM_PROD_PRICE_SYP
-    except ValueError:
-        await update.message.reply_text(" أرسل رقم صحيح  |  Send a valid number:")
+    valid, amount, err = validate_amount(update.message.text, min_val=0.1, max_val=9999)
+    if not valid:
+        await update.message.reply_text(err)
         return ADM_PROD_PRICE_USD
-
+    context.user_data["prod_price_usd"] = amount
+    await update.message.reply_text("💴 أرسل السعر بالليرة السورية:\n_Send price in SYP:_")
+    return ADM_PROD_PRICE_SYP
 
 async def add_product_price_syp(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    try:
-        context.user_data["new_product"]["price_syp"] = float(update.message.text)
-        await update.message.reply_text(
-            " الفئة  |  Category:\n\n"
-            "_مثال  |  Example:_\n"
-            "`Apple iCloud` | `إيميلات` | `Survey` | `شروحات`",
-            parse_mode=ParseMode.MARKDOWN,
-        )
-        return ADM_PROD_CATEGORY
-    except ValueError:
-        await update.message.reply_text(" أرسل رقم صحيح  |  Send a valid number:")
+    valid, amount, err = validate_amount(update.message.text, min_val=0, max_val=99_000_000)
+    if not valid:
+        await update.message.reply_text(err)
         return ADM_PROD_PRICE_SYP
-
+    context.user_data["prod_price_syp"] = amount
+    await update.message.reply_text("📂 أرسل الفئة:\n_Send category:_")
+    return ADM_PROD_CATEGORY
 
 async def add_product_category(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    context.user_data["new_product"]["category"] = update.message.text
-    context.user_data["new_product"]["platform"]  = "general"
+    valid, err = validate_text(update.message.text, "category")
+    if not valid:
+        await update.message.reply_text(err)
+        return ADM_PROD_CATEGORY
+    context.user_data["prod_category"] = update.message.text.strip()
     await update.message.reply_text(
-        " *المخزون  |  Stock*\n\n"
-        "_المحتوى الذي سيُرسل للعميل_\n"
-        "_Content to be sent to the customer_\n\n"
-        "مثال:\n`account@email.com:password`\n`or download link`",
-        parse_mode=ParseMode.MARKDOWN,
+        "📦 أرسل المخزون (كل سطر = وحدة):\n_Send stock (one item per line):_\n\n_أرسل `-` إذا لا يوجد مخزون الآن_"
     )
     return ADM_PROD_STOCK
 
-
 async def add_product_stock(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    context.user_data["new_product"]["stock"] = update.message.text
-    p = context.user_data["new_product"]
-
-    product_id = db.add_product(
-        name=p["name"], description=p["description"],
-        price_usd=p["price_usd"], price_syp=p["price_syp"],
-        category=p["category"], stock=p["stock"],
-        platform=p.get("platform", "iOS"),
+    text  = update.message.text.strip()
+    stock = "" if text == "-" else text
+    pid   = db.add_product(
+        name=context.user_data["prod_name"],
+        description=context.user_data.get("prod_desc", ""),
+        price_usd=context.user_data["prod_price_usd"],
+        price_syp=context.user_data.get("prod_price_syp", 0),
+        category=context.user_data["prod_category"],
+        stock=stock,
     )
-    logger.info(f"Admin added product #{product_id}: {p['name']}")
-
+    count = db.get_stock_count(pid)
     await update.message.reply_text(
-        f" *Product Added!  |  تم إضافة المنتج!*\n\n"
-        f" ID: `#{product_id}`\n"
-        f" {p['name']}\n"
-        f" ${p['price_usd']}  |  {p['price_syp']:,.0f} ل.س\n",
+        f"✅ *تم إضافة المنتج*\n\n📦 {context.user_data['prod_name']}\n🔢 المخزون: {count} وحدة",
         parse_mode=ParseMode.MARKDOWN,
-        reply_markup=kb.admin_main_menu(),
+        reply_markup=kb.admin_main_menu()
     )
-    context.user_data.pop("new_product", None)
+    context.user_data.clear()
     return ConversationHandler.END
 
-
-# ════════════════════════════════════════
-# Pending Orders — with Pagination
-# ════════════════════════════════════════
-
-async def show_pending_orders(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    query = update.callback_query
-    await query.answer()
-    if not is_admin(query.from_user.id):
-        return
-
-    data = query.data
-    page = 0
-    if "_p" in data:
-        try:
-            page = int(data.split("_p")[-1]) - 1
-        except ValueError:
-            page = 0
-
-    orders      = db.get_pending_orders()
-    total       = len(orders)
-    total_pages = max(1, (total + ORDERS_PAGE_SIZE - 1) // ORDERS_PAGE_SIZE)
-
-    if not orders:
-        await query.edit_message_text(
-            " *No Pending Orders  |  لا يوجد طلبات معلقة*",
-            parse_mode=ParseMode.MARKDOWN,
-            reply_markup=kb.admin_main_menu(),
-        )
-        return
-
-    page_orders = orders[page * ORDERS_PAGE_SIZE : (page + 1) * ORDERS_PAGE_SIZE]
-
-    text  = f" *Pending Orders  |  الطلبات المعلقة* ({total})\n"
-    text += f"_صفحة {page + 1} من {total_pages}_\n\n"
-    for o in page_orders:
-        text += (
-            f" `#{o['id']}` — {o['product_name']}\n"
-            f" {o['full_name']}  |   {o['payment_method'].upper()}\n"
-            f" ${o['price_usd']}\n\n"
-        )
-
-    nav_buttons = []
-    if page > 0:
-        nav_buttons.append(InlineKeyboardButton("◀️ السابق", callback_data=f"adm_orders_p{page}"))
-    if page + 1 < total_pages:
-        nav_buttons.append(InlineKeyboardButton("التالي ▶️", callback_data=f"adm_orders_p{page + 2}"))
-
-    keyboard = list(kb.admin_main_menu().inline_keyboard)
-    if nav_buttons:
-        keyboard = [nav_buttons] + keyboard
-
-    await query.edit_message_text(
-        text, parse_mode=ParseMode.MARKDOWN, reply_markup=InlineKeyboardMarkup(keyboard)
-    )
-
-
-async def confirm_order(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    query = update.callback_query
-    await query.answer()
-    if not is_admin(query.from_user.id):
-        return
-
-    order_id = int(query.data.replace("adm_confirm_", ""))
-    order    = db.get_order(order_id)
-
-    if not order:
-        await query.edit_message_text(" الطلب غير موجود  |  Order not found")
-        return
-
-    product = db.get_product(order["product_id"])
-    if not product:
-        await query.edit_message_text(" المنتج غير موجود  |  Product not found")
-        return
-
-    item, remaining = db.pop_stock_item(order["product_id"])
-    if not item:
-        await query.edit_message_text(
-            " المنتج لا يحتوي على مخزون  |  Product has no stock\n"
-            "_أضف مخزون جديد من لوحة التحكم_",
-            parse_mode=ParseMode.MARKDOWN,
-            reply_markup=kb.admin_main_menu(),
-        )
-        return
-
-    db.update_order_delivered_item(order_id, item)
-    db.update_order_status(order_id, "completed", "تم الإرسال")
-    logger.info(f"Admin confirmed order #{order_id}, product={order['product_name']}, remaining={remaining}")
-
-    # Fetch user's preferred language before sending
-    user_lang = db.get_user_lang(order["user_id"])
-
-    try:
-        await context.bot.send_message(
-            chat_id=order["user_id"],
-            text=(
-                f"✅ *{t('order_confirmed', user_lang)}*\n"
-                f"\n—————————————————\n\n"
-                f"🛍️ *{order['product_name']}*\n"
-                f"💵 {t('amount', user_lang)}: *${order['price_usd']}*\n"
-                f"\n—————————————————\n\n"
-                f"_شكراً لثقتك 🙏_"
-            ),
-            parse_mode=ParseMode.MARKDOWN,
-        )
-        await context.bot.send_message(
-            chat_id=order["user_id"],
-            text=(
-                f"🎁 *{t('product_details', user_lang)}*\n"
-                f"\n—————————————————\n\n"
-                f"`{item}`\n"
-                f"\n—————————————————\n\n"
-                f"_{'Save this information safely' if user_lang == 'en' else 'احفظ هذه المعلومات بأمان'}_"
-            ),
-            parse_mode=ParseMode.MARKDOWN,
-        )
-
-        confirm_text = (
-            f" *Order `#{order_id}` Confirmed!*\n"
-            f"_Sent to {order['full_name']}_ | Stock remaining: {remaining}"
-        )
-        try:
-            await query.edit_message_caption(confirm_text)
-        except Exception:
-            await query.edit_message_text(
-                confirm_text, parse_mode=ParseMode.MARKDOWN, reply_markup=kb.admin_main_menu()
-            )
-
-    except Exception as e:
-        logger.error(f"confirm_order error: {e}")
-        await query.edit_message_text(f" Error: {e}", reply_markup=kb.admin_main_menu())
-
-
-async def reject_order(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    query = update.callback_query
-    await query.answer()
-    if not is_admin(query.from_user.id):
-        return
-
-    order_id = int(query.data.replace("adm_reject_", ""))
-    order    = db.get_order(order_id)
-    db.update_order_status(order_id, "rejected", "رُفض من الأدمن")
-    logger.info(f"Admin rejected order #{order_id}")
-
-    # Fetch user's preferred language before sending
-    user_lang = db.get_user_lang(order["user_id"])
-
-    try:
-        await context.bot.send_message(
-            chat_id=order["user_id"],
-            text=(
-                f"❌ *{t('order_rejected', user_lang)}*\n"
-                f"\n—————————————————\n\n"
-                f"🔖 {t('order_id', user_lang)}: `#{order_id}`\n"
-                f"🛍️ {order['product_name']}\n"
-                f"💵 ${order['price_usd']}\n"
-                f"\n—————————————————\n\n"
-                f"_{t('contact_admin', user_lang)}_ 👤 @Allosh96ha"
-            ),
-            parse_mode=ParseMode.MARKDOWN,
-            reply_markup=kb.main_menu(user_lang),
-        )
-    except Exception:
-        pass
-
-    try:
-        await query.edit_message_caption(f" Order #{order_id} rejected")
-    except Exception:
-        await query.edit_message_text(
-            f" Order `#{order_id}` rejected",
-            parse_mode=ParseMode.MARKDOWN,
-            reply_markup=kb.admin_main_menu(),
-        )
-
-
-# ════════════════════════════════════════
-# Products Management
-# ════════════════════════════════════════
-
-async def admin_show_products(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    query = update.callback_query
-    await query.answer()
-    if not is_admin(query.from_user.id):
-        return
-
-    products = db.get_all_products(active_only=False)
-    if not products:
-        await query.edit_message_text(
-            " لا يوجد منتجات  |  No products", reply_markup=kb.admin_main_menu()
-        )
-        return
-
-    keyboard = [
-        [InlineKeyboardButton(
-            f"{'✅' if p['active'] else '❌'}  #{p['id']}  {p['name']}  —  ${p['price_usd']}",
-            callback_data=f"adm_prod_detail_{p['id']}",
-        )]
-        for p in products
-    ]
-    keyboard.append([InlineKeyboardButton(" Back  |  رجوع", callback_data="adm_back")])
-
-    await query.edit_message_text(
-        " *Products  |  المنتجات:*",
-        parse_mode=ParseMode.MARKDOWN,
-        reply_markup=InlineKeyboardMarkup(keyboard),
-    )
-
-
-async def admin_product_detail(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    query = update.callback_query
-    await query.answer()
-    if not is_admin(query.from_user.id):
-        return
-
-    product_id = int(query.data.replace("adm_prod_detail_", ""))
-    product    = db.get_product(product_id)
-
-    if not product:
-        await query.edit_message_text(" المنتج غير موجود  |  Product not found")
-        return
-
-    stock_count = db.get_stock_count(product_id)
-    text = (
-        f" *{product['name']}*\n\n"
-        f" ID: `{product['id']}`\n"
-        f" Category: {product['category']}\n"
-        f" USD: `${product['price_usd']}`\n"
-        f" SYP: `{product['price_syp']:,.0f}`\n"
-        f" Stock Count: `{stock_count} units`\n\n"
-        f" Stock Preview:\n"
-        f"`{product['stock'][:200] if product['stock'] else 'Empty'}...`\n"
-    )
-    await query.edit_message_text(
-        text, parse_mode=ParseMode.MARKDOWN, reply_markup=kb.admin_product_menu(product_id)
-    )
-
-
 async def update_stock_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    query = update.callback_query
+    query      = update.callback_query
     await query.answer()
+    if not is_admin(query.from_user.id):
+        return
     product_id = int(query.data.replace("adm_stock_", ""))
     context.user_data["stock_product_id"] = product_id
+    product    = db.get_product(product_id)
     await query.edit_message_text(
-        " *Update Stock  |  تحديث المخزون*\n\n"
-        "_أرسل المخزون الجديد (سيستبدل القديم)_\n"
-        "_Send new stock (replaces old):_",
+        f"✏️ *تعديل مخزون: {product['name'] if product else product_id}*\n\n"
+        f"أرسل المخزون الجديد (كل سطر = وحدة):\n_Send new stock (one item per line):_",
         parse_mode=ParseMode.MARKDOWN,
     )
     return ADM_STOCK_UPDATE
 
-
 async def update_stock_receive(update: Update, context: ContextTypes.DEFAULT_TYPE):
     product_id = context.user_data.get("stock_product_id")
-    db.update_product_stock(product_id, update.message.text)
-    stock_count = db.get_stock_count(product_id)
-    logger.info(f"Admin updated stock for product #{product_id}: {stock_count} units")
+    lines      = [l.strip() for l in update.message.text.splitlines() if l.strip()]
+    db.set_stock_items(product_id, lines)
+    count = db.get_stock_count(product_id)
     await update.message.reply_text(
-        f" *Stock Updated!  |  تم تحديث المخزون!*\n\n`{stock_count}` units added",
+        f"✅ تم تحديث المخزون — *{count} وحدة*",
         parse_mode=ParseMode.MARKDOWN,
-        reply_markup=kb.admin_main_menu(),
+        reply_markup=kb.admin_main_menu()
     )
     return ConversationHandler.END
-
-
-async def delete_product(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    query = update.callback_query
-    await query.answer()
-    if not is_admin(query.from_user.id):
-        return
-    product_id = int(query.data.replace("adm_del_", ""))
-    db.delete_product(product_id)
-    logger.info(f"Admin deleted product #{product_id}")
-    await query.edit_message_text(
-        " *Product Deleted  |  تم حذف المنتج*",
-        parse_mode=ParseMode.MARKDOWN,
-        reply_markup=kb.admin_main_menu(),
-    )
-
-
-# ════════════════════════════════════════
-# Broadcast — with Batching
-# ════════════════════════════════════════
 
 async def broadcast_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
@@ -450,154 +161,140 @@ async def broadcast_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not is_admin(query.from_user.id):
         return
     await query.edit_message_text(
-        " *Broadcast  |  رسالة جماعية*\n\n"
-        "_أرسل الرسالة (نص أو صورة مع تعليق)_\n"
-        "_Send message (text or photo with caption):_",
+        "📢 *رسالة جماعية*\n\nأرسل نص الرسالة:\n_Send broadcast message:_",
         parse_mode=ParseMode.MARKDOWN,
     )
     return ADM_BROADCAST_MSG
 
-
 async def broadcast_send(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if not is_admin(update.effective_user.id):
-        return ConversationHandler.END
-
+    valid, err = validate_text(update.message.text, "message")
+    if not valid:
+        await update.message.reply_text(err)
+        return ADM_BROADCAST_MSG
+    msg   = update.message.text.strip()
     users = db.get_all_users()
-    total = len(users)
-    sent  = 0
-    failed = 0
-
-    await update.message.reply_text(f" Sending to {total} users...")
-
-    BATCH_SIZE  = 25
-    BATCH_DELAY = 1.0
-
-    async def send_one(user):
+    sent  = failed = 0
+    status_msg = await update.message.reply_text(f"📢 جاري الإرسال لـ {len(users)} مستخدم...")
+    for i, user in enumerate(users):
         try:
-            if update.message.photo:
-                await context.bot.send_photo(
-                    chat_id=user["id"],
-                    photo=update.message.photo[-1].file_id,
-                    caption=update.message.caption or "",
-                )
-            else:
-                await context.bot.send_message(chat_id=user["id"], text=update.message.text)
-            return True
+            await context.bot.send_message(chat_id=user["id"], text=msg)
+            sent += 1
         except Exception:
-            return False
-
-    for i in range(0, total, BATCH_SIZE):
-        batch   = users[i : i + BATCH_SIZE]
-        results = await asyncio.gather(*[send_one(u) for u in batch], return_exceptions=True)
-        for r in results:
-            if r is True:
-                sent += 1
-            else:
-                failed += 1
-        if i + BATCH_SIZE < total:
-            await asyncio.sleep(BATCH_DELAY)
-
-    logger.info(f"Admin broadcast: {sent} success, {failed} failed")
-    await update.message.reply_text(
-        f" *Broadcast Done!*\n\n Sent: `{sent}`\n Failed: `{failed}`",
+            failed += 1
+        if i % 25 == 0:
+            await asyncio.sleep(1)
+    await status_msg.edit_text(
+        f"✅ *اكتمل الإرسال*\n\n✅ نجح: {sent}\n❌ فشل: {failed}",
         parse_mode=ParseMode.MARKDOWN,
-        reply_markup=kb.admin_main_menu(),
+        reply_markup=kb.admin_main_menu()
     )
     return ConversationHandler.END
 
+@rate_limit(seconds=3)
+async def admin_orders(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+    if not is_admin(query.from_user.id):
+        return
+    orders = db.get_orders_paginated(status="pending", limit=ORDERS_PAGE_SIZE)
+    if not orders:
+        await query.edit_message_text(
+            "📋 *لا يوجد طلبات معلقة*", parse_mode=ParseMode.MARKDOWN,
+            reply_markup=kb.admin_main_menu()
+        )
+        return
+    for order in orders[:ORDERS_PAGE_SIZE]:
+        keyboard = InlineKeyboardMarkup([[
+            InlineKeyboardButton("✅ تأكيد", callback_data=f"adm_order_confirm_{order['id']}"),
+            InlineKeyboardButton("❌ رفض",   callback_data=f"adm_order_reject_{order['id']}"),
+        ]])
+        await context.bot.send_message(
+            chat_id=query.from_user.id,
+            text=(
+                f"🔖 *طلب #{order['id']}*\n"
+                f"👤 {order['full_name']} (@{order['username'] or '—'})\n"
+                f"📦 {order['product_name']}\n💵 ${order['price_usd']}"
+            ),
+            parse_mode=ParseMode.MARKDOWN,
+            reply_markup=keyboard
+        )
+
+async def admin_order_action(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query  = update.callback_query
+    await query.answer()
+    if not is_admin(query.from_user.id):
+        return
+    parts    = query.data.split("_")
+    action   = parts[2]
+    order_id = int(parts[3])
+    order    = db.get_order(order_id)
+    if not order:
+        await query.edit_message_text("❌ الطلب غير موجود")
+        return
+    if action == "confirm":
+        item, remaining = db.pop_stock_item(order["product_id"])
+        if not item:
+            await query.edit_message_text(f"❌ لا يوجد مخزون للمنتج #{order['product_id']}")
+            return
+        db.update_order_delivered_item(order_id, item)
+        db.update_order_status(order_id, "completed")
+        try:
+            await context.bot.send_message(
+                chat_id=order["user_id"],
+                text=(
+                    f"✅ *تم تأكيد طلبك!*\n\n—————————————————\n\n"
+                    f"🔖 Order ID: `#{order_id}`\n📦 {order['product_name']}\n"
+                    f"💵 ${order['price_usd']}\n\n—————————————————\n\nشكراً لثقتك 🙏"
+                ),
+                parse_mode=ParseMode.MARKDOWN,
+            )
+            await context.bot.send_message(
+                chat_id=order["user_id"],
+                text=f"🎁 *تفاصيل المنتج*\n\n—————————————————\n\n`{item}`\n\n—————————————————\n\n_احفظ هذه المعلومات بأمان_",
+                parse_mode=ParseMode.MARKDOWN,
+            )
+        except Exception:
+            pass
+        await query.edit_message_text(f"✅ تم تأكيد الطلب #{order_id} — مخزون متبقٍ: {remaining}")
+    elif action == "reject":
+        db.update_order_status(order_id, "rejected")
+        try:
+            await context.bot.send_message(
+                chat_id=order["user_id"],
+                text=(
+                    f"🔴 *تم رفض طلبك*\n\n—————————————————\n\n"
+                    f"🔖 Order ID: `#{order_id}`\n📦 {order['product_name']}\n\n"
+                    f"_للاستفسار تواصل مع الأدمن_"
+                ),
+                parse_mode=ParseMode.MARKDOWN,
+            )
+        except Exception:
+            pass
+        await query.edit_message_text(f"❌ تم رفض الطلب #{order_id}")
+
+@rate_limit(seconds=3)
+async def admin_products(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+    if not is_admin(query.from_user.id):
+        return
+    products = db.get_all_products(active_only=True)
+    if not products:
+        await query.edit_message_text(
+            "📦 *لا يوجد منتجات*", parse_mode=ParseMode.MARKDOWN,
+            reply_markup=kb.admin_main_menu()
+        )
+        return
+    lines    = [f"• #{p['id']} {p['name']} — {p['stock_count']} وحدة" for p in products]
+    keyboard = [[InlineKeyboardButton(f"✏️ #{p['id']} {p['name']}", callback_data=f"adm_stock_{p['id']}")] for p in products]
+    keyboard.append([InlineKeyboardButton("🔙 رجوع", callback_data="adm_panel")])
+    await query.edit_message_text(
+        "📦 *المنتجات*\n\n" + "\n".join(lines),
+        parse_mode=ParseMode.MARKDOWN,
+        reply_markup=InlineKeyboardMarkup(keyboard)
+    )
 
 async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text(" Cancelled  |  تم الإلغاء", reply_markup=kb.admin_main_menu())
+    context.user_data.clear()
+    await update.message.reply_text("تم الإلغاء ✅", reply_markup=kb.admin_main_menu())
     return ConversationHandler.END
-
-
-# ════════════════════════════════════════
-# AppsFlyer — Accept / Reject
-# ════════════════════════════════════════
-
-async def appsflyer_accept(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    query = update.callback_query
-    await query.answer()
-    if not is_admin(query.from_user.id):
-        return
-
-    order_id = int(query.data.replace("af_accept_", ""))
-    order    = db.get_appsflyer_order(order_id)
-
-    if not order:
-        await query.answer("❌ الطلب غير موجود", show_alert=True)
-        return
-    if order["status"] != "pending":
-        await query.answer("⚠️ الطلب تمت معالجته مسبقاً", show_alert=True)
-        return
-
-    db.update_appsflyer_order_status(order_id, "accepted")
-
-    await query.edit_message_text(
-        query.message.text + f"\n\n✅ *تم القبول*", parse_mode="Markdown"
-    )
-
-    user_lang = db.get_user_lang(order["user_id"])
-    try:
-        await context.bot.send_message(
-            chat_id=order["user_id"],
-            text=(
-                f"✅ *تم قبول طلبك!*\n\n"
-                f"🎮 *اللعبة:* {order['game_name']}\n"
-                f"🔢 *رقم الطلب:* `#{order_id}`\n\n"
-                f"🚀 *طلبك الآن قيد التنفيذ*\n\n"
-                f"\n—————————————————\n\n"
-                f"📩 {'For updates contact admin' if user_lang == 'en' else 'للمتابعة تواصل مع الأدمن'}:\n"
-                f"👤 @Allosh96ha\n"
-                f"\n—————————————————\n"
-            ),
-            parse_mode="Markdown",
-        )
-    except Exception as e:
-        logger.error(f"Failed to notify user {order['user_id']}: {e}")
-
-
-async def appsflyer_reject(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    query = update.callback_query
-    await query.answer()
-    if not is_admin(query.from_user.id):
-        return
-
-    order_id = int(query.data.replace("af_reject_", ""))
-    order    = db.get_appsflyer_order(order_id)
-
-    if not order:
-        await query.answer("❌ الطلب غير موجود", show_alert=True)
-        return
-    if order["status"] != "pending":
-        await query.answer("⚠️ الطلب تمت معالجته مسبقاً", show_alert=True)
-        return
-
-    db.add_balance(order["user_id"], order["price_usd"])
-    db.update_appsflyer_order_status(order_id, "rejected")
-    new_balance = db.get_balance(order["user_id"])
-
-    await query.edit_message_text(
-        query.message.text + f"\n\n❌ *تم الرفض — رُجع الرصيد للمستخدم* (`${order['price_usd']:.2f}`)",
-        parse_mode="Markdown",
-    )
-
-    user_lang = db.get_user_lang(order["user_id"])
-    try:
-        await context.bot.send_message(
-            chat_id=order["user_id"],
-            text=(
-                f"❌ *تم رفض طلبك*\n\n"
-                f"🎮 *اللعبة:* {order['game_name']}\n"
-                f"🔢 *رقم الطلب:* `#{order_id}`\n\n"
-                f"💰 *{'Refunded' if user_lang == 'en' else 'تم إعادة المبلغ إلى رصيدك'}:* `${order['price_usd']:.2f}`\n"
-                f"💳 *{'Current balance' if user_lang == 'en' else 'رصيدك الحالي'}:* `${new_balance:.2f}`\n\n"
-                f"\n—————————————————\n\n"
-                f"📩 {'For inquiries contact admin' if user_lang == 'en' else 'للاستفسار تواصل مع الأدمن'}:\n"
-                f"👤 @Allosh96ha\n"
-                f"\n—————————————————\n"
-            ),
-            parse_mode="Markdown",
-        )
-    except Exception as e:
-        logger.error(f"Failed to notify user {order['user_id']}: {e}")
