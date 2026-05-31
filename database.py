@@ -144,6 +144,18 @@ def init_db():
         is_sent    INTEGER DEFAULT 0,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )""")
+    # ── Migrations: أعمدة جديدة على جداول قديمة ──
+    _migrations = [
+        "ALTER TABLE users ADD COLUMN balance   REAL    DEFAULT 0",
+        "ALTER TABLE users ADD COLUMN lang      TEXT    DEFAULT 'ar'",
+        "ALTER TABLE users ADD COLUMN blocked   INTEGER DEFAULT 0",
+        "ALTER TABLE users ADD COLUMN joined_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP",
+    ]
+    for _sql in _migrations:
+        try:
+            conn.execute(_sql)
+        except Exception:
+            pass  # العمود موجود مسبقاً
     conn.commit()
     logger.info("✅ DB schema ready")
 
