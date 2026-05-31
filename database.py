@@ -46,12 +46,12 @@ def _fetchone(cur):
 
 
 def _q(conn, sql, *params):
-    """shorthand: execute with tuple params."""
+    """Execute with positional params as tuple — prevents list/tuple bugs."""
     return conn.execute(sql, params if params else ())
 
 
 # ─────────────────────────────────────────
-# Schema
+# Schema & Migrations
 # ─────────────────────────────────────────
 
 def init_db():
@@ -151,22 +151,17 @@ def init_db():
         created_at   TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     )""")
 
-    # Migrations — safe: ignore if column already exists
-    _migrations = [
-        # users
+    # Safe migrations — ignored if column already exists
+    for sql in [
         "ALTER TABLE users ADD COLUMN balance   REAL    DEFAULT 0",
         "ALTER TABLE users ADD COLUMN lang      TEXT    DEFAULT 'ar'",
         "ALTER TABLE users ADD COLUMN blocked   INTEGER DEFAULT 0",
         "ALTER TABLE users ADD COLUMN joined_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP",
-        # charge_requests
         "ALTER TABLE charge_requests ADD COLUMN amount_raw REAL",
         "ALTER TABLE charge_requests ADD COLUMN proof      TEXT",
-        # proxy_orders
-        "ALTER TABLE proxy_orders ADD COLUMN proxy_type_label TEXT",
-        # appsflyer_orders
+        "ALTER TABLE proxy_orders    ADD COLUMN proxy_type_label TEXT",
         "ALTER TABLE appsflyer_orders ADD COLUMN levels TEXT",
-    ]
-    for sql in _migrations:
+    ]:
         try:
             conn.execute(sql)
         except Exception:
@@ -228,20 +223,20 @@ def deduct_balance_atomic(user_id: int, amount: float):
         _q(conn, "UPDATE users SET balance = balance - ? WHERE id = ?", amount, user_id)
         conn.execute("COMMIT")
     except ValueError:
+        # ROLLBACK already called above before raise
         raise
-    except Exception:
+    except Exception as e:
         conn.execute("ROLLBACK")
+        logger.error(f"deduct_balance_atomic error: {e}")
         raise
 
 
 def get_all_users() -> list:
-    conn = get_conn()
-    return _fetchall(_q(conn, "SELECT id, username, full_name FROM users WHERE blocked = 0"))
+    return _fetchall(_q(get_conn(), "SELECT id, username, full_name FROM users WHERE blocked = 0"))
 
 
 def get_users_with_balances() -> list:
-    conn = get_conn()
-    cur  = conn.execute("""
+    cur = get_conn().execute("""
         SELECT
             u.id, u.username, u.full_name, u.balance, u.joined_at,
             COALESCE(SUM(CASE WHEN c.status='confirmed' THEN c.amount_usd ELSE 0 END), 0) AS total_charged,
@@ -276,8 +271,7 @@ def get_all_products(active_only: bool = True) -> list:
 
 
 def get_product(product_id: int) -> dict | None:
-    conn = get_conn()
-    p    = _fetchone(_q(conn, "SELECT * FROM products WHERE id = ?", product_id))
+    p = _fetchone(_q(get_conn(), "SELECT * FROM products WHERE id = ?", product_id))
     if p:
         p["stock_count"] = get_stock_count(product_id)
     return p
@@ -304,8 +298,7 @@ def delete_product(product_id: int):
 
 
 def get_products_by_platform(platform: str) -> list:
-    conn  = get_conn()
-    prods = _fetchall(_q(conn,
+    prods = _fetchall(_q(get_conn(),
         "SELECT * FROM products WHERE active = 1 AND platform = ? ORDER BY category, name",
         platform))
     for p in prods:
@@ -314,8 +307,7 @@ def get_products_by_platform(platform: str) -> list:
 
 
 def get_products_by_category(category: str) -> list:
-    conn  = get_conn()
-    prods = _fetchall(_q(conn,
+    prods = _fetchall(_q(get_conn(),
         "SELECT * FROM products WHERE active = 1 AND category = ? ORDER BY name",
         category))
     for p in prods:
@@ -348,8 +340,7 @@ def _bulk_add_stock(product_id: int, lines: list):
 
 
 def get_stock_count(product_id: int) -> int:
-    conn = get_conn()
-    return _q(conn,
+    return _q(get_conn(),
         "SELECT COUNT(*) FROM stock_items WHERE product_id = ? AND sold = 0",
         product_id).fetchone()[0]
 
@@ -416,7 +407,8 @@ def create_order_atomic(user_id: int, username: str, full_name: str,
                 (user_id, username, full_name, product_id, product_name,
                  price_usd, price_syp, currency, payment_method, status)
             VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'balance', 'pending')
-        """, user_id, username, full_name, product_id, product_name, price_usd, price_syp, currency)
+        """, user_id, username, full_name, product_id, product_name,
+             price_usd, price_syp, currency)
         order_id = cur.lastrowid
         conn.execute("COMMIT")
         return order_id
@@ -447,14 +439,12 @@ def update_order_delivered_item(order_id: int, item: str):
 def get_orders_paginated(status: str = "", limit: int = 100, offset: int = 0) -> list:
     conn = get_conn()
     if status:
-        cur = _q(conn,
+        return _fetchall(_q(conn,
             "SELECT * FROM orders WHERE status = ? ORDER BY created_at DESC LIMIT ? OFFSET ?",
-            status, limit, offset)
-    else:
-        cur = _q(conn,
-            "SELECT * FROM orders ORDER BY created_at DESC LIMIT ? OFFSET ?",
-            limit, offset)
-    return _fetchall(cur)
+            status, limit, offset))
+    return _fetchall(_q(conn,
+        "SELECT * FROM orders ORDER BY created_at DESC LIMIT ? OFFSET ?",
+        limit, offset))
 
 
 # ─────────────────────────────────────────
@@ -619,7 +609,7 @@ def get_all_notifications_full() -> list:
         JOIN users u ON u.id = p.user_id ORDER BY p.created_at DESC LIMIT 100
     """)):
         result.append({**row, "type": "proxy", "icon": "🌐",
-                       "title": f"بروكسي — {row['proxy_type_label']}", "subtitle": row["full_name"]})
+                       "title": f"بروكسي — {row.get('proxy_type_label','')}", "subtitle": row["full_name"]})
     for row in _fetchall(conn.execute("""
         SELECT a.*, u.full_name, u.username FROM appsflyer_orders a
         JOIN users u ON u.id = a.user_id ORDER BY a.created_at DESC LIMIT 100

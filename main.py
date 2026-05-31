@@ -15,9 +15,9 @@ from telegram.constants import ParseMode
 import database as db
 from config import BOT_TOKEN, ADMIN_IDS
 from keep_alive import keep_alive
-import handlers_user     as hu
-import handlers_admin    as ha
-import handlers_charge   as hc
+import handlers_user      as hu
+import handlers_admin     as ha
+import handlers_charge    as hc
 import handlers_appsflyer as haf
 
 logging.basicConfig(
@@ -70,7 +70,10 @@ def main():
             ha.ADM_PROD_CATEGORY:  [MessageHandler(filters.TEXT & ~filters.COMMAND, ha.add_product_category)],
             ha.ADM_PROD_STOCK:     [MessageHandler(filters.TEXT & ~filters.COMMAND, ha.add_product_stock)],
         },
-        fallbacks=[CommandHandler("cancel", ha.cancel), CommandHandler("start", hu.universal_cancel)],
+        fallbacks=[
+            CommandHandler("cancel", ha.cancel),
+            CommandHandler("start",  hu.universal_cancel),
+        ],
         per_user=True, per_chat=True, per_message=False,
     )
 
@@ -80,7 +83,10 @@ def main():
         states={
             ha.ADM_STOCK_UPDATE: [MessageHandler(filters.TEXT & ~filters.COMMAND, ha.update_stock_receive)],
         },
-        fallbacks=[CommandHandler("cancel", ha.cancel), CommandHandler("start", hu.universal_cancel)],
+        fallbacks=[
+            CommandHandler("cancel", ha.cancel),
+            CommandHandler("start",  hu.universal_cancel),
+        ],
         per_user=True, per_chat=True, per_message=False,
     )
 
@@ -90,31 +96,35 @@ def main():
         states={
             ha.ADM_BROADCAST_MSG: [MessageHandler(filters.TEXT & ~filters.COMMAND, ha.broadcast_send)],
         },
-        fallbacks=[CommandHandler("cancel", ha.cancel), CommandHandler("start", hu.universal_cancel)],
+        fallbacks=[
+            CommandHandler("cancel", ha.cancel),
+            CommandHandler("start",  hu.universal_cancel),
+        ],
         per_user=True, per_chat=True, per_message=False,
     )
 
     # ── Charge ──
+    # NOTE: /start is handled inside each state directly — NOT in entry_points
+    # to avoid capturing /start when user is NOT in the conversation.
     charge_conv = ConversationHandler(
         entry_points=[
             CallbackQueryHandler(hc.charge_start, pattern="^charge_start$"),
-            CommandHandler("start", hu.universal_cancel),
         ],
         states={
             hc.WAITING_METHOD: [
-                CallbackQueryHandler(hc.charge_method_selected,  pattern="^chg_method_"),
-                CallbackQueryHandler(hc.charge_cancel_conv,      pattern="^charge_cancel_conv$"),
+                CallbackQueryHandler(hc.charge_method_selected, pattern="^chg_method_"),
+                CallbackQueryHandler(hc.charge_cancel_conv,     pattern="^charge_cancel_conv$"),
                 CommandHandler("start", hu.universal_cancel),
             ],
             hc.WAITING_AMOUNT: [
-                MessageHandler(filters.TEXT & ~filters.COMMAND,  hc.charge_amount),
-                CallbackQueryHandler(hc.charge_cancel_conv,      pattern="^charge_cancel_conv$"),
+                MessageHandler(filters.TEXT & ~filters.COMMAND, hc.charge_amount),
+                CallbackQueryHandler(hc.charge_cancel_conv,     pattern="^charge_cancel_conv$"),
                 CommandHandler("start", hu.universal_cancel),
             ],
             hc.WAITING_TXHASH: [
-                MessageHandler(filters.TEXT & ~filters.COMMAND,  hc.charge_txhash),
-                MessageHandler(filters.PHOTO,                    hc.charge_photo),
-                CallbackQueryHandler(hc.charge_cancel_conv,      pattern="^charge_cancel_conv$"),
+                MessageHandler(filters.TEXT & ~filters.COMMAND, hc.charge_txhash),
+                MessageHandler(filters.PHOTO,                   hc.charge_photo),
+                CallbackQueryHandler(hc.charge_cancel_conv,     pattern="^charge_cancel_conv$"),
                 CommandHandler("start", hu.universal_cancel),
             ],
         },
@@ -131,26 +141,46 @@ def main():
     af_conv = ConversationHandler(
         entry_points=[CallbackQueryHandler(haf.appsflyer_menu, pattern="^win_appsflyer$")],
         states={
-            haf.AF_GAME:    [CallbackQueryHandler(haf.af_game_selected,       pattern="^af_game_")],
-            haf.AF_IDFA:    [MessageHandler(filters.TEXT & ~filters.COMMAND,  haf.af_receive_idfa)],
-            haf.AF_IDFV:    [MessageHandler(filters.TEXT & ~filters.COMMAND,  haf.af_receive_idfv)],
-            haf.AF_IOS_VER: [MessageHandler(filters.TEXT & ~filters.COMMAND,  haf.af_receive_ios_ver)],
-            haf.AF_AF_ID:   [MessageHandler(filters.TEXT & ~filters.COMMAND,  haf.af_receive_af_id)],
-            haf.AF_LEVELS:  [
-                CallbackQueryHandler(haf.af_level_toggle,         pattern=r"^af_lvl_\d+$"),
-                CallbackQueryHandler(haf.af_level_custom,         pattern="^af_lvl_custom$"),
-                CallbackQueryHandler(haf.af_levels_back,          pattern="^af_lvl_back$"),
-                CallbackQueryHandler(haf.af_levels_done,          pattern="^af_lvl_done$"),
-                MessageHandler(filters.TEXT & ~filters.COMMAND,   haf.af_receive_custom_levels),
+            haf.AF_GAME: [
+                CallbackQueryHandler(haf.af_game_selected, pattern="^af_game_"),
+                CommandHandler("start", hu.universal_cancel),
             ],
-            haf.AF_CONFIRM: [CallbackQueryHandler(haf.af_confirm_send, pattern="^af_confirm_send$")],
+            haf.AF_IDFA: [
+                MessageHandler(filters.TEXT & ~filters.COMMAND, haf.af_receive_idfa),
+                CommandHandler("start", hu.universal_cancel),
+            ],
+            haf.AF_IDFV: [
+                MessageHandler(filters.TEXT & ~filters.COMMAND, haf.af_receive_idfv),
+                CommandHandler("start", hu.universal_cancel),
+            ],
+            haf.AF_IOS_VER: [
+                MessageHandler(filters.TEXT & ~filters.COMMAND, haf.af_receive_ios_ver),
+                CommandHandler("start", hu.universal_cancel),
+            ],
+            haf.AF_AF_ID: [
+                MessageHandler(filters.TEXT & ~filters.COMMAND, haf.af_receive_af_id),
+                CommandHandler("start", hu.universal_cancel),
+            ],
+            haf.AF_LEVELS: [
+                CallbackQueryHandler(haf.af_level_toggle,        pattern=r"^af_lvl_\d+$"),
+                CallbackQueryHandler(haf.af_level_custom,        pattern="^af_lvl_custom$"),
+                CallbackQueryHandler(haf.af_levels_back,         pattern="^af_lvl_back$"),
+                CallbackQueryHandler(haf.af_levels_done,         pattern="^af_lvl_done$"),
+                MessageHandler(filters.TEXT & ~filters.COMMAND,  haf.af_receive_custom_levels),
+                CommandHandler("start", hu.universal_cancel),
+            ],
+            haf.AF_CONFIRM: [
+                CallbackQueryHandler(haf.af_confirm_send, pattern="^af_confirm_send$"),
+                CommandHandler("start", hu.universal_cancel),
+            ],
         },
         fallbacks=[
-            CommandHandler("cancel",  ha.cancel),
-            CommandHandler("start",   ha.cancel),
+            CommandHandler("cancel", hu.universal_cancel),
+            CommandHandler("start",  hu.universal_cancel),
             CallbackQueryHandler(haf.af_cancel, pattern="^af_cancel$"),
         ],
         per_user=True, per_chat=True, per_message=False,
+        allow_reentry=True,
     )
 
     # ── Commands ──
@@ -162,7 +192,7 @@ def main():
     app.add_handler(CommandHandler("support",  hu.support_cmd))
     app.add_handler(CommandHandler("admin",    ha.admin_panel))
 
-    # ── Conversations ──
+    # ── Conversations (must be before generic callbacks) ──
     app.add_handler(add_product_conv)
     app.add_handler(stock_conv)
     app.add_handler(broadcast_conv)

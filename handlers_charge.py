@@ -13,13 +13,20 @@ logger = logging.getLogger(__name__)
 
 WAITING_METHOD, WAITING_AMOUNT, WAITING_TXHASH = range(20, 23)
 
+_CANCEL_CB = "charge_cancel_conv"
+
+
+def _cancel_kb(lang: str) -> InlineKeyboardMarkup:
+    return InlineKeyboardMarkup([[
+        InlineKeyboardButton("❌ " + t("cancel", lang), callback_data=_CANCEL_CB)
+    ]])
+
 
 # ─────────────────────────────────────────
 # Entry point
 # ─────────────────────────────────────────
 
 async def charge_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Entry point — يعرض اختيار طريقة الشحن."""
     query = update.callback_query
     if query:
         await query.answer()
@@ -33,22 +40,22 @@ async def charge_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         f"💰 {t('current_balance', lang)}: *${balance:.2f}*\n\n"
         f"_{t('choose_method', lang)}_"
     )
-    kb_markup = InlineKeyboardMarkup([
+    markup = InlineKeyboardMarkup([
         [InlineKeyboardButton("💵 USDT BEP-20 (USD)",   callback_data="chg_method_usdt")],
         [InlineKeyboardButton("📱 Syriatel Cash (SYP)", callback_data="chg_method_syriatel")],
         [InlineKeyboardButton(t("back", lang),           callback_data="back_main")],
     ])
 
     if query:
-        await query.edit_message_text(text, parse_mode=ParseMode.MARKDOWN, reply_markup=kb_markup)
+        await query.edit_message_text(text, parse_mode=ParseMode.MARKDOWN, reply_markup=markup)
     else:
-        await update.message.reply_text(text, parse_mode=ParseMode.MARKDOWN, reply_markup=kb_markup)
+        await update.message.reply_text(text, parse_mode=ParseMode.MARKDOWN, reply_markup=markup)
 
     return WAITING_METHOD
 
 
 async def charge_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """/charge — يرد بزر يفتح الـ conversation."""
+    """/charge — يعرض زر يفتح الـ conversation."""
     lang    = get_user_lang(context, update.effective_user.id)
     balance = db.get_balance(update.effective_user.id)
     await update.message.reply_text(
@@ -62,7 +69,7 @@ async def charge_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 # ─────────────────────────────────────────
-# Step 1 — Method selected
+# Step 1 — Method
 # ─────────────────────────────────────────
 
 async def charge_method_selected(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -71,10 +78,6 @@ async def charge_method_selected(update: Update, context: ContextTypes.DEFAULT_T
     method = query.data.replace("chg_method_", "")
     lang   = get_user_lang(context, update.effective_user.id)
     context.user_data["charge_method"] = method
-
-    cancel_kb = InlineKeyboardMarkup([[
-        InlineKeyboardButton("❌ " + t("cancel", lang), callback_data="charge_cancel_conv")
-    ]])
 
     if method == "usdt":
         text = (
@@ -93,7 +96,7 @@ async def charge_method_selected(update: Update, context: ContextTypes.DEFAULT_T
             f"_{t('how_much_syp', lang)}_"
         )
 
-    await query.edit_message_text(text, parse_mode=ParseMode.MARKDOWN, reply_markup=cancel_kb)
+    await query.edit_message_text(text, parse_mode=ParseMode.MARKDOWN, reply_markup=_cancel_kb(lang))
     return WAITING_AMOUNT
 
 
@@ -106,14 +109,10 @@ async def charge_amount(update: Update, context: ContextTypes.DEFAULT_TYPE):
     lang   = get_user_lang(context, update.effective_user.id)
     method = context.user_data.get("charge_method", "usdt")
 
-    cancel_kb = InlineKeyboardMarkup([[
-        InlineKeyboardButton("❌ " + t("cancel", lang), callback_data="charge_cancel_conv")
-    ]])
-
     if method == "usdt":
         valid, amount, err = validate_amount(text, min_val=1.0, max_val=5000.0)
         if not valid:
-            await update.message.reply_text(err, reply_markup=cancel_kb)
+            await update.message.reply_text(err, reply_markup=_cancel_kb(lang))
             return WAITING_AMOUNT
         context.user_data["charge_amount_usd"] = amount
         context.user_data["charge_amount_raw"] = amount
@@ -121,12 +120,12 @@ async def charge_amount(update: Update, context: ContextTypes.DEFAULT_TYPE):
             f"💵 *${amount:.2f} USDT*\n\n—————————————————\n\n"
             f"أرسل الـ *TX Hash* بعد الإرسال:\n_Send the TX Hash after sending:_",
             parse_mode=ParseMode.MARKDOWN,
-            reply_markup=cancel_kb,
+            reply_markup=_cancel_kb(lang),
         )
     else:
         valid, amount_syp, err = validate_amount(text, min_val=100, max_val=50_000_000)
         if not valid:
-            await update.message.reply_text(err, reply_markup=cancel_kb)
+            await update.message.reply_text(err, reply_markup=_cancel_kb(lang))
             return WAITING_AMOUNT
         amount_usd = round(amount_syp / SYP_RATE, 2)
         context.user_data["charge_amount_usd"] = amount_usd
@@ -135,14 +134,14 @@ async def charge_amount(update: Update, context: ContextTypes.DEFAULT_TYPE):
             f"📱 *{amount_syp:,.0f} ل.س ≈ ${amount_usd:.2f}*\n\n—————————————————\n\n"
             f"أرسل *صورة الإيصال* أو *رقم العملية*:\n_Send receipt photo or transaction number:_",
             parse_mode=ParseMode.MARKDOWN,
-            reply_markup=cancel_kb,
+            reply_markup=_cancel_kb(lang),
         )
 
     return WAITING_TXHASH
 
 
 # ─────────────────────────────────────────
-# Step 3 — TX Hash or Photo
+# Step 3 — TX Hash
 # ─────────────────────────────────────────
 
 async def charge_txhash(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -178,6 +177,10 @@ async def charge_txhash(update: Update, context: ContextTypes.DEFAULT_TYPE):
     return ConversationHandler.END
 
 
+# ─────────────────────────────────────────
+# Step 3 — Photo (Syriatel)
+# ─────────────────────────────────────────
+
 async def charge_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
     photo      = update.message.photo[-1]
     file_id    = photo.file_id
@@ -192,6 +195,14 @@ async def charge_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
         method=method, amount_usd=amount_usd, amount_raw=amount_raw,
         tx_hash=None, proof=file_id,
     )
+    if charge_id is None:
+        await update.message.reply_text(
+            "⚠️ تم إرسال هذا الإيصال مسبقاً.\n_This receipt was already submitted._",
+            reply_markup=kb.main_menu(lang)
+        )
+        context.user_data.clear()
+        return ConversationHandler.END
+
     await _notify_admins(context, user, charge_id, method, amount_usd, proof_type="photo")
     await update.message.reply_text(
         f"✅ *{t('charge_submitted', lang)}*\n\n—————————————————\n\n"
@@ -205,7 +216,7 @@ async def charge_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 # ─────────────────────────────────────────
-# Cancel inside conversation
+# Cancel
 # ─────────────────────────────────────────
 
 async def charge_cancel_conv(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -231,7 +242,7 @@ async def charge_cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 # ─────────────────────────────────────────
-# Notify admins
+# Admin notification
 # ─────────────────────────────────────────
 
 async def _notify_admins(context, user, charge_id, method, amount_usd,
