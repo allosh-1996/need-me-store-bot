@@ -281,7 +281,7 @@ def get_products_by_platform(platform: str) -> list:
     cur      = conn.execute("""
         SELECT * FROM products WHERE active = 1 AND platform = ?
         ORDER BY category, name
-    """, [platform])
+    """, (platform,))
     products = _fetchall_dict(cur)
     for p in products:
         p["stock_count"] = get_stock_count(p["id"])
@@ -292,7 +292,7 @@ def get_products_by_category(category: str) -> list:
     cur      = conn.execute("""
         SELECT * FROM products WHERE active = 1 AND category = ?
         ORDER BY name
-    """, [category])
+    """, (category,))
     products = _fetchall_dict(cur)
     for p in products:
         p["stock_count"] = get_stock_count(p["id"])
@@ -305,7 +305,7 @@ def get_categories(platform: str = None) -> list:
             SELECT DISTINCT category FROM products
             WHERE active = 1 AND platform = ? AND category IS NOT NULL
             ORDER BY category
-        """, [platform])
+        """, (platform,))
     else:
         cur = conn.execute("""
             SELECT DISTINCT category FROM products
@@ -340,7 +340,7 @@ def pop_stock_item(product_id: int) -> tuple:
             SELECT id, content FROM stock_items
             WHERE product_id = ? AND sold = 0
             ORDER BY id ASC LIMIT 1
-        """, [product_id])
+        """, (product_id,))
         row = cur.fetchone()
         if not row:
             conn.execute("ROLLBACK")
@@ -349,7 +349,7 @@ def pop_stock_item(product_id: int) -> tuple:
         conn.execute("""
             UPDATE stock_items SET sold = 1, sold_at = CURRENT_TIMESTAMP
             WHERE id = ?
-        """, [item_id])
+        """, (item_id,))
         conn.execute("COMMIT")
         remaining = get_stock_count(product_id)
         return content, remaining
@@ -364,7 +364,7 @@ def mark_stock_sold(item_id: int, user_id: int):
         UPDATE stock_items
         SET sold = 1, sold_to = ?, sold_at = CURRENT_TIMESTAMP
         WHERE id = ?
-    """, [user_id, item_id])
+    """, (user_id, item_id))
     conn.commit()
 
 def set_stock_items(product_id: int, lines: list) -> None:
@@ -373,7 +373,7 @@ def set_stock_items(product_id: int, lines: list) -> None:
     try:
         conn.execute(
             "DELETE FROM stock_items WHERE product_id = ? AND sold = 0",
-            [product_id]
+            (product_id,)
         )
         if lines:
             conn.executemany(
@@ -445,12 +445,12 @@ def get_orders_paginated(status: str = "", limit: int = 100, offset: int = 0) ->
         cur = conn.execute("""
             SELECT * FROM orders WHERE status = ?
             ORDER BY created_at DESC LIMIT ? OFFSET ?
-        """, [status, limit, offset])
+        """, (status, limit, offset))
     else:
         cur = conn.execute("""
             SELECT * FROM orders
             ORDER BY created_at DESC LIMIT ? OFFSET ?
-        """, [limit, offset])
+        """, (limit, offset))
     return _fetchall_dict(cur)
 
 # ── Charge Requests ──
@@ -481,7 +481,7 @@ def get_charges_recent(limit: int = 100) -> list:
     conn = get_conn()
     cur  = conn.execute("""
         SELECT * FROM charge_requests ORDER BY created_at DESC LIMIT ?
-    """, [limit])
+    """, (limit,))
     return _fetchall_dict(cur)
 
 def confirm_charge(charge_id: int) -> dict | None:
@@ -494,11 +494,11 @@ def confirm_charge(charge_id: int) -> dict | None:
             conn.execute("ROLLBACK")
             return None
         conn.execute(
-            "UPDATE charge_requests SET status = 'confirmed' WHERE id = ?", [charge_id]
+            "UPDATE charge_requests SET status = 'confirmed' WHERE id = ?", (charge_id,)
         )
         conn.execute(
             "UPDATE users SET balance = balance + ? WHERE id = ?",
-            [charge["amount_usd"], charge["user_id"]]
+            (charge["amount_usd"], charge["user_id"])
         )
         conn.execute("COMMIT")
         return charge
@@ -530,7 +530,7 @@ def get_proxy_orders(status: str = "") -> list:
     conn = get_conn()
     if status:
         cur = conn.execute(
-            "SELECT * FROM proxy_orders WHERE status = ? ORDER BY created_at DESC", [status]
+            "SELECT * FROM proxy_orders WHERE status = ? ORDER BY created_at DESC", (status,)
         )
     else:
         cur = conn.execute("SELECT * FROM proxy_orders ORDER BY created_at DESC")
@@ -567,7 +567,7 @@ def get_appsflyer_orders(status: str = "") -> list:
     conn = get_conn()
     if status:
         cur = conn.execute(
-            "SELECT * FROM appsflyer_orders WHERE status = ? ORDER BY created_at DESC", [status]
+            "SELECT * FROM appsflyer_orders WHERE status = ? ORDER BY created_at DESC", (status,)
         )
     else:
         cur = conn.execute("SELECT * FROM appsflyer_orders ORDER BY created_at DESC")
