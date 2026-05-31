@@ -96,28 +96,35 @@ def main():
 
     # ── Charge ──
     charge_conv = ConversationHandler(
-        entry_points=[CallbackQueryHandler(hc.charge_start, pattern="^charge_start$")],
+        entry_points=[
+            CallbackQueryHandler(hc.charge_start, pattern="^charge_start$"),
+            CommandHandler("start", hu.universal_cancel),
+        ],
         states={
             hc.WAITING_METHOD: [
                 CallbackQueryHandler(hc.charge_method_selected,  pattern="^chg_method_"),
                 CallbackQueryHandler(hc.charge_cancel_conv,      pattern="^charge_cancel_conv$"),
+                CommandHandler("start", hu.universal_cancel),
             ],
             hc.WAITING_AMOUNT: [
                 MessageHandler(filters.TEXT & ~filters.COMMAND,  hc.charge_amount),
                 CallbackQueryHandler(hc.charge_cancel_conv,      pattern="^charge_cancel_conv$"),
+                CommandHandler("start", hu.universal_cancel),
             ],
             hc.WAITING_TXHASH: [
                 MessageHandler(filters.TEXT & ~filters.COMMAND,  hc.charge_txhash),
                 MessageHandler(filters.PHOTO,                    hc.charge_photo),
                 CallbackQueryHandler(hc.charge_cancel_conv,      pattern="^charge_cancel_conv$"),
+                CommandHandler("start", hu.universal_cancel),
             ],
         },
         fallbacks=[
             CommandHandler("cancel", hc.charge_cancel),
-            CommandHandler("start",  hc.charge_cancel),
+            CommandHandler("start",  hu.universal_cancel),
             CallbackQueryHandler(hc.charge_cancel_conv, pattern="^charge_cancel_conv$"),
         ],
         per_user=True, per_chat=True, per_message=False,
+        allow_reentry=True,
     )
 
     # ── AppsFlyer ──
