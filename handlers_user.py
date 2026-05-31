@@ -9,6 +9,10 @@ from lang import t, get_user_lang
 from utils import rate_limit
 
 
+# ─────────────────────────────────────────
+# Start / Home
+# ─────────────────────────────────────────
+
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user = update.effective_user
     db.upsert_user(user.id, user.username or "", user.full_name or "")
@@ -17,13 +21,18 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         t("welcome", lang), parse_mode=ParseMode.MARKDOWN, reply_markup=kb.main_menu(lang)
     )
 
+
 async def persistent_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """back_main callback + fallback /start inside conversations."""
     query = update.callback_query
     if query:
         await query.answer()
     user = update.effective_user
     db.upsert_user(user.id, user.username or "", user.full_name or "")
     lang = get_user_lang(context, user.id)
+    # clear navigation state on going home
+    context.user_data.pop("back_context", None)
+    context.user_data.pop("category", None)
     if query:
         await query.edit_message_text(
             t("welcome", lang), parse_mode=ParseMode.MARKDOWN, reply_markup=kb.main_menu(lang)
@@ -33,6 +42,7 @@ async def persistent_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
             t("welcome", lang), parse_mode=ParseMode.MARKDOWN, reply_markup=kb.main_menu(lang)
         )
 
+
 async def help_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     lang = get_user_lang(context, update.effective_user.id)
     if lang == "en":
@@ -40,6 +50,21 @@ async def help_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     else:
         text = "*الاوامر*\n\n`/start` — الرئيسية\n`/products` — المنتجات\n`/charge` — شحن رصيد\n`/help` — مساعدة"
     await update.message.reply_text(text, parse_mode=ParseMode.MARKDOWN)
+
+
+async def support_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    lang = get_user_lang(context, update.effective_user.id)
+    await update.message.reply_text(
+        f"🛟 *{t('support_title', lang)}*\n\n—————————————————\n\n"
+        f"👤 @Allosh96ha\n\n_{t('support_body', lang)}_\n\n—————————————————\n",
+        parse_mode=ParseMode.MARKDOWN,
+        reply_markup=kb.main_menu(lang),
+    )
+
+
+# ─────────────────────────────────────────
+# Language
+# ─────────────────────────────────────────
 
 async def change_language_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user     = update.effective_user
@@ -51,14 +76,6 @@ async def change_language_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE
         t("welcome", new_lang), parse_mode=ParseMode.MARKDOWN, reply_markup=kb.main_menu(new_lang)
     )
 
-async def support_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    lang = get_user_lang(context, update.effective_user.id)
-    await update.message.reply_text(
-        f"🛟 *{t('support_title', lang)}*\n\n—————————————————\n\n"
-        f"👤 @Allosh96ha\n\n_{t('support_body', lang)}_\n\n—————————————————\n",
-        parse_mode=ParseMode.MARKDOWN,
-        reply_markup=kb.main_menu(lang),
-    )
 
 @rate_limit(seconds=2)
 async def toggle_lang(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -73,6 +90,11 @@ async def toggle_lang(update: Update, context: ContextTypes.DEFAULT_TYPE):
         t("welcome", new_lang), parse_mode=ParseMode.MARKDOWN, reply_markup=kb.main_menu(new_lang)
     )
 
+
+# ─────────────────────────────────────────
+# Products — platform / category / detail
+# ─────────────────────────────────────────
+
 @rate_limit(seconds=2)
 async def show_products(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
@@ -80,7 +102,7 @@ async def show_products(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await query.answer()
     lang = get_user_lang(context, update.effective_user.id)
     keyboard = [
-        [InlineKeyboardButton("🍏 iOS",    callback_data="platform_iOS"),
+        [InlineKeyboardButton("🍏 iOS",     callback_data="platform_iOS"),
          InlineKeyboardButton("🤖 Android", callback_data="platform_Android")],
         [InlineKeyboardButton(t("back", lang), callback_data="back_main")],
     ]
@@ -92,8 +114,10 @@ async def show_products(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.message.reply_text(text, parse_mode=ParseMode.MARKDOWN,
                                         reply_markup=InlineKeyboardMarkup(keyboard))
 
+
 async def products_cmd(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await show_products(update, context)
+
 
 @rate_limit(seconds=2)
 async def show_platform(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -101,7 +125,9 @@ async def show_platform(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await query.answer()
     platform = query.data.replace("platform_", "")
     lang     = get_user_lang(context, update.effective_user.id)
-    context.user_data["platform"] = platform
+    context.user_data["platform"]     = platform
+    context.user_data["back_context"] = "products"
+    context.user_data.pop("category", None)
     categories = db.get_categories(platform)
     if not categories:
         await query.edit_message_text(
@@ -114,6 +140,7 @@ async def show_platform(update: Update, context: ContextTypes.DEFAULT_TYPE):
         reply_markup=kb.categories_menu(categories, back_cb="products", lang=lang)
     )
 
+
 @rate_limit(seconds=2)
 async def show_category(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query    = update.callback_query
@@ -121,7 +148,6 @@ async def show_category(update: Update, context: ContextTypes.DEFAULT_TYPE):
     category = query.data.replace("cat_", "")
     lang     = get_user_lang(context, update.effective_user.id)
     context.user_data["category"] = category
-    # نحدد زر الرجوع بناءً على المسار اللي جاي منه المستخدم
     back_ctx = context.user_data.get("back_context", "products")
     products = db.get_products_by_category(category)
     if not products:
@@ -134,6 +160,7 @@ async def show_category(update: Update, context: ContextTypes.DEFAULT_TYPE):
         f"*{t('choose_product', lang)}*", parse_mode=ParseMode.MARKDOWN,
         reply_markup=kb.products_menu(products, lang=lang, back_cb=back_ctx)
     )
+
 
 @rate_limit(seconds=2)
 async def show_product_detail(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -152,13 +179,15 @@ async def show_product_detail(update: Update, context: ContextTypes.DEFAULT_TYPE
         f"📝 {product['description'] or t('no_desc', lang)}\n\n"
         f"💵 ${product['price_usd']}\n📦 {stock_text}\n\n—————————————————\n"
     )
-    back_ctx = context.user_data.get("back_context", "products")
+    # back goes to the category list we came from
     category = context.user_data.get("category", "")
-    back_cb  = f"cat_{category}" if category else back_ctx
+    back_ctx  = context.user_data.get("back_context", "products")
+    back_cb   = f"cat_{category}" if category else back_ctx
     await query.edit_message_text(
         text, parse_mode=ParseMode.MARKDOWN,
         reply_markup=kb.product_detail_menu(product_id, has_stock=has_stock, lang=lang, back_cb=back_cb)
     )
+
 
 @rate_limit(seconds=5)
 async def buy_product(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -184,14 +213,14 @@ async def buy_product(update: Update, context: ContextTypes.DEFAULT_TYPE):
             parse_mode=ParseMode.MARKDOWN,
             reply_markup=InlineKeyboardMarkup([
                 [InlineKeyboardButton(t("top_up_title", lang), callback_data="charge_start")],
-                [InlineKeyboardButton(t("back", lang), callback_data=f"prod_{product_id}")],
+                [InlineKeyboardButton(t("back", lang),         callback_data=f"prod_{product_id}")],
             ])
         )
         return
     if product["stock_count"] == 0:
         await query.edit_message_text(
             f"❌ *{t('out_of_stock', lang)}*", parse_mode=ParseMode.MARKDOWN,
-            reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton(t("back", lang), callback_data="products")]])
+            reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton(t("back", lang), callback_data=f"prod_{product_id}")]])
         )
         return
     try:
@@ -226,6 +255,11 @@ async def buy_product(update: Update, context: ContextTypes.DEFAULT_TYPE):
         reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton(t("home", lang), callback_data="back_main")]])
     )
 
+
+# ─────────────────────────────────────────
+# Balance
+# ─────────────────────────────────────────
+
 @rate_limit(seconds=3)
 async def show_balance(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query   = update.callback_query
@@ -239,9 +273,14 @@ async def show_balance(update: Update, context: ContextTypes.DEFAULT_TYPE):
         parse_mode=ParseMode.MARKDOWN,
         reply_markup=InlineKeyboardMarkup([
             [InlineKeyboardButton(t("top_up_title", lang), callback_data="charge_start")],
-            [InlineKeyboardButton(t("back", lang), callback_data="back_main")],
+            [InlineKeyboardButton(t("back", lang),         callback_data="back_main")],
         ])
     )
+
+
+# ─────────────────────────────────────────
+# Contact
+# ─────────────────────────────────────────
 
 async def contact_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
@@ -254,19 +293,26 @@ async def contact_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton(t("back", lang), callback_data="back_main")]])
     )
 
+
+# ─────────────────────────────────────────
+# Proxy
+# ─────────────────────────────────────────
+
 @rate_limit(seconds=3)
 async def proxy_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
     lang  = get_user_lang(context, update.effective_user.id)
     from config import PROXY_TYPES
-    keyboard = [[InlineKeyboardButton(label, callback_data=f"proxy_type_{key}")] for key, label in PROXY_TYPES.items()]
+    keyboard = [[InlineKeyboardButton(label, callback_data=f"proxy_type_{key}")]
+                for key, label in PROXY_TYPES.items()]
     keyboard.append([InlineKeyboardButton(t("back", lang), callback_data="back_main")])
     await query.edit_message_text(
         "🌐 *Proxy*\n\n—————————————————\n\nاختر نوع البروكسي:\n_Choose proxy type:_",
         parse_mode=ParseMode.MARKDOWN,
         reply_markup=InlineKeyboardMarkup(keyboard)
     )
+
 
 @rate_limit(seconds=3)
 async def proxy_type_selected(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -288,8 +334,8 @@ async def proxy_type_selected(update: Update, context: ContextTypes.DEFAULT_TYPE
         reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton(t("back", lang), callback_data="proxy_menu")]])
     )
 
+
 async def proxy_details_received(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """يستقبل نص تفاصيل طلب البروكسي."""
     if not context.user_data.get("waiting_proxy_details"):
         return
     user       = update.effective_user
@@ -322,32 +368,19 @@ async def proxy_details_received(update: Update, context: ContextTypes.DEFAULT_T
         reply_markup=kb.main_menu(lang)
     )
 
-@rate_limit(seconds=3)
-async def surveys_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    query    = update.callback_query
-    await query.answer()
-    lang     = get_user_lang(context, update.effective_user.id)
-    products = db.get_products_by_category("Survey Accounts")
-    if not products:
-        await query.edit_message_text(
-            t("no_products_category", lang),
-            reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton(t("back", lang), callback_data="back_main")]])
-        )
-        return
-    await query.edit_message_text(
-        f"📊 *Surveys*\n\n{t('choose_product', lang)}", parse_mode=ParseMode.MARKDOWN,
-        reply_markup=kb.products_menu(products, lang=lang, back_cb="back_main")
-    )
+
+# ─────────────────────────────────────────
+# Section menus — Emails / iCloud / Surveys
+# ─────────────────────────────────────────
 
 @rate_limit(seconds=2)
 async def icloud_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """iCloud — يعرض منتجات فئة Apple iCloud."""
-    query    = update.callback_query
+    query = update.callback_query
     await query.answer()
-    lang     = get_user_lang(context, update.effective_user.id)
-    products = db.get_products_by_category("Apple iCloud")
-    if not products:
-        products = db.get_products_by_platform("iOS")
+    lang  = get_user_lang(context, update.effective_user.id)
+    context.user_data["back_context"] = "icloud_menu"
+    context.user_data.pop("category", None)
+    products = db.get_products_by_category("Apple iCloud") or db.get_products_by_platform("iOS")
     if not products:
         await query.edit_message_text(
             t("no_products_platform", lang),
@@ -359,33 +392,54 @@ async def icloud_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
         reply_markup=kb.products_menu(products, lang=lang, back_cb="back_main")
     )
 
+
 @rate_limit(seconds=2)
 async def emails_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Emails — يعرض فئات الإيميلات."""
-    query      = update.callback_query
+    query = update.callback_query
     await query.answer()
-    lang       = get_user_lang(context, update.effective_user.id)
-    categories = [c for c in db.get_categories() if any(
-        x in c.lower() for x in ["email", "outlook", "gmail", "hotmail", "mail"]
-    )]
-    if not categories:
-        products = db.get_products_by_category("Emails")
-        if products:
-            context.user_data["back_context"] = "emails_menu"
-            await query.edit_message_text(
-                f"📧 *{t('btn_emails', lang)}*\n\n{t('choose_product', lang)}",
-                parse_mode=ParseMode.MARKDOWN,
-                reply_markup=kb.products_menu(products, lang=lang, back_cb="back_main")
-            )
-            return
+    lang  = get_user_lang(context, update.effective_user.id)
+    context.user_data["back_context"] = "emails_menu"
+    context.user_data.pop("category", None)
+    # try to find email-related categories
+    categories = [c for c in db.get_categories()
+                  if any(x in c.lower() for x in ["email", "outlook", "gmail", "hotmail", "mail"])]
+    if categories:
         await query.edit_message_text(
-            t("no_products_platform", lang),
+            f"📧 *{t('btn_emails', lang)}*\n\n{t('choose_category', lang)}",
+            parse_mode=ParseMode.MARKDOWN,
+            reply_markup=kb.categories_menu(categories, back_cb="back_main", lang=lang)
+        )
+        return
+    # fallback: show all products in Emails category
+    products = db.get_products_by_category("Emails")
+    if products:
+        await query.edit_message_text(
+            f"📧 *{t('btn_emails', lang)}*\n\n{t('choose_product', lang)}",
+            parse_mode=ParseMode.MARKDOWN,
+            reply_markup=kb.products_menu(products, lang=lang, back_cb="back_main")
+        )
+        return
+    await query.edit_message_text(
+        t("no_products_platform", lang),
+        reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton(t("back", lang), callback_data="back_main")]])
+    )
+
+
+@rate_limit(seconds=3)
+async def surveys_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+    lang  = get_user_lang(context, update.effective_user.id)
+    context.user_data["back_context"] = "surveys_menu"
+    context.user_data.pop("category", None)
+    products = db.get_products_by_category("Survey Accounts")
+    if not products:
+        await query.edit_message_text(
+            t("no_products_category", lang),
             reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton(t("back", lang), callback_data="back_main")]])
         )
         return
-    context.user_data["back_context"] = "emails_menu"
     await query.edit_message_text(
-        f"📧 *{t('btn_emails', lang)}*\n\n{t('choose_category', lang)}",
-        parse_mode=ParseMode.MARKDOWN,
-        reply_markup=kb.categories_menu(categories, back_cb="back_main", lang=lang)
+        f"📊 *Surveys*\n\n{t('choose_product', lang)}", parse_mode=ParseMode.MARKDOWN,
+        reply_markup=kb.products_menu(products, lang=lang, back_cb="back_main")
     )
