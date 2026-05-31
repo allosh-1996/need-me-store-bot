@@ -236,10 +236,10 @@ def t(key: str, lang: str) -> str:
 
 def get_user_lang(context, user_id=None) -> str:
     """
-    جيب لغة المستخدم:
-    1. من user_data (session cache — أسرع)
-    2. من قاعدة البيانات لو مُرِّر user_id وما كانت في الجلسة
-    الافتراضي عربي.
+    Returns the user's language:
+    1. From user_data session cache (fastest)
+    2. From DB if user_id is provided and cache is empty
+    Default: Arabic.
     """
     lang = context.user_data.get("lang")
     if lang:
@@ -247,8 +247,8 @@ def get_user_lang(context, user_id=None) -> str:
 
     if user_id:
         try:
-            import database as db
-            lang = db.get_user_lang(user_id)
+            import database as _db  # local import avoids circular dependency at module level
+            lang = _db.get_user_lang(user_id)
             context.user_data["lang"] = lang
             return lang
         except Exception:

@@ -10,6 +10,7 @@ import secrets as _secrets
 import threading
 import uuid
 
+from functools import wraps
 import requests as req_lib
 from flask import Flask, render_template, request, jsonify, session, redirect, send_from_directory
 
@@ -97,7 +98,6 @@ app.config["AUTH_TOKEN"] = _auth_token
 # ════════════════════════════════════════
 
 def auth_required(f):
-    from functools import wraps
     @wraps(f)
     def decorated(*args, **kwargs):
         token = request.headers.get("X-Auth-Token") or request.args.get("_t")
