@@ -161,12 +161,12 @@ def upsert_user(user_id: int, username: str, full_name: str):
 
 def set_user_lang(user_id: int, lang: str):
     conn = get_conn()
-    conn.execute("UPDATE users SET lang = ? WHERE id = ?", [lang, user_id])
+    conn.execute("UPDATE users SET lang = ? WHERE id = ?", (lang, user_id))
     conn.commit()
 
 def get_user_lang_db(user_id: int) -> str:
     conn = get_conn()
-    cur  = conn.execute("SELECT lang FROM users WHERE id = ?", [user_id])
+    cur  = conn.execute("SELECT lang FROM users WHERE id = ?", (user_id,))
     row  = cur.fetchone()
     return row[0] if row else "ar"
 
@@ -175,7 +175,7 @@ get_user_lang = get_user_lang_db
 
 def get_balance(user_id: int) -> float:
     conn = get_conn()
-    cur  = conn.execute("SELECT balance FROM users WHERE id = ?", [user_id])
+    cur  = conn.execute("SELECT balance FROM users WHERE id = ?", (user_id,))
     row  = cur.fetchone()
     return float(row[0]) if row else 0.0
 
@@ -184,7 +184,7 @@ def get_balance_by_user(user_id: int) -> dict:
 
 def add_balance(user_id: int, amount: float):
     conn = get_conn()
-    conn.execute("UPDATE users SET balance = balance + ? WHERE id = ?", [amount, user_id])
+    conn.execute("UPDATE users SET balance = balance + ? WHERE id = ?", (amount, user_id))
     conn.commit()
 
 def deduct_balance_atomic(user_id: int, amount: float):
@@ -195,13 +195,13 @@ def deduct_balance_atomic(user_id: int, amount: float):
     conn = get_conn()
     conn.execute("BEGIN")
     try:
-        cur     = conn.execute("SELECT balance FROM users WHERE id = ?", [user_id])
+        cur     = conn.execute("SELECT balance FROM users WHERE id = ?", (user_id,))
         row     = cur.fetchone()
         balance = float(row[0]) if row else 0.0
         if balance < amount:
             conn.execute("ROLLBACK")
             raise ValueError(f"insufficient_balance:{balance:.2f}")
-        conn.execute("UPDATE users SET balance = balance - ? WHERE id = ?", [amount, user_id])
+        conn.execute("UPDATE users SET balance = balance - ? WHERE id = ?", (amount, user_id))
         conn.execute("COMMIT")
     except ValueError:
         raise
@@ -232,7 +232,7 @@ def get_users_with_balances() -> list:
 
 def block_user(user_id: int):
     conn = get_conn()
-    conn.execute("UPDATE users SET blocked = 1 WHERE id = ?", [user_id])
+    conn.execute("UPDATE users SET blocked = 1 WHERE id = ?", (user_id,))
     conn.commit()
 
 # ── Products ──
@@ -251,7 +251,7 @@ def get_all_products(active_only: bool = True) -> list:
 
 def get_product(product_id: int) -> dict | None:
     conn = get_conn()
-    cur  = conn.execute("SELECT * FROM products WHERE id = ?", [product_id])
+    cur  = conn.execute("SELECT * FROM products WHERE id = ?", (product_id,))
     p    = _fetchone_dict(cur)
     if p:
         p["stock_count"] = get_stock_count(product_id)
@@ -273,7 +273,7 @@ def add_product(name: str, description: str, price_usd: float, price_syp: float,
 
 def delete_product(product_id: int):
     conn = get_conn()
-    conn.execute("UPDATE products SET active = 0 WHERE id = ?", [product_id])
+    conn.execute("UPDATE products SET active = 0 WHERE id = ?", (product_id,))
     conn.commit()
 
 def get_products_by_platform(platform: str) -> list:
@@ -400,13 +400,13 @@ def create_order_atomic(user_id: int, username: str, full_name: str,
     conn = get_conn()
     conn.execute("BEGIN")
     try:
-        cur     = conn.execute("SELECT balance FROM users WHERE id = ?", [user_id])
+        cur     = conn.execute("SELECT balance FROM users WHERE id = ?", (user_id,))
         row     = cur.fetchone()
         balance = float(row[0]) if row else 0.0
         if balance < price_usd:
             conn.execute("ROLLBACK")
             raise ValueError("insufficient_balance")
-        conn.execute("UPDATE users SET balance = balance - ? WHERE id = ?", [price_usd, user_id])
+        conn.execute("UPDATE users SET balance = balance - ? WHERE id = ?", (price_usd, user_id))
         cur = conn.execute("""
             INSERT INTO orders
                 (user_id, username, full_name, product_id, product_name,
@@ -426,17 +426,17 @@ def create_order_atomic(user_id: int, username: str, full_name: str,
 
 def get_order(order_id: int) -> dict | None:
     conn = get_conn()
-    cur  = conn.execute("SELECT * FROM orders WHERE id = ?", [order_id])
+    cur  = conn.execute("SELECT * FROM orders WHERE id = ?", (order_id,))
     return _fetchone_dict(cur)
 
 def update_order_status(order_id: int, status: str):
     conn = get_conn()
-    conn.execute("UPDATE orders SET status = ? WHERE id = ?", [status, order_id])
+    conn.execute("UPDATE orders SET status = ? WHERE id = ?", (status, order_id))
     conn.commit()
 
 def update_order_delivered_item(order_id: int, item: str):
     conn = get_conn()
-    conn.execute("UPDATE orders SET delivered_item = ? WHERE id = ?", [item, order_id])
+    conn.execute("UPDATE orders SET delivered_item = ? WHERE id = ?", (item, order_id))
     conn.commit()
 
 def get_orders_paginated(status: str = "", limit: int = 100, offset: int = 0) -> list:
@@ -474,7 +474,7 @@ def create_charge_request(user_id: int, username: str, full_name: str,
 
 def get_charge_request(charge_id: int) -> dict | None:
     conn = get_conn()
-    cur  = conn.execute("SELECT * FROM charge_requests WHERE id = ?", [charge_id])
+    cur  = conn.execute("SELECT * FROM charge_requests WHERE id = ?", (charge_id,))
     return _fetchone_dict(cur)
 
 def get_charges_recent(limit: int = 100) -> list:
@@ -488,7 +488,7 @@ def confirm_charge(charge_id: int) -> dict | None:
     conn = get_conn()
     conn.execute("BEGIN")
     try:
-        cur    = conn.execute("SELECT * FROM charge_requests WHERE id = ?", [charge_id])
+        cur    = conn.execute("SELECT * FROM charge_requests WHERE id = ?", (charge_id,))
         charge = _fetchone_dict(cur)
         if not charge or charge["status"] != "pending":
             conn.execute("ROLLBACK")
@@ -509,7 +509,7 @@ def confirm_charge(charge_id: int) -> dict | None:
 
 def reject_charge(charge_id: int):
     conn = get_conn()
-    conn.execute("UPDATE charge_requests SET status = 'rejected' WHERE id = ?", [charge_id])
+    conn.execute("UPDATE charge_requests SET status = 'rejected' WHERE id = ?", (charge_id,))
     conn.commit()
 
 # ── Proxy Orders ──
@@ -538,7 +538,7 @@ def get_proxy_orders(status: str = "") -> list:
 
 def update_proxy_order_status(order_id: int, status: str):
     conn = get_conn()
-    conn.execute("UPDATE proxy_orders SET status = ? WHERE id = ?", [status, order_id])
+    conn.execute("UPDATE proxy_orders SET status = ? WHERE id = ?", (status, order_id))
     conn.commit()
 
 # ── AppsFlyer Orders ──
@@ -560,7 +560,7 @@ def create_appsflyer_order(user_id: int, username: str, full_name: str,
 
 def get_appsflyer_order(order_id: int) -> dict | None:
     conn = get_conn()
-    cur  = conn.execute("SELECT * FROM appsflyer_orders WHERE id = ?", [order_id])
+    cur  = conn.execute("SELECT * FROM appsflyer_orders WHERE id = ?", (order_id,))
     return _fetchone_dict(cur)
 
 def get_appsflyer_orders(status: str = "") -> list:
@@ -575,7 +575,7 @@ def get_appsflyer_orders(status: str = "") -> list:
 
 def update_appsflyer_order_status(order_id: int, status: str):
     conn = get_conn()
-    conn.execute("UPDATE appsflyer_orders SET status = ? WHERE id = ?", [status, order_id])
+    conn.execute("UPDATE appsflyer_orders SET status = ? WHERE id = ?", (status, order_id))
     conn.commit()
 
 # ── Stats & Notifications ──
@@ -583,7 +583,7 @@ def update_appsflyer_order_status(order_id: int, status: str):
 def get_stats() -> dict:
     conn = get_conn()
     def count(q, *args):
-        return conn.execute(q, list(args)).fetchone()[0]
+        return conn.execute(q, tuple(args)).fetchone()[0]
     return {
         "users":            count("SELECT COUNT(*) FROM users WHERE blocked=0"),
         "products":         count("SELECT COUNT(*) FROM products WHERE active=1"),
