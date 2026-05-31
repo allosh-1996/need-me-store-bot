@@ -303,14 +303,23 @@ async def proxy_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await query.answer()
     lang  = get_user_lang(context, update.effective_user.id)
     await query.edit_message_text(
-        "🌐 *Proxy*\n\n—————————————————\n\n"
-        "لطلب البروكسي تواصل مع الأدمن مباشرة:\n\n"
+        "🌐 *Proxy | بروكسيات*\n\n"
+        "—————————————————\n\n"
+        "نوفر بروكسيات عالية الجودة لجميع احتياجاتك:\n"
+        "🔒 SOCKS5  •  🌐 HTTP/HTTPS\n"
+        "🏠 Residential  •  📱 Mobile 4G/5G\n\n"
+        "We provide high-quality proxies for all your needs:\n"
+        "Fast • Secure • Reliable\n\n"
+        "—————————————————\n\n"
+        "📩 *لتقديم طلبك تواصل مع الدعم مباشرة:*\n"
+        "_To place your order, contact support directly:_\n\n"
         "👤 @Allosh96ha\n\n"
         "—————————————————",
         parse_mode=ParseMode.MARKDOWN,
-        reply_markup=InlineKeyboardMarkup([[
-            InlineKeyboardButton(t("back", lang), callback_data="back_main")
-        ]])
+        reply_markup=InlineKeyboardMarkup([
+            [InlineKeyboardButton("💬 تواصل مع الدعم | Contact Support", url="https://t.me/Allosh96ha")],
+            [InlineKeyboardButton(t("back", lang), callback_data="back_main")],
+        ])
     )
 
 # ─────────────────────────────────────────
