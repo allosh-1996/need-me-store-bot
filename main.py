@@ -98,14 +98,25 @@ def main():
     charge_conv = ConversationHandler(
         entry_points=[CallbackQueryHandler(hc.charge_start, pattern="^charge_start$")],
         states={
-            hc.WAITING_METHOD: [CallbackQueryHandler(hc.charge_method_selected, pattern="^chg_method_")],
-            hc.WAITING_AMOUNT: [MessageHandler(filters.TEXT & ~filters.COMMAND, hc.charge_amount)],
+            hc.WAITING_METHOD: [
+                CallbackQueryHandler(hc.charge_method_selected,  pattern="^chg_method_"),
+                CallbackQueryHandler(hc.charge_cancel_conv,      pattern="^charge_cancel_conv$"),
+            ],
+            hc.WAITING_AMOUNT: [
+                MessageHandler(filters.TEXT & ~filters.COMMAND,  hc.charge_amount),
+                CallbackQueryHandler(hc.charge_cancel_conv,      pattern="^charge_cancel_conv$"),
+            ],
             hc.WAITING_TXHASH: [
-                MessageHandler(filters.TEXT & ~filters.COMMAND, hc.charge_txhash),
-                MessageHandler(filters.PHOTO, hc.charge_photo),
+                MessageHandler(filters.TEXT & ~filters.COMMAND,  hc.charge_txhash),
+                MessageHandler(filters.PHOTO,                    hc.charge_photo),
+                CallbackQueryHandler(hc.charge_cancel_conv,      pattern="^charge_cancel_conv$"),
             ],
         },
-        fallbacks=[CommandHandler("cancel", hc.charge_cancel), CommandHandler("start", hu.persistent_start)],
+        fallbacks=[
+            CommandHandler("cancel", hc.charge_cancel),
+            CommandHandler("start",  hu.persistent_start),
+            CallbackQueryHandler(hc.charge_cancel_conv, pattern="^charge_cancel_conv$"),
+        ],
         per_user=True, per_chat=True, per_message=False,
     )
 
