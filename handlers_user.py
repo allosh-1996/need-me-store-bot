@@ -121,16 +121,18 @@ async def show_category(update: Update, context: ContextTypes.DEFAULT_TYPE):
     category = query.data.replace("cat_", "")
     lang     = get_user_lang(context, update.effective_user.id)
     context.user_data["category"] = category
+    # نحدد زر الرجوع بناءً على المسار اللي جاي منه المستخدم
+    back_ctx = context.user_data.get("back_context", "products")
     products = db.get_products_by_category(category)
     if not products:
         await query.edit_message_text(
             t("no_products_category", lang), parse_mode=ParseMode.MARKDOWN,
-            reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton(t("back", lang), callback_data="products")]])
+            reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton(t("back", lang), callback_data=back_ctx)]])
         )
         return
     await query.edit_message_text(
         f"*{t('choose_product', lang)}*", parse_mode=ParseMode.MARKDOWN,
-        reply_markup=kb.products_menu(products, lang=lang)
+        reply_markup=kb.products_menu(products, lang=lang, back_cb=back_ctx)
     )
 
 @rate_limit(seconds=2)
@@ -150,9 +152,12 @@ async def show_product_detail(update: Update, context: ContextTypes.DEFAULT_TYPE
         f"📝 {product['description'] or t('no_desc', lang)}\n\n"
         f"💵 ${product['price_usd']}\n📦 {stock_text}\n\n—————————————————\n"
     )
+    back_ctx = context.user_data.get("back_context", "products")
+    category = context.user_data.get("category", "")
+    back_cb  = f"cat_{category}" if category else back_ctx
     await query.edit_message_text(
         text, parse_mode=ParseMode.MARKDOWN,
-        reply_markup=kb.product_detail_menu(product_id, has_stock=has_stock, lang=lang)
+        reply_markup=kb.product_detail_menu(product_id, has_stock=has_stock, lang=lang, back_cb=back_cb)
     )
 
 @rate_limit(seconds=5)
@@ -366,6 +371,7 @@ async def emails_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not categories:
         products = db.get_products_by_category("Emails")
         if products:
+            context.user_data["back_context"] = "emails_menu"
             await query.edit_message_text(
                 f"📧 *{t('btn_emails', lang)}*\n\n{t('choose_product', lang)}",
                 parse_mode=ParseMode.MARKDOWN,
@@ -377,6 +383,7 @@ async def emails_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
             reply_markup=InlineKeyboardMarkup([[InlineKeyboardButton(t("back", lang), callback_data="back_main")]])
         )
         return
+    context.user_data["back_context"] = "emails_menu"
     await query.edit_message_text(
         f"📧 *{t('btn_emails', lang)}*\n\n{t('choose_category', lang)}",
         parse_mode=ParseMode.MARKDOWN,
