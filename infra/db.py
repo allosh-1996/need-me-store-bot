@@ -9,9 +9,6 @@ logger = logging.getLogger(__name__)
 
 _local = threading.local()
 
-# ──────────────────────────────────────────────
-# Connection management
-# ──────────────────────────────────────────────
 
 def _open_conn() -> libsql.Connection:
     settings = get_settings()
@@ -22,30 +19,11 @@ def _open_conn() -> libsql.Connection:
 
 
 def get_conn() -> libsql.Connection:
-    """
-    Return the thread-local connection.
-    If the connection is dead or missing, open a fresh one.
-    A lightweight ping (SELECT 1) detects stale connections before
-    returning them to callers.
-    """
     conn = getattr(_local, "conn", None)
-    if conn is not None:
-        try:
-            conn.execute("SELECT 1")
-        except Exception:
-            logger.warning("Turso connection stale — reconnecting")
-            try:
-                conn.close()
-            except Exception:
-                pass
-            conn = None
-            _local.conn = None
-
     if conn is None:
-        logger.info("Opening new Turso connection")
+        logger.info("Opening Turso connection")
         conn = _open_conn()
         _local.conn = conn
-
     return conn
 
 
@@ -59,31 +37,21 @@ def close_conn() -> None:
         _local.conn = None
 
 
-# ──────────────────────────────────────────────
-# Query helper
-# ──────────────────────────────────────────────
-
 def execute(sql: str, params: tuple = ()):
     """
-    Execute a SQL statement.
-    On first failure, drop the connection and retry once on a fresh one.
-    This handles the common case where Turso silently closes idle connections.
+    Execute SQL. On any exception, drop the connection and retry once
+    on a fresh one — handles Turso silently closing idle connections.
     """
     try:
         return get_conn().execute(sql, params)
     except Exception as exc:
-        logger.warning("Query failed (%s) — retrying on fresh connection", exc)
+        logger.warning("Query failed (%s) — reconnecting and retrying", exc)
         close_conn()
         return get_conn().execute(sql, params)
 
 
-# ──────────────────────────────────────────────
-# Schema initialisation
-# ──────────────────────────────────────────────
-
 def init_db() -> None:
     conn = get_conn()
-
     conn.execute("""
         CREATE TABLE IF NOT EXISTS users (
             id INTEGER PRIMARY KEY,
