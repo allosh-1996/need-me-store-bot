@@ -11,8 +11,16 @@ _client: libsql_client.ClientSync | None = None
 
 def _open() -> libsql_client.ClientSync:
     s = get_settings()
+    url = s.turso_database_url
+    # Force HTTP transport — wss/libsql:// fails with WSServerHandshakeError
+    # on regional Turso endpoints (*.aws-<region>.turso.io)
+    if url.startswith("libsql://"):
+        url = "https://" + url[len("libsql://"):]
+    elif url.startswith("wss://"):
+        url = "https://" + url[len("wss://"):]
+    logger.info("Connecting to Turso via HTTP: %s", url.split("@")[-1])
     return libsql_client.create_client_sync(
-        url=s.turso_database_url,
+        url=url,
         auth_token=s.turso_auth_token,
     )
 
@@ -20,7 +28,6 @@ def _open() -> libsql_client.ClientSync:
 def get_client() -> libsql_client.ClientSync:
     global _client
     if _client is None or _client.closed:
-        logger.info("Opening Turso client")
         _client = _open()
     return _client
 
@@ -36,8 +43,6 @@ def _reset() -> None:
 
 
 class _Result:
-    """Wraps libsql_client.ResultSet — exposes fetchone/fetchall/lastrowid."""
-
     def __init__(self, rs: libsql_client.ResultSet) -> None:
         self._rows = [tuple(r) for r in rs.rows]
         self.lastrowid: int | None = rs.last_insert_rowid
@@ -51,7 +56,6 @@ class _Result:
 
 
 def execute(sql: str, params: tuple = ()) -> _Result:
-    """Execute one SQL statement. Reconnects once on failure."""
     args = list(params) if params else None
     try:
         rs = get_client().execute(sql, args)
@@ -64,7 +68,6 @@ def execute(sql: str, params: tuple = ()) -> _Result:
 
 
 def init_db() -> None:
-    """Create all tables if they don't exist yet."""
     stmts = [
         """CREATE TABLE IF NOT EXISTS users (
             id INTEGER PRIMARY KEY,
