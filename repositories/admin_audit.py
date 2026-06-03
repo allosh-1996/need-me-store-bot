@@ -9,6 +9,7 @@ def log_action(
     details: str = "",
 ) -> None:
     execute(
-        "INSERT INTO admin_audit_logs (actor, action, target_type, target_id, details) VALUES (?, ?, ?, ?, ?)",
+        "INSERT INTO admin_audit_logs "
+        "(actor, action, target_type, target_id, details) VALUES (?, ?, ?, ?, ?)",
         (actor, action, target_type, target_id, details),
     )
