@@ -27,5 +27,6 @@ def create_dashboard() -> Flask:
 
 
 def run_dashboard() -> None:
+    port = int(os.getenv("PORT", 5000))
     app = create_dashboard()
-    app.run(host="0.0.0.0", port=5000, use_reloader=False)
+    app.run(host="0.0.0.0", port=port, use_reloader=False)
