@@ -429,6 +429,26 @@ def update_order_status(order_id: int, status: str):
     _q(conn, "UPDATE orders SET status = ? WHERE id = ?", status, order_id)
     conn.commit()
 
+def refund_order(order_id: int) -> bool:
+    """يرجع مبلغ الطلب للمستخدم عند الرفض — atomic."""
+    conn = get_conn()
+    conn.execute("BEGIN")
+    try:
+        order = _fetchone(_q(conn, "SELECT * FROM orders WHERE id = ?", order_id))
+        if not order or order["status"] not in ("pending",):
+            conn.execute("ROLLBACK")
+            return False
+        _q(conn, "UPDATE users SET balance = balance + ? WHERE id = ?",
+           order["price_usd"], order["user_id"])
+        conn.execute("COMMIT")
+        logger.info(f"Refund issued: order #{order_id}, ${order['price_usd']} → user {order['user_id']}")
+        return True
+    except Exception as e:
+        conn.execute("ROLLBACK")
+        logger.error(f"refund_order error: {e}")
+        raise
+
+
 
 def update_order_delivered_item(order_id: int, item: str):
     conn = get_conn()

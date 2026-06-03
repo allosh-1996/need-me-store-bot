@@ -257,20 +257,22 @@ async def admin_order_action(update: Update, context: ContextTypes.DEFAULT_TYPE)
             pass
         await query.edit_message_text(f"✅ تم تأكيد الطلب #{order_id} — مخزون متبقٍ: {remaining}")
     elif action == "reject":
+        refunded = db.refund_order(order_id)
         db.update_order_status(order_id, "rejected")
         try:
+            refund_note = f"\n💰 تم إرجاع ${order['price_usd']:.2f} لرصيدك" if refunded else ""
             await context.bot.send_message(
                 chat_id=order["user_id"],
                 text=(
                     f"🔴 *تم رفض طلبك*\n\n—————————————————\n\n"
                     f"🔖 Order ID: `#{order_id}`\n📦 {order['product_name']}\n\n"
-                    f"_للاستفسار تواصل مع الأدمن_"
+                    f"_للاستفسار تواصل مع الأدمن_{refund_note}"
                 ),
                 parse_mode=ParseMode.MARKDOWN,
             )
         except Exception:
             pass
-        await query.edit_message_text(f"❌ تم رفض الطلب #{order_id}")
+        await query.edit_message_text(f"❌ تم رفض الطلب #{order_id}" + (" — تم إرجاع المبلغ ✅" if refunded else ""))
 
 @rate_limit(seconds=3)
 async def admin_products(update: Update, context: ContextTypes.DEFAULT_TYPE):

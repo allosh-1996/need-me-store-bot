@@ -198,6 +198,8 @@ def main():
     app.add_handler(broadcast_conv)
     app.add_handler(charge_conv)
     app.add_handler(af_conv)
+    app.add_handler(CallbackQueryHandler(haf.af_accept, pattern=r"^af_accept_\d+$"))
+    app.add_handler(CallbackQueryHandler(haf.af_reject, pattern=r"^af_reject_\d+$"))
 
     # ── Callbacks ──
     app.add_handler(CallbackQueryHandler(hu.persistent_start,    pattern="^back_main$"))

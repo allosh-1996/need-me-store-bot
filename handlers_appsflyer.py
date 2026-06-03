@@ -8,7 +8,7 @@ from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ContextTypes, ConversationHandler
 from telegram.constants import ParseMode
 import database as db
-from config import ADMIN_ID, APPSFLYER_GAMES
+from config import ADMIN_IDS, APPSFLYER_GAMES
 from lang import get_user_lang, t
 
 
@@ -422,18 +422,19 @@ async def af_confirm_send(update: Update, context: ContextTypes.DEFAULT_TYPE):
         f"📱 *AF ID:* `{ud['af_af_id']}`"
     )
 
-    try:
-        await context.bot.send_message(
-            chat_id=ADMIN_ID,
-            text=admin_text,
-            parse_mode=ParseMode.MARKDOWN,
-            reply_markup=InlineKeyboardMarkup([[
-                InlineKeyboardButton("✅ قبول", callback_data=f"af_accept_{order_id}"),
-                InlineKeyboardButton("❌ رفض",  callback_data=f"af_reject_{order_id}"),
-            ]])
-        )
-    except Exception:
-        pass
+    for admin_id in ADMIN_IDS:
+        try:
+            await context.bot.send_message(
+                chat_id=admin_id,
+                text=admin_text,
+                parse_mode=ParseMode.MARKDOWN,
+                reply_markup=InlineKeyboardMarkup([[
+                    InlineKeyboardButton("✅ قبول", callback_data=f"af_accept_{order_id}"),
+                    InlineKeyboardButton("❌ رفض",  callback_data=f"af_reject_{order_id}"),
+                ]])
+            )
+        except Exception:
+            pass
 
     for key in ["af_game_key", "af_game_name", "af_price", "af_idfa", "af_idfv",
                 "af_ios_ver", "af_af_id", "af_levels", "af_awaiting_custom_levels"]:
@@ -455,6 +456,72 @@ async def af_cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
     return ConversationHandler.END
 
+
+
+
+async def af_accept(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """الأدمن يقبل طلب AppsFlyer."""
+    query = update.callback_query
+    await query.answer()
+    from config import ADMIN_IDS
+    if update.effective_user.id not in ADMIN_IDS:
+        return
+    order_id = int(query.data.replace("af_accept_", ""))
+    import database as db_local
+    db_local.update_appsflyer_order_status(order_id, "completed")
+    order = db_local.get_appsflyer_order(order_id)
+    if order:
+        try:
+            await context.bot.send_message(
+                chat_id=order["user_id"],
+                text=(
+                    f"✅ *تم قبول طلب AppsFlyer!*\n\n"
+                    f"—————————————————\n\n"
+                    f"🔢 *رقم الطلب:* `#{order_id}`\n"
+                    f"🕹 *اللعبة:* {order['game_name']}\n"
+                    f"🎯 *الليفلات:* `{order.get('levels', '—')}`\n\n"
+                    f"—————————————————\n\n"
+                    f"📩 سيتم التواصل معك قريباً من الأدمن للتنفيذ\n"
+                    f"👤 @Allosh96ha"
+                ),
+                parse_mode=ParseMode.MARKDOWN,
+            )
+        except Exception:
+            pass
+    await query.edit_message_text(f"✅ تم قبول طلب AppsFlyer #{order_id}")
+
+
+async def af_reject(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """الأدمن يرفض طلب AppsFlyer ويرجع المبلغ."""
+    query = update.callback_query
+    await query.answer()
+    from config import ADMIN_IDS
+    if update.effective_user.id not in ADMIN_IDS:
+        return
+    order_id = int(query.data.replace("af_reject_", ""))
+    import database as db_local
+    order = db_local.get_appsflyer_order(order_id)
+    if order:
+        # إرجاع المبلغ
+        db_local.add_balance(order["user_id"], order["price_usd"])
+        db_local.update_appsflyer_order_status(order_id, "rejected")
+        try:
+            await context.bot.send_message(
+                chat_id=order["user_id"],
+                text=(
+                    f"🔴 *تم رفض طلب AppsFlyer*\n\n"
+                    f"—————————————————\n\n"
+                    f"🔢 *رقم الطلب:* `#{order_id}`\n"
+                    f"🕹 *اللعبة:* {order['game_name']}\n"
+                    f"💰 *تم إرجاع:* `${order['price_usd']:.0f}` لرصيدك\n\n"
+                    f"—————————————————\n\n"
+                    f"_للاستفسار تواصل مع الأدمن_"
+                ),
+                parse_mode=ParseMode.MARKDOWN,
+            )
+        except Exception:
+            pass
+    await query.edit_message_text(f"❌ تم رفض طلب AppsFlyer #{order_id} — تم إرجاع المبلغ ✅")
 
 async def af_cancel_text(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(

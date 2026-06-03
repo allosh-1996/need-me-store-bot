@@ -253,8 +253,10 @@ def api_order_status(oid):
             f"_احفظ هذه المعلومات بأمان_"
         )
     elif order and status == "rejected":
+        refunded = db.refund_order(oid)
         db.update_order_status(oid, status)
-        logger.info(f"Dashboard: order #{oid} rejected")
+        logger.info(f"Dashboard: order #{oid} rejected" + (" — refunded" if refunded else ""))
+        refund_note = f"\n💰 تم إرجاع ${order['price_usd']:.2f} لرصيدك" if refunded else ""
         tg_send(order["user_id"],
             f"🔴 *تم رفض طلبك  |  Order Rejected*\n\n"
             f"\n—————————————————\n\n"
@@ -262,7 +264,7 @@ def api_order_status(oid):
             f"📦 {order['product_name']}\n"
             f"💵 ${order['price_usd']}\n"
             f"\n—————————————————\n\n"
-            f"_للاستفسار تواصل مع الأدمن_"
+            f"_للاستفسار تواصل مع الأدمن_{refund_note}"
         )
     else:
         db.update_order_status(oid, status)
