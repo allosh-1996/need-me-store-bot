@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 import os
 from flask import Flask, jsonify
 from app.settings import get_settings
@@ -13,6 +14,7 @@ def create_dashboard() -> Flask:
     app.config.update(
         SESSION_COOKIE_HTTPONLY=True,
         SESSION_COOKIE_SAMESITE="Lax",
+        SESSION_COOKIE_SECURE=os.getenv("RAILWAY_ENVIRONMENT") is not None,
     )
     app.register_blueprint(dashboard_bp)
     app.register_blueprint(bp_admin)
