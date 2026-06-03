@@ -1,4 +1,4 @@
-from infra.db import execute, get_conn
+from infra.db import execute
 
 
 def upsert_user(user_id: int, username: str, full_name: str) -> None:
@@ -15,7 +15,6 @@ def upsert_user(user_id: int, username: str, full_name: str) -> None:
         "INSERT OR IGNORE INTO wallet_balances (user_id, balance_usd) VALUES (?, 0)",
         (user_id,),
     )
-    get_conn().commit()
 
 
 def get_user_language(user_id: int) -> str:
@@ -25,7 +24,6 @@ def get_user_language(user_id: int) -> str:
 
 def set_user_language(user_id: int, language: str) -> None:
     execute("UPDATE users SET language = ? WHERE id = ?", (language, user_id))
-    get_conn().commit()
 
 
 def get_all_users() -> list:
