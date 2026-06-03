@@ -30,9 +30,14 @@ def release_reserved(stock_item_id: int) -> None:
 
 
 def add_stock_items(product_id: int, lines: list[str]) -> None:
-    conn = get_conn()
-    conn.executemany(
-        "INSERT INTO stock_items (product_id, content, status) VALUES (?, ?, 'available')",
-        [(product_id, line) for line in lines if line.strip()],
-    )
-    conn.commit()
+    import libsql_client
+    client = get_conn()
+    statements = [
+        libsql_client.Statement(
+            "INSERT INTO stock_items (product_id, content, status) VALUES (?, ?, 'available')",
+            [product_id, line],
+        )
+        for line in lines if line.strip()
+    ]
+    if statements:
+        client.batch(statements)
