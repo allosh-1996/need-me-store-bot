@@ -1,37 +1,89 @@
 from __future__ import annotations
 
+import logging
 import threading
 import libsql_experimental as libsql
 from app.settings import get_settings
 
+logger = logging.getLogger(__name__)
+
 _local = threading.local()
 
+# ──────────────────────────────────────────────
+# Connection management
+# ──────────────────────────────────────────────
 
-def get_conn():
+def _open_conn() -> libsql.Connection:
+    settings = get_settings()
+    return libsql.connect(
+        database=settings.turso_database_url,
+        auth_token=settings.turso_auth_token,
+    )
+
+
+def get_conn() -> libsql.Connection:
+    """
+    Return the thread-local connection.
+    If the connection is dead or missing, open a fresh one.
+    A lightweight ping (SELECT 1) detects stale connections before
+    returning them to callers.
+    """
     conn = getattr(_local, "conn", None)
+    if conn is not None:
+        try:
+            conn.execute("SELECT 1")
+        except Exception:
+            logger.warning("Turso connection stale — reconnecting")
+            try:
+                conn.close()
+            except Exception:
+                pass
+            conn = None
+            _local.conn = None
+
     if conn is None:
-        settings = get_settings()
-        conn = libsql.connect(
-            database=settings.turso_database_url,
-            auth_token=settings.turso_auth_token,
-        )
+        logger.info("Opening new Turso connection")
+        conn = _open_conn()
         _local.conn = conn
+
     return conn
 
 
 def close_conn() -> None:
     conn = getattr(_local, "conn", None)
     if conn is not None:
-        conn.close()
+        try:
+            conn.close()
+        except Exception:
+            pass
         _local.conn = None
 
 
-def execute(sql: str, params: tuple = ()):
-    return get_conn().execute(sql, params)
+# ──────────────────────────────────────────────
+# Query helper
+# ──────────────────────────────────────────────
 
+def execute(sql: str, params: tuple = ()):
+    """
+    Execute a SQL statement.
+    On first failure, drop the connection and retry once on a fresh one.
+    This handles the common case where Turso silently closes idle connections.
+    """
+    try:
+        return get_conn().execute(sql, params)
+    except Exception as exc:
+        logger.warning("Query failed (%s) — retrying on fresh connection", exc)
+        close_conn()
+        return get_conn().execute(sql, params)
+
+
+# ──────────────────────────────────────────────
+# Schema initialisation
+# ──────────────────────────────────────────────
 
 def init_db() -> None:
     conn = get_conn()
+
     conn.execute("""
         CREATE TABLE IF NOT EXISTS users (
             id INTEGER PRIMARY KEY,
@@ -142,3 +194,4 @@ def init_db() -> None:
         )
     """)
     conn.commit()
+    logger.info("DB schema ready")
