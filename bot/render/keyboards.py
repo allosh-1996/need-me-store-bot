@@ -27,9 +27,9 @@ def back_button(lang: str, cb: str) -> InlineKeyboardMarkup:
 
 def charge_methods(lang: str) -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup([
-        [InlineKeyboardButton("💵 USDT BEP-20",      callback_data="charge:method:usdt")],
-        [InlineKeyboardButton("📱 Syriatel Cash",    callback_data="charge:method:syriatel")],
-        [InlineKeyboardButton(t("back", lang),       callback_data="home")],
+        [InlineKeyboardButton("💵 USDT BEP-20",   callback_data="charge:method:usdt")],
+        [InlineKeyboardButton("📱 Syriatel Cash", callback_data="charge:method:syriatel")],
+        [InlineKeyboardButton(t("back", lang),    callback_data="home")],
     ])
 
 
@@ -43,5 +43,4 @@ def admin_menu() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup([
         [InlineKeyboardButton("📋 Pending Charges",  callback_data="admin:charges")],
         [InlineKeyboardButton("🎮 AppsFlyer Orders", callback_data="admin:af_orders")],
-        [InlineKeyboardButton("📦 Orders",           callback_data="admin:orders")],
     ])
