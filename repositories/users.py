@@ -18,12 +18,16 @@ def upsert_user(user_id: int, username: str, full_name: str) -> None:
 
 
 def get_user_language(user_id: int) -> str:
-    row = execute("SELECT language FROM users WHERE id = ?", (user_id,)).fetchone()
+    row = execute(
+        "SELECT language FROM users WHERE id = ?", (user_id,)
+    ).fetchone()
     return row[0] if row else "ar"
 
 
 def set_user_language(user_id: int, language: str) -> None:
-    execute("UPDATE users SET language = ? WHERE id = ?", (language, user_id))
+    execute(
+        "UPDATE users SET language = ? WHERE id = ?", (language, user_id)
+    )
 
 
 def get_all_users() -> list:
