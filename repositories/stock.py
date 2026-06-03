@@ -30,11 +30,9 @@ def release_reserved(stock_item_id: int) -> None:
 
 
 def add_stock_items(product_id: int, lines: list[str]) -> None:
-    conn = execute.__module__
-    from infra.db import get_conn
-    c = get_conn()
-    c.executemany(
+    conn = get_conn()
+    conn.executemany(
         "INSERT INTO stock_items (product_id, content, status) VALUES (?, ?, 'available')",
         [(product_id, line) for line in lines if line.strip()],
     )
-    c.commit()
+    conn.commit()
