@@ -1,4 +1,4 @@
-from infra.db import execute, get_conn
+from infra.db import execute
 
 
 def get_active_products() -> list:
@@ -15,17 +15,15 @@ def get_product(product_id: int):
 
 
 def add_product(name: str, description: str, price_usd: float, category: str, platform: str) -> int:
-    cur = execute(
+    result = execute(
         "INSERT INTO products (name, description, price_usd, category, platform, active) VALUES (?, ?, ?, ?, ?, 1)",
         (name, description, price_usd, category, platform),
     )
-    get_conn().commit()
-    return cur.lastrowid
+    return result.lastrowid
 
 
 def deactivate_product(product_id: int) -> None:
     execute("UPDATE products SET active = 0 WHERE id = ?", (product_id,))
-    get_conn().commit()
 
 
 def get_stock_count(product_id: int) -> int:
