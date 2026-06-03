@@ -3,20 +3,25 @@ from infra.db import execute
 
 def get_active_products() -> list:
     return execute(
-        "SELECT id, name, description, price_usd, category, platform FROM products WHERE active = 1 ORDER BY id ASC"
+        "SELECT id, name, description, price_usd, category, platform "
+        "FROM products WHERE active = 1 ORDER BY id ASC"
     ).fetchall()
 
 
 def get_product(product_id: int):
     return execute(
-        "SELECT id, name, description, price_usd, category, platform, active FROM products WHERE id = ?",
+        "SELECT id, name, description, price_usd, category, platform, active "
+        "FROM products WHERE id = ?",
         (product_id,),
     ).fetchone()
 
 
-def add_product(name: str, description: str, price_usd: float, category: str, platform: str) -> int:
+def add_product(
+    name: str, description: str, price_usd: float, category: str, platform: str
+) -> int:
     result = execute(
-        "INSERT INTO products (name, description, price_usd, category, platform, active) VALUES (?, ?, ?, ?, ?, 1)",
+        "INSERT INTO products (name, description, price_usd, category, platform, active) "
+        "VALUES (?, ?, ?, ?, ?, 1)",
         (name, description, price_usd, category, platform),
     )
     return result.lastrowid
