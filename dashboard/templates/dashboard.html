@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>NexVault Dashboard</title>
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:Arial,sans-serif;background:#f8fafc;color:#0f172a}
+    nav{background:#111827;color:#fff;padding:16px 32px;display:flex;justify-content:space-between;align-items:center}
+    nav a{color:#94a3b8;text-decoration:none;font-size:14px}
+    nav a:hover{color:#fff}
+    .wrap{max-width:1200px;margin:0 auto;padding:32px}
+    h1{margin-bottom:24px;font-size:24px}
+    .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;margin-bottom:32px}
+    .card{background:#fff;border-radius:16px;padding:24px;box-shadow:0 4px 16px rgba(15,23,42,.08)}
+    .card .label{font-size:13px;color:#64748b;margin-bottom:8px}
+    .card .num{font-size:36px;font-weight:800;color:#0f172a}
+    .actions{display:flex;gap:12px;flex-wrap:wrap}
+    .btn{padding:10px 20px;border-radius:10px;border:none;cursor:pointer;font-size:14px;font-weight:600;text-decoration:none;display:inline-block}
+    .btn-blue{background:#2563eb;color:#fff}
+    .btn-red{background:#dc2626;color:#fff}
+    .btn-gray{background:#e2e8f0;color:#0f172a}
+  </style>
+</head>
+<body>
+  <nav>
+    <span>🛍️ NexVault Dashboard</span>
+    <a href="/logout">Logout</a>
+  </nav>
+  <div class="wrap">
+    <h1>Overview</h1>
+    <div class="grid">
+      <div class="card"><div class="label">Users</div><div class="num">{{ users }}</div></div>
+      <div class="card"><div class="label">Active Products</div><div class="num">{{ products }}</div></div>
+      <div class="card"><div class="label">Total Orders</div><div class="num">{{ orders }}</div></div>
+      <div class="card"><div class="label">Pending Charges</div><div class="num">{{ charges }}</div></div>
+      <div class="card"><div class="label">Pending AF Orders</div><div class="num">{{ af_pending }}</div></div>
+    </div>
+    <div class="actions">
+      <a class="btn btn-blue" href="/api/orders">Orders JSON</a>
+      <a class="btn btn-blue" href="/api/charges">Charges JSON</a>
+      <a class="btn btn-blue" href="/api/appsflyer">AppsFlyer JSON</a>
+      <a class="btn btn-gray" href="/logout">Logout</a>
+    </div>
+  </div>
+</body>
+</html>

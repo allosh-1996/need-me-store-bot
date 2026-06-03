@@ -1,0 +1,28 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>NexVault — Login</title>
+  <style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:Arial,sans-serif;background:#0f172a;color:#fff;display:flex;min-height:100vh;align-items:center;justify-content:center}
+    .card{width:340px;background:#111827;padding:32px;border-radius:16px;box-shadow:0 10px 40px rgba(0,0,0,.4)}
+    h2{margin-bottom:24px;font-size:22px;text-align:center}
+    .err{background:#7f1d1d;padding:10px;border-radius:8px;margin-bottom:14px;font-size:14px}
+    input{width:100%;padding:12px;margin-bottom:14px;border-radius:10px;border:1px solid #374151;background:#1f2937;color:#fff;font-size:15px}
+    button{width:100%;padding:13px;border-radius:10px;border:none;background:#2563eb;color:#fff;font-size:15px;font-weight:700;cursor:pointer}
+    button:hover{background:#1d4ed8}
+  </style>
+</head>
+<body>
+  <form class="card" method="post" action="/login">
+    <h2>🔐 NexVault</h2>
+    {% with messages = get_flashed_messages() %}
+      {% if messages %}<div class="err">{{ messages[0] }}</div>{% endif %}
+    {% endwith %}
+    <input type="password" name="password" placeholder="Password" required autofocus>
+    <button type="submit">Login</button>
+  </form>
+</body>
+</html>
