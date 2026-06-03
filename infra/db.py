@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 import threading
-import libsql_experimental as libsql
+import libsql_client
 from app.settings import get_settings
 
 logger = logging.getLogger(__name__)
@@ -10,49 +10,94 @@ logger = logging.getLogger(__name__)
 _local = threading.local()
 
 
-def _open_conn() -> libsql.Connection:
+# ──────────────────────────────────────────────
+# Cursor wrapper — mimics sqlite3 cursor API
+# so all repositories work without changes
+# ──────────────────────────────────────────────
+
+class _Result:
+    """Wraps libsql_client.ResultSet to expose fetchone/fetchall/lastrowid."""
+
+    def __init__(self, rs: libsql_client.ResultSet) -> None:
+        self._rows = [tuple(row) for row in rs.rows]
+        self.lastrowid: int | None = rs.last_insert_rowid
+        self.rowcount: int = rs.rows_affected
+
+    def fetchone(self):
+        return self._rows[0] if self._rows else None
+
+    def fetchall(self) -> list:
+        return self._rows
+
+
+# ──────────────────────────────────────────────
+# Connection management
+# ──────────────────────────────────────────────
+
+def _open_client() -> libsql_client.ClientSync:
     settings = get_settings()
-    return libsql.connect(
-        database=settings.turso_database_url,
+    return libsql_client.create_client_sync(
+        url=settings.turso_database_url,
         auth_token=settings.turso_auth_token,
     )
 
 
-def get_conn() -> libsql.Connection:
-    conn = getattr(_local, "conn", None)
-    if conn is None:
-        logger.info("Opening Turso connection")
-        conn = _open_conn()
-        _local.conn = conn
-    return conn
+def get_conn() -> libsql_client.ClientSync:
+    client = getattr(_local, "client", None)
+    if client is None or client.closed:
+        logger.info("Opening Turso client")
+        client = _open_client()
+        _local.client = client
+    return client
 
 
 def close_conn() -> None:
-    conn = getattr(_local, "conn", None)
-    if conn is not None:
+    client = getattr(_local, "client", None)
+    if client is not None:
         try:
-            conn.close()
+            client.close()
         except Exception:
             pass
-        _local.conn = None
+        _local.client = None
 
 
-def execute(sql: str, params: tuple = ()):
+# ──────────────────────────────────────────────
+# Query helper
+# ──────────────────────────────────────────────
+
+def execute(sql: str, params: tuple = ()) -> _Result:
     """
-    Execute SQL. On any exception, drop the connection and retry once
-    on a fresh one — handles Turso silently closing idle connections.
+    Execute SQL and return a cursor-compatible _Result.
+    On failure, reconnect once and retry.
     """
+    args = list(params) if params else None
     try:
-        return get_conn().execute(sql, params)
+        rs = get_conn().execute(sql, args)
+        return _Result(rs)
     except Exception as exc:
         logger.warning("Query failed (%s) — reconnecting and retrying", exc)
         close_conn()
-        return get_conn().execute(sql, params)
+        rs = get_conn().execute(sql, args)
+        return _Result(rs)
 
+
+# ──────────────────────────────────────────────
+# Transaction helper
+# ──────────────────────────────────────────────
+
+def commit() -> None:
+    """No-op: libsql_client auto-commits each statement."""
+    pass
+
+
+# ──────────────────────────────────────────────
+# Schema initialisation
+# ──────────────────────────────────────────────
 
 def init_db() -> None:
-    conn = get_conn()
-    conn.execute("""
+    client = get_conn()
+    client.batch([
+        """
         CREATE TABLE IF NOT EXISTS users (
             id INTEGER PRIMARY KEY,
             username TEXT NOT NULL DEFAULT '',
@@ -61,15 +106,15 @@ def init_db() -> None:
             blocked INTEGER NOT NULL DEFAULT 0,
             joined_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
-    """)
-    conn.execute("""
+        """,
+        """
         CREATE TABLE IF NOT EXISTS wallet_balances (
             user_id INTEGER PRIMARY KEY REFERENCES users(id),
             balance_usd REAL NOT NULL DEFAULT 0,
             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
-    """)
-    conn.execute("""
+        """,
+        """
         CREATE TABLE IF NOT EXISTS ledger_entries (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             user_id INTEGER NOT NULL REFERENCES users(id),
@@ -81,8 +126,8 @@ def init_db() -> None:
             reason TEXT NOT NULL,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
-    """)
-    conn.execute("""
+        """,
+        """
         CREATE TABLE IF NOT EXISTS products (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             name TEXT NOT NULL,
@@ -93,8 +138,8 @@ def init_db() -> None:
             active INTEGER NOT NULL DEFAULT 1,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
-    """)
-    conn.execute("""
+        """,
+        """
         CREATE TABLE IF NOT EXISTS stock_items (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             product_id INTEGER NOT NULL REFERENCES products(id),
@@ -105,8 +150,8 @@ def init_db() -> None:
             sold_at TIMESTAMP,
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
-    """)
-    conn.execute("""
+        """,
+        """
         CREATE TABLE IF NOT EXISTS orders (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             user_id INTEGER NOT NULL REFERENCES users(id),
@@ -118,8 +163,8 @@ def init_db() -> None:
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
-    """)
-    conn.execute("""
+        """,
+        """
         CREATE TABLE IF NOT EXISTS charge_requests (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             user_id INTEGER NOT NULL REFERENCES users(id),
@@ -132,8 +177,8 @@ def init_db() -> None:
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
-    """)
-    conn.execute("""
+        """,
+        """
         CREATE TABLE IF NOT EXISTS appsflyer_orders (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             user_id INTEGER NOT NULL REFERENCES users(id),
@@ -149,8 +194,8 @@ def init_db() -> None:
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
-    """)
-    conn.execute("""
+        """,
+        """
         CREATE TABLE IF NOT EXISTS admin_audit_logs (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             actor TEXT NOT NULL,
@@ -160,6 +205,6 @@ def init_db() -> None:
             details TEXT NOT NULL DEFAULT '',
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         )
-    """)
-    conn.commit()
+        """,
+    ])
     logger.info("DB schema ready")
