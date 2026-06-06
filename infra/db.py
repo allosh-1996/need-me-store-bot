@@ -12,8 +12,6 @@ _client: libsql_client.ClientSync | None = None
 def _open() -> libsql_client.ClientSync:
     s = get_settings()
     url = s.turso_database_url
-    # Force HTTP transport — wss/libsql:// fails with WSServerHandshakeError
-    # on regional Turso endpoints (*.aws-<region>.turso.io)
     if url.startswith("libsql://"):
         url = "https://" + url[len("libsql://"):]
     elif url.startswith("wss://"):
@@ -65,6 +63,22 @@ def execute(sql: str, params: tuple = ()) -> _Result:
         _reset()
         rs = get_client().execute(sql, args)
         return _Result(rs)
+
+
+def execute_batch(statements: list[tuple[str, list]]) -> list[_Result]:
+    """Execute multiple statements atomically via Turso batch."""
+    stmts = [
+        libsql_client.Statement(sql, args if args else None)
+        for sql, args in statements
+    ]
+    try:
+        results = get_client().batch(stmts)
+        return [_Result(rs) for rs in results]
+    except Exception as exc:
+        logger.warning("Batch failed (%s) — reconnecting once", exc)
+        _reset()
+        results = get_client().batch(stmts)
+        return [_Result(rs) for rs in results]
 
 
 def init_db() -> None:
@@ -131,7 +145,7 @@ def init_db() -> None:
             amount_usd REAL NOT NULL,
             amount_raw REAL,
             tx_hash TEXT UNIQUE,
-            proof TEXT,
+            proof TEXT UNIQUE,
             status TEXT NOT NULL DEFAULT 'pending',
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP

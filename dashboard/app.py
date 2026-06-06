@@ -27,6 +27,8 @@ def create_dashboard() -> Flask:
 
 
 def run_dashboard() -> None:
-    port = int(os.getenv("PORT", 5000))
+    # Railway sets PORT for the web-facing service.
+    # We use DASHBOARD_PORT as override; fall back to PORT; default 5000.
+    port = int(os.getenv("DASHBOARD_PORT", os.getenv("PORT", "5000")))
     app = create_dashboard()
-    app.run(host="0.0.0.0", port=port, use_reloader=False)
+    app.run(host="0.0.0.0", port=port, use_reloader=False, threaded=True)

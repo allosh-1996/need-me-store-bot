@@ -17,7 +17,7 @@ class AdminService:
             user_id = int(charge[1])
             amount = float(charge[3])
             balance = wallet_repo.get_balance(user_id)
-            new_balance = balance + amount
+            new_balance = round(balance + amount, 8)
             wallet_repo.set_balance(user_id, new_balance)
             wallet_repo.insert_ledger_entry(
                 user_id, "credit", amount, "charge", str(charge_id), "charge confirmed"
@@ -62,7 +62,7 @@ class AdminService:
             user_id = int(order[1])
             amount = float(order[3])
             balance = wallet_repo.get_balance(user_id)
-            new_balance = balance + amount
+            new_balance = round(balance + amount, 8)
             wallet_repo.set_balance(user_id, new_balance)
             wallet_repo.insert_ledger_entry(
                 user_id, "refund", amount,

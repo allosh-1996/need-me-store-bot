@@ -1,15 +1,14 @@
-from telegram import Update
+from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ContextTypes
 from app.settings import get_settings
 from repositories.users import get_user_language
-from repositories.charges import get_pending_charges
-from repositories.appsflyer import get_pending_orders
+from repositories.charges import get_pending_charges, get_charge
+from repositories.appsflyer import get_pending_orders, get_order
 from bot.render.keyboards import admin_menu, back_home
 from bot.render.strings import t
 from bot.render.formatters import safe
 from services.admin import AdminService
 from domain.errors import NotFoundError, InvalidStateTransitionError
-from telegram import InlineKeyboardButton, InlineKeyboardMarkup
 
 service = AdminService()
 
@@ -110,8 +109,6 @@ async def charge_action(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
         if action == "confirm":
             new_bal = service.confirm_charge(str(user_id), charge_id)
             await query.edit_message_text(f"✅ Charge #{charge_id} confirmed — balance ${new_bal:.2f}")
-            # إشعار المستخدم
-            from repositories.charges import get_charge
             charge = get_charge(charge_id)
             if charge:
                 try:
@@ -143,7 +140,6 @@ async def af_action(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         if action == "accept":
             service.accept_appsflyer(str(user_id), order_id)
             await query.edit_message_text(f"✅ AF Order #{order_id} accepted")
-            from repositories.appsflyer import get_order
             order = get_order(order_id)
             if order:
                 try:
@@ -157,7 +153,6 @@ async def af_action(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
         else:
             new_bal = service.reject_appsflyer(str(user_id), order_id)
             await query.edit_message_text(f"❌ AF Order #{order_id} rejected — refunded ${new_bal:.2f}")
-            from repositories.appsflyer import get_order
             order = get_order(order_id)
             if order:
                 try:

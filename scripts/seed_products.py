@@ -1,33 +1,36 @@
-import sys, os
+"""
+Idempotent product seeder — safe to run multiple times.
+Usage: python scripts/seed_products.py
+"""
+import sys
+import os
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
-from infra.db import init_db, execute, get_conn
+
+from dotenv import load_dotenv
+load_dotenv()
+
+from infra.db import init_db, execute
 
 PRODUCTS = [
-    ("Toluna",          "Survey account",     2.0, "Survey Accounts",  "iOS"),
-    ("Qmee",            "Survey account",     2.0, "Survey Accounts",  "iOS"),
-    ("Coin Master",     "AppsFlyer track",    4.0, "AppsFlyer Track",  "iOS"),
-    ("Disney Solitaire","AppsFlyer track",    4.0, "AppsFlyer Track",  "iOS"),
-    ("Cash Giraffe",    "Games App",          2.0, "Games App",        "iOS"),
+    ("Netflix Premium", "اشتراك نتفليكس بريميوم شهر", 8.0, "streaming", "All"),
+    ("Spotify Premium", "اشتراك سبوتيفاي شهر", 5.0, "streaming", "All"),
+    ("ChatGPT Plus", "اشتراك ChatGPT Plus شهر", 20.0, "ai", "All"),
 ]
 
-
-def main() -> None:
+def seed():
     init_db()
-    added = 0
-    for name, description, price_usd, category, platform in PRODUCTS:
-        exists = execute("SELECT 1 FROM products WHERE name = ?", (name,)).fetchone()
-        if exists:
-            print(f"⏭️  Skip: {name}")
+    for name, desc, price, cat, platform in PRODUCTS:
+        existing = execute(
+            "SELECT id FROM products WHERE name = ? AND active = 1", (name,)
+        ).fetchone()
+        if existing:
+            print(f"⏭  Skipped (exists): {name}")
             continue
         execute(
             "INSERT INTO products (name, description, price_usd, category, platform, active) VALUES (?, ?, ?, ?, ?, 1)",
-            (name, description, price_usd, category, platform),
+            (name, desc, price, cat, platform),
         )
         print(f"✅ Added: {name}")
-        added += 1
-    get_conn().commit()
-    print(f"\nDone — {added} added")
-
 
 if __name__ == "__main__":
-    main()
+    seed()

@@ -1,4 +1,5 @@
 import re
+import os
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import (
     ContextTypes, ConversationHandler,
@@ -6,6 +7,7 @@ from telegram.ext import (
 )
 from repositories.users import get_user_language
 from repositories.wallet import get_balance
+from repositories.appsflyer import get_order
 from services.appsflyer import AppsflyerService
 from domain.errors import InsufficientBalanceError
 from bot.render.keyboards import back_home, cancel_button
@@ -42,7 +44,6 @@ GAMES = {
 
 
 def _game_price(env_key: str) -> float:
-    import os
     return float(os.getenv(env_key, "4"))
 
 
@@ -161,7 +162,7 @@ async def receive_levels(update: Update, context: ContextTypes.DEFAULT_TYPE):
         reply_markup=back_home(lang),
     )
 
-    # إشعار الأدمن
+    # إشعار الأدمن — context.bot الصح
     admin_text = (
         f"🔔 <b>AppsFlyer Order #{order_id}</b>\n"
         f"👤 {safe(user.full_name)} (@{safe(user.username or 'N/A')})\n"
@@ -174,10 +175,9 @@ async def receive_levels(update: Update, context: ContextTypes.DEFAULT_TYPE):
         f"📱 iOS: <code>{safe(ud['af_ios'])}</code>\n"
         f"📱 AF ID: <code>{safe(ud['af_afid'])}</code>"
     )
-    from telegram import InlineKeyboardButton, InlineKeyboardMarkup
     for admin_id in get_settings().admin_ids:
         try:
-            await update.get_bot().send_message(
+            await context.bot.send_message(
                 chat_id=admin_id,
                 text=admin_text,
                 parse_mode="HTML",
