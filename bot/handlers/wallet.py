@@ -14,13 +14,14 @@ async def show_balance(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
     ensure_user(user.id, user.username or "", user.full_name or "")
     lang = get_user_language(user.id)
     balance = service.get_balance(user.id)
+    balance_label = t("balance", lang)
+    home_label = t("home", lang)
+    topup_label = t("top_up", lang)
     await query.edit_message_text(
-        f"{t('balance', lang)}
-
-<b>${balance:.2f}</b>",
+        f"{balance_label}\n\n<b>${balance:.2f}</b>",
         parse_mode="HTML",
         reply_markup=InlineKeyboardMarkup([
-            [InlineKeyboardButton(t("top_up", lang), callback_data="charge:start")],
-            [InlineKeyboardButton(t("home", lang),   callback_data="home")],
+            [InlineKeyboardButton(topup_label, callback_data="charge:start")],
+            [InlineKeyboardButton(home_label,  callback_data="home")],
         ]),
     )
