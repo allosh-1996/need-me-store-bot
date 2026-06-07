@@ -1,10 +1,13 @@
 from __future__ import annotations
 
+import asyncio
+import logging
+
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ContextTypes
 
 from app.settings import get_settings
-from repositories.users import get_user_language
+from repositories.users import ensure_user, get_user_language
 from repositories.charges import get_pending_charges, count_pending_charges, get_charge
 from repositories.appsflyer import (
     get_pending_orders, count_pending_orders,
@@ -17,6 +20,7 @@ from bot.render.formatters import safe
 from services.admin import AdminService
 from domain.errors import NotFoundError, InvalidStateTransitionError
 
+logger = logging.getLogger(__name__)
 service = AdminService()
 PAGE_SIZE = 5
 
@@ -25,16 +29,22 @@ def _is_admin(user_id: int) -> bool:
     return user_id in get_settings().admin_ids
 
 
-# ─── Admin Panel ────────────────────────────────────────────────────────────
+# ─── Admin Panel ──────────────────────────────────────────────────────────────
 
 async def admin_panel(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     if update.callback_query:
         await update.callback_query.answer()
         user_id = update.callback_query.from_user.id
+        username = update.callback_query.from_user.username or ""
+        full_name = update.callback_query.from_user.full_name or ""
     else:
         user_id = update.effective_user.id
+        username = update.effective_user.username or ""
+        full_name = update.effective_user.full_name or ""
 
+    ensure_user(user_id, username, full_name)
     lang = get_user_language(user_id)
+
     if not _is_admin(user_id):
         msg = t("admin_only", lang)
         if update.callback_query:
@@ -50,7 +60,7 @@ async def admin_panel(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
         await update.effective_message.reply_text(msg, reply_markup=admin_menu())
 
 
-# ─── Charges with pagination ─────────────────────────────────────────────────
+# ─── Charges with pagination ──────────────────────────────────────────────────
 
 async def list_pending_charges(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     query = update.callback_query
@@ -58,7 +68,6 @@ async def list_pending_charges(update: Update, context: ContextTypes.DEFAULT_TYP
     if not _is_admin(query.from_user.id):
         return
 
-    # Parse offset from callback_data: admin:charges or admin:charges:10
     parts = query.data.split(":")
     offset = int(parts[2]) if len(parts) > 2 else 0
 
@@ -66,10 +75,7 @@ async def list_pending_charges(update: Update, context: ContextTypes.DEFAULT_TYP
     charges = get_pending_charges(limit=PAGE_SIZE, offset=offset)
 
     if not charges:
-        await query.edit_message_text(
-            "لا يوجد طلبات شحن معلقة ✅",
-            reply_markup=admin_menu(),
-        )
+        await query.edit_message_text("لا يوجد طلبات شحن معلقة ✅", reply_markup=admin_menu())
         return
 
     await query.edit_message_text(
@@ -97,9 +103,10 @@ async def list_pending_charges(update: Update, context: ContextTypes.DEFAULT_TYP
                 nav_buttons,
             ]),
         )
+        await asyncio.sleep(0.05)
 
 
-# ─── AppsFlyer orders with pagination ────────────────────────────────────────
+# ─── AppsFlyer pending orders ─────────────────────────────────────────────────
 
 async def list_pending_af(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     query = update.callback_query
@@ -114,7 +121,6 @@ async def list_pending_af(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
     orders = get_pending_orders(limit=PAGE_SIZE, offset=offset)
 
     if not orders:
-        # Also check accepted orders
         accepted_total = count_accepted_orders()
         if accepted_total:
             await query.edit_message_text(
@@ -154,10 +160,12 @@ async def list_pending_af(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
                 nav_buttons,
             ]),
         )
+        await asyncio.sleep(0.05)
 
+
+# ─── AppsFlyer accepted orders ────────────────────────────────────────────────
 
 async def list_accepted_af(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """Show accepted orders waiting to be fulfilled."""
     query = update.callback_query
     await query.answer()
     if not _is_admin(query.from_user.id):
@@ -199,6 +207,7 @@ async def list_accepted_af(update: Update, context: ContextTypes.DEFAULT_TYPE) -
                 nav_buttons,
             ]),
         )
+        await asyncio.sleep(0.05)
 
 
 # ─── Action handlers ──────────────────────────────────────────────────────────
@@ -226,8 +235,8 @@ async def charge_action(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
                         text=f"✅ تم تأكيد شحن رصيدك!\n💵 ${charge[3]:.2f} أُضيفت لرصيدك.",
                         parse_mode="HTML",
                     )
-                except Exception:
-                    pass
+                except Exception as e:
+                    logger.warning("Failed to notify user %s: %s", charge[1], e)
         else:
             service.reject_charge(str(user_id), charge_id)
             await query.edit_message_text(f"❌ Charge #{charge_id} rejected")
@@ -258,8 +267,8 @@ async def af_action(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
                         text=f"✅ تم قبول طلب AppsFlyer #{order_id}\n🎮 {safe(order[2])}\nسيتم التواصل معك قريباً.",
                         parse_mode="HTML",
                     )
-                except Exception:
-                    pass
+                except Exception as e:
+                    logger.warning("Failed to notify user %s: %s", order[1], e)
 
         elif action == "fulfill":
             service.fulfill_appsflyer(str(user_id), order_id)
@@ -272,8 +281,8 @@ async def af_action(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
                         text=f"🏁 تم تنفيذ طلب AppsFlyer #{order_id} بنجاح!\n🎮 {safe(order[2])}",
                         parse_mode="HTML",
                     )
-                except Exception:
-                    pass
+                except Exception as e:
+                    logger.warning("Failed to notify user %s: %s", order[1], e)
 
         else:  # reject
             new_bal = service.reject_appsflyer(str(user_id), order_id)
@@ -286,8 +295,8 @@ async def af_action(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
                         text=f"🔴 تم رفض طلب AppsFlyer #{order_id}\n💰 تم إرجاع ${order[3]:.2f} لرصيدك.",
                         parse_mode="HTML",
                     )
-                except Exception:
-                    pass
+                except Exception as e:
+                    logger.warning("Failed to notify user %s: %s", order[1], e)
 
     except (NotFoundError, InvalidStateTransitionError) as exc:
         await query.edit_message_text(str(exc))
@@ -296,7 +305,6 @@ async def af_action(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
 # ─── Helpers ──────────────────────────────────────────────────────────────────
 
 def _pagination_buttons(base: str, offset: int, total: int) -> list:
-    """Build Prev / Next navigation buttons."""
     buttons = []
     if offset > 0:
         prev_offset = max(0, offset - PAGE_SIZE)

@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from infra.db import execute
 
 
@@ -10,6 +12,22 @@ def upsert_user(user_id: int, username: str, full_name: str) -> None:
             full_name = excluded.full_name
         """,
         (user_id, username, full_name),
+    )
+    execute(
+        "INSERT OR IGNORE INTO wallet_balances (user_id, balance_usd) VALUES (?, 0)",
+        (user_id,),
+    )
+
+
+def ensure_user(user_id: int, username: str = "", full_name: str = "") -> None:
+    """
+    Lightweight upsert called at the start of every handler.
+    Guarantees users + wallet_balances rows exist before any DB operation.
+    Uses INSERT OR IGNORE so it's a no-op if the user already exists.
+    """
+    execute(
+        "INSERT OR IGNORE INTO users (id, username, full_name) VALUES (?, ?, ?)",
+        (user_id, username or "", full_name or ""),
     )
     execute(
         "INSERT OR IGNORE INTO wallet_balances (user_id, balance_usd) VALUES (?, 0)",

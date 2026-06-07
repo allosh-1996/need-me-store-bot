@@ -1,11 +1,12 @@
 import re
+import logging
 import os
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import (
     ContextTypes, ConversationHandler,
     CallbackQueryHandler, MessageHandler, CommandHandler, filters,
 )
-from repositories.users import get_user_language
+from repositories.users import ensure_user, get_user_language
 from repositories.wallet import get_balance
 from repositories.appsflyer import get_order
 from services.appsflyer import AppsflyerService
@@ -43,6 +44,8 @@ GAMES = {
 }
 
 
+logger = logging.getLogger(__name__)
+
 def _game_price(env_key: str) -> float:
     return float(os.getenv(env_key, "4"))
 
@@ -50,7 +53,10 @@ def _game_price(env_key: str) -> float:
 async def show_games(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
-    lang = get_user_language(query.from_user.id)
+    user = query.from_user
+    ensure_user(user.id, user.username or "", user.full_name or "")
+    context.user_data.clear()
+    lang = get_user_language(user.id)
     buttons = []
     for key, (name, env_key) in GAMES.items():
         price = _game_price(env_key)
@@ -186,8 +192,8 @@ async def receive_levels(update: Update, context: ContextTypes.DEFAULT_TYPE):
                     InlineKeyboardButton("❌ رفض",  callback_data=f"af:reject:{order_id}"),
                 ]]),
             )
-        except Exception:
-            pass
+        except Exception as notify_err:
+            logger.warning("Failed to notify admin %s: %s", admin_id, notify_err)
 
     context.user_data.clear()
     return ConversationHandler.END

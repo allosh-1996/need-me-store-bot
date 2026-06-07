@@ -1,10 +1,11 @@
-import re
+from __future__ import annotations
+
 from telegram import Update
 from telegram.ext import (
     ContextTypes, ConversationHandler,
     CallbackQueryHandler, MessageHandler, CommandHandler, filters,
 )
-from repositories.users import get_user_language
+from repositories.users import ensure_user, get_user_language
 from services.charges import ChargeService
 from domain.errors import DuplicateProofError
 from bot.render.keyboards import charge_methods, back_home, cancel_button
@@ -18,7 +19,11 @@ service = ChargeService()
 async def start_charge(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
-    lang = get_user_language(query.from_user.id)
+    user = query.from_user
+    ensure_user(user.id, user.username or "", user.full_name or "")
+    # Clear any stale data from a previous interrupted flow
+    context.user_data.clear()
+    lang = get_user_language(user.id)
     await query.edit_message_text(
         t("charge_methods", lang),
         parse_mode="HTML",
