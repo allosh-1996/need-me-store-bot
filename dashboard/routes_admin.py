@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 from flask import Blueprint, jsonify
 from dashboard.auth import login_required
 from services.admin import AdminService
@@ -33,6 +34,16 @@ def reject_charge(charge_id: int):
 def accept_appsflyer(order_id: int):
     try:
         service.accept_appsflyer("dashboard", order_id)
+        return jsonify({"ok": True})
+    except (NotFoundError, InvalidStateTransitionError) as exc:
+        return jsonify({"ok": False, "error": str(exc)}), 400
+
+
+@bp_admin.post("/appsflyer/<int:order_id>/fulfill")
+@login_required
+def fulfill_appsflyer(order_id: int):
+    try:
+        service.fulfill_appsflyer("dashboard", order_id)
         return jsonify({"ok": True})
     except (NotFoundError, InvalidStateTransitionError) as exc:
         return jsonify({"ok": False, "error": str(exc)}), 400

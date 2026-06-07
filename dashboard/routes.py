@@ -1,4 +1,5 @@
 from __future__ import annotations
+
 from flask import Blueprint, render_template, request, redirect, url_for, session, flash, jsonify
 from dashboard.auth import verify_password, login_required, SESSION_KEY
 from infra.db import execute
@@ -35,33 +36,63 @@ def home():
     orders   = execute("SELECT COUNT(*) FROM orders").fetchone()[0]
     charges  = execute("SELECT COUNT(*) FROM charge_requests WHERE status = 'pending'").fetchone()[0]
     af_pend  = execute("SELECT COUNT(*) FROM appsflyer_orders WHERE status = 'pending'").fetchone()[0]
-    return render_template("dashboard.html",
+    af_acc   = execute("SELECT COUNT(*) FROM appsflyer_orders WHERE status = 'accepted'").fetchone()[0]
+    revenue  = execute("SELECT COALESCE(SUM(amount_usd), 0) FROM orders WHERE status = 'delivered'").fetchone()[0]
+    return render_template(
+        "dashboard.html",
         users=users, products=products, orders=orders,
-        charges=charges, af_pending=af_pend)
+        charges=charges, af_pending=af_pend, af_accepted=af_acc,
+        revenue=revenue,
+    )
 
 
 @bp.get("/api/orders")
 @login_required
 def api_orders():
     rows = execute(
-        "SELECT id, user_id, product_id, status, amount_usd, created_at FROM orders ORDER BY id DESC LIMIT 100"
+        "SELECT id, user_id, product_id, status, amount_usd, created_at FROM orders ORDER BY id DESC LIMIT 200"
     ).fetchall()
-    return jsonify([{"id":r[0],"user_id":r[1],"product_id":r[2],"status":r[3],"amount_usd":r[4],"created_at":r[5]} for r in rows])
+    return jsonify([
+        {"id": r[0], "user_id": r[1], "product_id": r[2], "status": r[3], "amount_usd": r[4], "created_at": r[5]}
+        for r in rows
+    ])
 
 
 @bp.get("/api/charges")
 @login_required
 def api_charges():
     rows = execute(
-        "SELECT id, user_id, method, amount_usd, status, created_at FROM charge_requests ORDER BY id DESC LIMIT 100"
+        "SELECT id, user_id, method, amount_usd, status, created_at "
+        "FROM charge_requests ORDER BY id DESC LIMIT 200"
     ).fetchall()
-    return jsonify([{"id":r[0],"user_id":r[1],"method":r[2],"amount_usd":r[3],"status":r[4],"created_at":r[5]} for r in rows])
+    return jsonify([
+        {"id": r[0], "user_id": r[1], "method": r[2], "amount_usd": r[3], "status": r[4], "created_at": r[5]}
+        for r in rows
+    ])
 
 
 @bp.get("/api/appsflyer")
 @login_required
 def api_appsflyer():
     rows = execute(
-        "SELECT id, user_id, game_name, price_usd, status, created_at FROM appsflyer_orders ORDER BY id DESC LIMIT 100"
+        "SELECT id, user_id, game_name, price_usd, status, created_at "
+        "FROM appsflyer_orders ORDER BY id DESC LIMIT 200"
     ).fetchall()
-    return jsonify([{"id":r[0],"user_id":r[1],"game_name":r[2],"price_usd":r[3],"status":r[4],"created_at":r[5]} for r in rows])
+    return jsonify([
+        {"id": r[0], "user_id": r[1], "game_name": r[2], "price_usd": r[3], "status": r[4], "created_at": r[5]}
+        for r in rows
+    ])
+
+
+@bp.get("/api/users")
+@login_required
+def api_users():
+    rows = execute(
+        "SELECT u.id, u.username, u.full_name, u.language, wb.balance_usd, u.joined_at "
+        "FROM users u LEFT JOIN wallet_balances wb ON u.id = wb.user_id "
+        "WHERE u.blocked = 0 ORDER BY u.id DESC LIMIT 200"
+    ).fetchall()
+    return jsonify([
+        {"id": r[0], "username": r[1], "full_name": r[2], "language": r[3], "balance": r[4], "joined_at": r[5]}
+        for r in rows
+    ])

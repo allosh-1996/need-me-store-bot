@@ -27,17 +27,18 @@ def build_app() -> Application:
     # Wallet
     app.add_handler(CallbackQueryHandler(wallet_h.show_balance,   pattern=r"^wallet:balance$"))
 
-    # Conversations
+    # Conversations (charge + appsflyer)
     app.add_handler(build_charge_conv())
     app.add_handler(build_af_conv())
 
     # Admin panel
-    app.add_handler(CallbackQueryHandler(admin_h.admin_panel,          pattern=r"^admin:panel$"))
-    app.add_handler(CallbackQueryHandler(admin_h.list_pending_charges, pattern=r"^admin:charges$"))
-    app.add_handler(CallbackQueryHandler(admin_h.list_pending_af,      pattern=r"^admin:af_orders$"))
+    app.add_handler(CallbackQueryHandler(admin_h.admin_panel,         pattern=r"^admin:panel$"))
+    app.add_handler(CallbackQueryHandler(admin_h.list_pending_charges, pattern=r"^admin:charges(:\d+)?$"))
+    app.add_handler(CallbackQueryHandler(admin_h.list_pending_af,      pattern=r"^admin:af_orders(:\d+)?$"))
+    app.add_handler(CallbackQueryHandler(admin_h.list_accepted_af,     pattern=r"^admin:af_accepted(:\d+)?$"))
 
     # Admin actions
     app.add_handler(CallbackQueryHandler(admin_h.charge_action, pattern=r"^charge:(confirm|reject):\d+$"))
-    app.add_handler(CallbackQueryHandler(admin_h.af_action,     pattern=r"^af:(accept|reject):\d+$"))
+    app.add_handler(CallbackQueryHandler(admin_h.af_action,     pattern=r"^af:(accept|reject|fulfill):\d+$"))
 
     return app

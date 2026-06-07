@@ -41,6 +41,7 @@ def cancel_button(lang: str) -> InlineKeyboardMarkup:
 
 def admin_menu() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup([
-        [InlineKeyboardButton("📋 Pending Charges",  callback_data="admin:charges")],
-        [InlineKeyboardButton("🎮 AppsFlyer Orders", callback_data="admin:af_orders")],
+        [InlineKeyboardButton("📋 Pending Charges",    callback_data="admin:charges:0")],
+        [InlineKeyboardButton("🎮 AF Pending Orders",  callback_data="admin:af_orders:0")],
+        [InlineKeyboardButton("✅ AF Accepted Orders", callback_data="admin:af_accepted:0")],
     ])

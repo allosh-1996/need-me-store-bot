@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from infra.db import execute
 
 
@@ -27,16 +29,26 @@ def get_charge(charge_id: int):
     ).fetchone()
 
 
-def get_pending_charges(limit: int = 100) -> list:
+def get_pending_charges(limit: int = 5, offset: int = 0) -> list:
     return execute(
-        "SELECT id, user_id, method, amount_usd, status, created_at FROM charge_requests WHERE status = 'pending' ORDER BY id DESC LIMIT ?",
-        (limit,),
+        "SELECT id, user_id, method, amount_usd, status, created_at "
+        "FROM charge_requests WHERE status = 'pending' "
+        "ORDER BY id ASC LIMIT ? OFFSET ?",
+        (limit, offset),
     ).fetchall()
+
+
+def count_pending_charges() -> int:
+    row = execute(
+        "SELECT COUNT(*) FROM charge_requests WHERE status = 'pending'"
+    ).fetchone()
+    return row[0] if row else 0
 
 
 def get_recent_charges(limit: int = 100) -> list:
     return execute(
-        "SELECT id, user_id, method, amount_usd, status, created_at FROM charge_requests ORDER BY id DESC LIMIT ?",
+        "SELECT id, user_id, method, amount_usd, status, created_at "
+        "FROM charge_requests ORDER BY id DESC LIMIT ?",
         (limit,),
     ).fetchall()
 

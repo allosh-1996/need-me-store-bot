@@ -7,33 +7,33 @@ class Language(str, Enum):
 
 
 class OrderStatus(str, Enum):
-    RESERVED = "reserved"
+    RESERVED  = "reserved"
     DELIVERED = "delivered"
-    REJECTED = "rejected"
-    REFUNDED = "refunded"
+    REJECTED  = "rejected"
+    REFUNDED  = "refunded"
 
 
 class ChargeStatus(str, Enum):
-    PENDING = "pending"
+    PENDING   = "pending"
     CONFIRMED = "confirmed"
-    REJECTED = "rejected"
+    REJECTED  = "rejected"
 
 
 class AppsflyerStatus(str, Enum):
-    PENDING = "pending"
-    ACCEPTED = "accepted"
-    REJECTED = "rejected"
-    FULFILLED = "fulfilled"
+    PENDING   = "pending"
+    ACCEPTED  = "accepted"
+    REJECTED  = "rejected"
+    FULFILLED = "fulfilled"   # service has been delivered
 
 
 class StockStatus(str, Enum):
     AVAILABLE = "available"
-    RESERVED = "reserved"
-    SOLD = "sold"
+    RESERVED  = "reserved"
+    SOLD      = "sold"
 
 
 class LedgerEntryType(str, Enum):
-    CREDIT = "credit"
-    DEBIT = "debit"
-    REFUND = "refund"
+    CREDIT     = "credit"
+    DEBIT      = "debit"
+    REFUND     = "refund"
     ADJUSTMENT = "adjustment"

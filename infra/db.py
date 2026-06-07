@@ -1,22 +1,23 @@
 from __future__ import annotations
 
 import logging
+import threading
 import libsql_client
 from app.settings import get_settings
 
 logger = logging.getLogger(__name__)
 
-_client: libsql_client.ClientSync | None = None
+_local = threading.local()
 
 
-def _open() -> libsql_client.ClientSync:
+def _open_connection() -> libsql_client.ClientSync:
     s = get_settings()
     url = s.turso_database_url
     if url.startswith("libsql://"):
         url = "https://" + url[len("libsql://"):]
     elif url.startswith("wss://"):
         url = "https://" + url[len("wss://"):]
-    logger.info("Connecting to Turso via HTTP: %s", url.split("@")[-1])
+    logger.debug("Opening Turso connection for thread %s", threading.current_thread().name)
     return libsql_client.create_client_sync(
         url=url,
         auth_token=s.turso_auth_token,
@@ -24,20 +25,22 @@ def _open() -> libsql_client.ClientSync:
 
 
 def get_client() -> libsql_client.ClientSync:
-    global _client
-    if _client is None or _client.closed:
-        _client = _open()
-    return _client
+    """Return a per-thread Turso client, creating one if needed."""
+    client = getattr(_local, "client", None)
+    if client is None or client.closed:
+        _local.client = _open_connection()
+    return _local.client
 
 
-def _reset() -> None:
-    global _client
-    if _client is not None:
+def _reset_thread_client() -> None:
+    """Close and discard the current thread's client (used after errors)."""
+    client = getattr(_local, "client", None)
+    if client is not None:
         try:
-            _client.close()
+            client.close()
         except Exception:
             pass
-        _client = None
+        _local.client = None
 
 
 class _Result:
@@ -54,13 +57,18 @@ class _Result:
 
 
 def execute(sql: str, params: tuple = ()) -> _Result:
+    # If we're inside a transaction, delegate to the transaction executor
+    txn_exec = getattr(_local, "txn_execute", None)
+    if txn_exec is not None:
+        return txn_exec(sql, params)
+
     args = list(params) if params else None
     try:
         rs = get_client().execute(sql, args)
         return _Result(rs)
     except Exception as exc:
         logger.warning("Query failed (%s) — reconnecting once", exc)
-        _reset()
+        _reset_thread_client()
         rs = get_client().execute(sql, args)
         return _Result(rs)
 
@@ -76,7 +84,7 @@ def execute_batch(statements: list[tuple[str, list]]) -> list[_Result]:
         return [_Result(rs) for rs in results]
     except Exception as exc:
         logger.warning("Batch failed (%s) — reconnecting once", exc)
-        _reset()
+        _reset_thread_client()
         results = get_client().batch(stmts)
         return [_Result(rs) for rs in results]
 

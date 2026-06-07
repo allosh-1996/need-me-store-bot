@@ -5,44 +5,239 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>NexVault Dashboard</title>
   <style>
-    *{box-sizing:border-box;margin:0;padding:0}
-    body{font-family:Arial,sans-serif;background:#f8fafc;color:#0f172a}
-    nav{background:#111827;color:#fff;padding:16px 32px;display:flex;justify-content:space-between;align-items:center}
-    nav a{color:#94a3b8;text-decoration:none;font-size:14px}
-    nav a:hover{color:#fff}
-    .wrap{max-width:1200px;margin:0 auto;padding:32px}
-    h1{margin-bottom:24px;font-size:24px}
-    .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;margin-bottom:32px}
-    .card{background:#fff;border-radius:16px;padding:24px;box-shadow:0 4px 16px rgba(15,23,42,.08)}
-    .card .label{font-size:13px;color:#64748b;margin-bottom:8px}
-    .card .num{font-size:36px;font-weight:800;color:#0f172a}
-    .actions{display:flex;gap:12px;flex-wrap:wrap}
-    .btn{padding:10px 20px;border-radius:10px;border:none;cursor:pointer;font-size:14px;font-weight:600;text-decoration:none;display:inline-block}
-    .btn-blue{background:#2563eb;color:#fff}
-    .btn-red{background:#dc2626;color:#fff}
-    .btn-gray{background:#e2e8f0;color:#0f172a}
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Arial, sans-serif; background: #f1f5f9; color: #0f172a; font-size: 14px; }
+    nav { background: #111827; color: #fff; padding: 0 32px; height: 56px; display: flex; align-items: center; justify-content: space-between; }
+    nav .brand { font-size: 16px; font-weight: 700; }
+    nav a { color: #94a3b8; text-decoration: none; font-size: 13px; margin-left: 20px; }
+    nav a:hover { color: #fff; }
+    .wrap { max-width: 1300px; margin: 0 auto; padding: 28px 24px; }
+    h2 { font-size: 13px; font-weight: 600; color: #64748b; text-transform: uppercase; letter-spacing: .06em; margin-bottom: 12px; }
+    /* Stats */
+    .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 14px; margin-bottom: 32px; }
+    .stat { background: #fff; border-radius: 14px; padding: 20px; box-shadow: 0 1px 4px rgba(15,23,42,.07); }
+    .stat .label { font-size: 12px; color: #64748b; margin-bottom: 6px; }
+    .stat .num { font-size: 32px; font-weight: 800; }
+    .stat.green .num { color: #16a34a; }
+    .stat.orange .num { color: #ea580c; }
+    .stat.blue .num { color: #2563eb; }
+    /* Tabs */
+    .tabs { display: flex; gap: 4px; margin-bottom: 16px; border-bottom: 2px solid #e2e8f0; }
+    .tab { padding: 10px 20px; cursor: pointer; border-radius: 8px 8px 0 0; font-weight: 600; color: #64748b; background: none; border: none; font-size: 13px; }
+    .tab.active { color: #2563eb; background: #eff6ff; border-bottom: 2px solid #2563eb; margin-bottom: -2px; }
+    .tab:hover:not(.active) { background: #f8fafc; color: #334155; }
+    /* Table */
+    .table-wrap { background: #fff; border-radius: 14px; box-shadow: 0 1px 4px rgba(15,23,42,.07); overflow: hidden; margin-bottom: 28px; }
+    table { width: 100%; border-collapse: collapse; }
+    th { background: #f8fafc; padding: 10px 14px; text-align: left; font-size: 12px; font-weight: 700; color: #475569; text-transform: uppercase; letter-spacing: .05em; }
+    td { padding: 10px 14px; border-top: 1px solid #f1f5f9; vertical-align: middle; }
+    tr:hover td { background: #f8fafc; }
+    .badge { display: inline-block; padding: 2px 8px; border-radius: 99px; font-size: 11px; font-weight: 700; text-transform: uppercase; }
+    .badge.pending  { background: #fef3c7; color: #92400e; }
+    .badge.confirmed, .badge.delivered, .badge.fulfilled { background: #dcfce7; color: #166534; }
+    .badge.rejected { background: #fee2e2; color: #991b1b; }
+    .badge.accepted { background: #dbeafe; color: #1e40af; }
+    .badge.reserved { background: #ede9fe; color: #5b21b6; }
+    /* Buttons */
+    .btn { display: inline-flex; align-items: center; gap: 4px; padding: 5px 12px; border-radius: 7px; border: none; cursor: pointer; font-size: 12px; font-weight: 600; transition: opacity .15s; }
+    .btn:hover { opacity: .85; }
+    .btn:disabled { opacity: .4; cursor: default; }
+    .btn-green  { background: #16a34a; color: #fff; }
+    .btn-red    { background: #dc2626; color: #fff; }
+    .btn-blue   { background: #2563eb; color: #fff; }
+    .btn-purple { background: #7c3aed; color: #fff; }
+    .btn-gray   { background: #e2e8f0; color: #0f172a; }
+    .actions { display: flex; gap: 6px; flex-wrap: wrap; }
+    /* Loading */
+    .loading { padding: 40px; text-align: center; color: #94a3b8; }
+    /* Toast */
+    #toast { position: fixed; bottom: 24px; right: 24px; background: #1e293b; color: #fff; padding: 12px 20px; border-radius: 10px; font-size: 13px; opacity: 0; transition: opacity .3s; pointer-events: none; z-index: 9999; }
+    #toast.show { opacity: 1; }
+    #toast.err { background: #991b1b; }
   </style>
 </head>
 <body>
-  <nav>
-    <span>🛍️ NexVault Dashboard</span>
+<nav>
+  <span class="brand">🛍️ NexVault</span>
+  <div>
+    <a href="/api/orders" target="_blank">Orders JSON</a>
+    <a href="/api/charges" target="_blank">Charges JSON</a>
+    <a href="/api/appsflyer" target="_blank">AF JSON</a>
     <a href="/logout">Logout</a>
-  </nav>
-  <div class="wrap">
-    <h1>Overview</h1>
-    <div class="grid">
-      <div class="card"><div class="label">Users</div><div class="num">{{ users }}</div></div>
-      <div class="card"><div class="label">Active Products</div><div class="num">{{ products }}</div></div>
-      <div class="card"><div class="label">Total Orders</div><div class="num">{{ orders }}</div></div>
-      <div class="card"><div class="label">Pending Charges</div><div class="num">{{ charges }}</div></div>
-      <div class="card"><div class="label">Pending AF Orders</div><div class="num">{{ af_pending }}</div></div>
-    </div>
-    <div class="actions">
-      <a class="btn btn-blue" href="/api/orders">Orders JSON</a>
-      <a class="btn btn-blue" href="/api/charges">Charges JSON</a>
-      <a class="btn btn-blue" href="/api/appsflyer">AppsFlyer JSON</a>
-      <a class="btn btn-gray" href="/logout">Logout</a>
-    </div>
   </div>
+</nav>
+
+<div class="wrap">
+  <!-- Stats -->
+  <h2>Overview</h2>
+  <div class="stats">
+    <div class="stat"><div class="label">Users</div><div class="num">{{ users }}</div></div>
+    <div class="stat blue"><div class="label">Active Products</div><div class="num">{{ products }}</div></div>
+    <div class="stat"><div class="label">Total Orders</div><div class="num">{{ orders }}</div></div>
+    <div class="stat green"><div class="label">Revenue (USD)</div><div class="num">${{ "%.2f"|format(revenue) }}</div></div>
+    <div class="stat orange"><div class="label">Pending Charges</div><div class="num">{{ charges }}</div></div>
+    <div class="stat orange"><div class="label">Pending AF</div><div class="num">{{ af_pending }}</div></div>
+    <div class="stat blue"><div class="label">Accepted AF</div><div class="num">{{ af_accepted }}</div></div>
+  </div>
+
+  <!-- Tabs -->
+  <div class="tabs">
+    <button class="tab active" onclick="showTab('charges')">💰 Charges</button>
+    <button class="tab" onclick="showTab('af')">🎮 AppsFlyer</button>
+    <button class="tab" onclick="showTab('orders')">📦 Orders</button>
+    <button class="tab" onclick="showTab('users')">👥 Users</button>
+  </div>
+
+  <!-- Charges Table -->
+  <div id="tab-charges" class="table-wrap">
+    <div class="loading">Loading...</div>
+  </div>
+
+  <!-- AppsFlyer Table -->
+  <div id="tab-af" class="table-wrap" style="display:none">
+    <div class="loading">Loading...</div>
+  </div>
+
+  <!-- Orders Table -->
+  <div id="tab-orders" class="table-wrap" style="display:none">
+    <div class="loading">Loading...</div>
+  </div>
+
+  <!-- Users Table -->
+  <div id="tab-users" class="table-wrap" style="display:none">
+    <div class="loading">Loading...</div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+const tabs = ['charges','af','orders','users'];
+const loaded = {};
+
+function showTab(name) {
+  tabs.forEach(t => {
+    document.getElementById('tab-' + t).style.display = t === name ? '' : 'none';
+  });
+  document.querySelectorAll('.tab').forEach((el, i) => {
+    el.classList.toggle('active', tabs[i] === name);
+  });
+  if (!loaded[name]) { loaded[name] = true; loadTab(name); }
+}
+
+function loadTab(name) {
+  const urls = { charges: '/api/charges', af: '/api/appsflyer', orders: '/api/orders', users: '/api/users' };
+  fetch(urls[name])
+    .then(r => r.json())
+    .then(data => renderTab(name, data))
+    .catch(() => { document.getElementById('tab-' + name).innerHTML = '<div class="loading">Error loading data</div>'; });
+}
+
+function renderTab(name, data) {
+  const el = document.getElementById('tab-' + name);
+  if (!data.length) { el.innerHTML = '<div class="loading">No records found</div>'; return; }
+  const renders = { charges: renderCharges, af: renderAF, orders: renderOrders, users: renderUsers };
+  el.innerHTML = renders[name](data);
+}
+
+function badge(status) {
+  return `<span class="badge ${status}">${status}</span>`;
+}
+
+function renderCharges(rows) {
+  let html = `<table><thead><tr><th>#</th><th>User ID</th><th>Method</th><th>Amount</th><th>Status</th><th>Date</th><th>Actions</th></tr></thead><tbody>`;
+  rows.forEach(r => {
+    const actions = r.status === 'pending'
+      ? `<div class="actions">
+           <button class="btn btn-green" onclick="chargeAction(${r.id},'confirm',this)">✅ Confirm</button>
+           <button class="btn btn-red"   onclick="chargeAction(${r.id},'reject',this)">❌ Reject</button>
+         </div>`
+      : '—';
+    html += `<tr><td><b>#${r.id}</b></td><td><code>${r.user_id}</code></td><td>${r.method}</td><td>$${r.amount_usd.toFixed(2)}</td><td>${badge(r.status)}</td><td>${r.created_at||''}</td><td>${actions}</td></tr>`;
+  });
+  return html + '</tbody></table>';
+}
+
+function renderAF(rows) {
+  let html = `<table><thead><tr><th>#</th><th>User ID</th><th>Game</th><th>Price</th><th>Status</th><th>Date</th><th>Actions</th></tr></thead><tbody>`;
+  rows.forEach(r => {
+    let actions = '—';
+    if (r.status === 'pending') {
+      actions = `<div class="actions">
+        <button class="btn btn-green"  onclick="afAction(${r.id},'accept',this)">✅ Accept</button>
+        <button class="btn btn-red"    onclick="afAction(${r.id},'reject',this)">❌ Reject</button>
+      </div>`;
+    } else if (r.status === 'accepted') {
+      actions = `<div class="actions">
+        <button class="btn btn-purple" onclick="afAction(${r.id},'fulfill',this)">🏁 Fulfill</button>
+        <button class="btn btn-red"    onclick="afAction(${r.id},'reject',this)">❌ Reject</button>
+      </div>`;
+    }
+    html += `<tr><td><b>#${r.id}</b></td><td><code>${r.user_id}</code></td><td>${r.game_name}</td><td>$${r.price_usd.toFixed(0)}</td><td>${badge(r.status)}</td><td>${r.created_at||''}</td><td>${actions}</td></tr>`;
+  });
+  return html + '</tbody></table>';
+}
+
+function renderOrders(rows) {
+  let html = `<table><thead><tr><th>#</th><th>User ID</th><th>Product ID</th><th>Amount</th><th>Status</th><th>Date</th></tr></thead><tbody>`;
+  rows.forEach(r => {
+    html += `<tr><td><b>#${r.id}</b></td><td><code>${r.user_id}</code></td><td>${r.product_id}</td><td>$${r.amount_usd.toFixed(2)}</td><td>${badge(r.status)}</td><td>${r.created_at||''}</td></tr>`;
+  });
+  return html + '</tbody></table>';
+}
+
+function renderUsers(rows) {
+  let html = `<table><thead><tr><th>ID</th><th>Username</th><th>Name</th><th>Lang</th><th>Balance</th><th>Joined</th></tr></thead><tbody>`;
+  rows.forEach(r => {
+    html += `<tr><td><code>${r.id}</code></td><td>@${r.username||'—'}</td><td>${r.full_name||'—'}</td><td>${r.language}</td><td>$${(r.balance||0).toFixed(2)}</td><td>${r.joined_at||''}</td></tr>`;
+  });
+  return html + '</tbody></table>';
+}
+
+function toast(msg, err=false) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = 'show' + (err ? ' err' : '');
+  setTimeout(() => el.className = '', 3000);
+}
+
+function chargeAction(id, action, btn) {
+  btn.disabled = true;
+  fetch(`/admin-api/charges/${id}/${action}`, { method: 'POST' })
+    .then(r => r.json())
+    .then(d => {
+      if (d.ok) {
+        toast(`Charge #${id} ${action}ed ✅`);
+        loaded['charges'] = false;
+        loadTab('charges');
+      } else {
+        toast(d.error || 'Error', true);
+        btn.disabled = false;
+      }
+    })
+    .catch(() => { toast('Network error', true); btn.disabled = false; });
+}
+
+function afAction(id, action, btn) {
+  btn.disabled = true;
+  fetch(`/admin-api/appsflyer/${id}/${action}`, { method: 'POST' })
+    .then(r => r.json())
+    .then(d => {
+      if (d.ok) {
+        toast(`AF #${id} ${action}ed ✅`);
+        loaded['af'] = false;
+        loadTab('af');
+      } else {
+        toast(d.error || 'Error', true);
+        btn.disabled = false;
+      }
+    })
+    .catch(() => { toast('Network error', true); btn.disabled = false; });
+}
+
+// Load first tab on page load
+loaded['charges'] = true;
+loadTab('charges');
+</script>
 </body>
 </html>

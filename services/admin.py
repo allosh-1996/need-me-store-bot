@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from infra.transactions import transactional
 from repositories import charges as charges_repo
 from repositories import appsflyer as af_repo
@@ -16,11 +18,13 @@ class AdminService:
                 raise InvalidStateTransitionError("charge already processed")
             user_id = int(charge[1])
             amount = float(charge[3])
-            balance = wallet_repo.get_balance(user_id)
-            new_balance = round(balance + amount, 8)
-            wallet_repo.set_balance(user_id, new_balance)
-            wallet_repo.insert_ledger_entry(
-                user_id, "credit", amount, "charge", str(charge_id), "charge confirmed"
+            new_balance = wallet_repo.credit_atomic(
+                user_id=user_id,
+                amount=amount,
+                entry_type="credit",
+                reference_type="charge",
+                reference_id=str(charge_id),
+                reason="charge confirmed",
             )
             charges_repo.mark_confirmed(charge_id)
             audit_repo.log_action(
@@ -52,21 +56,37 @@ class AdminService:
                 admin_actor, "accept_appsflyer", "appsflyer_order", str(order_id)
             )
 
+    def fulfill_appsflyer(self, admin_actor: str, order_id: int) -> None:
+        """Mark an accepted AppsFlyer order as fulfilled (service delivered)."""
+        with transactional():
+            order = af_repo.get_order(order_id)
+            if not order:
+                raise NotFoundError("appsflyer order not found")
+            if str(order[4]) != "accepted":
+                raise InvalidStateTransitionError(
+                    f"can only fulfill accepted orders, current status: {order[4]}"
+                )
+            af_repo.update_status(order_id, "fulfilled")
+            audit_repo.log_action(
+                admin_actor, "fulfill_appsflyer", "appsflyer_order", str(order_id)
+            )
+
     def reject_appsflyer(self, admin_actor: str, order_id: int) -> float:
         with transactional():
             order = af_repo.get_order(order_id)
             if not order:
                 raise NotFoundError("appsflyer order not found")
-            if str(order[4]) != "pending":
-                raise InvalidStateTransitionError("appsflyer order already processed")
+            if str(order[4]) not in ("pending", "accepted"):
+                raise InvalidStateTransitionError("appsflyer order already finalized")
             user_id = int(order[1])
             amount = float(order[3])
-            balance = wallet_repo.get_balance(user_id)
-            new_balance = round(balance + amount, 8)
-            wallet_repo.set_balance(user_id, new_balance)
-            wallet_repo.insert_ledger_entry(
-                user_id, "refund", amount,
-                "appsflyer_order", str(order_id), "appsflyer rejected",
+            new_balance = wallet_repo.credit_atomic(
+                user_id=user_id,
+                amount=amount,
+                entry_type="refund",
+                reference_type="appsflyer_order",
+                reference_id=str(order_id),
+                reason="appsflyer rejected",
             )
             af_repo.update_status(order_id, "rejected")
             audit_repo.log_action(

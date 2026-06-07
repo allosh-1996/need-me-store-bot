@@ -1,7 +1,8 @@
+from __future__ import annotations
+
 from infra.transactions import transactional
 from repositories import charges as charges_repo
-from repositories import wallet as wallet_repo
-from domain.errors import DuplicateProofError, NotFoundError, InvalidStateTransitionError
+from domain.errors import DuplicateProofError
 
 
 class ChargeService:

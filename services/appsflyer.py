@@ -1,7 +1,9 @@
+from __future__ import annotations
+
 from infra.transactions import transactional
 from repositories import appsflyer as af_repo
 from repositories import wallet as wallet_repo
-from domain.errors import InsufficientBalanceError, NotFoundError, InvalidStateTransitionError
+from domain.errors import InsufficientBalanceError
 
 
 class AppsflyerService:
@@ -18,16 +20,19 @@ class AppsflyerService:
         levels: str,
     ) -> int:
         with transactional():
-            balance = wallet_repo.get_balance(user_id)
-            if balance < price_usd:
-                raise InsufficientBalanceError("insufficient balance")
             order_id = af_repo.create_order(
                 user_id, game_key, game_name, price_usd,
                 idfa, idfv, ios_version, appsflyer_id, levels,
             )
-            wallet_repo.set_balance(user_id, balance - price_usd)
-            wallet_repo.insert_ledger_entry(
-                user_id, "debit", price_usd,
-                "appsflyer_order", str(order_id), "appsflyer purchase",
-            )
+            try:
+                wallet_repo.debit_atomic(
+                    user_id=user_id,
+                    amount=price_usd,
+                    entry_type="debit",
+                    reference_type="appsflyer_order",
+                    reference_id=str(order_id),
+                    reason="appsflyer purchase",
+                )
+            except ValueError:
+                raise InsufficientBalanceError("insufficient balance")
             return order_id

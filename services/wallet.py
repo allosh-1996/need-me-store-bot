@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 from infra.transactions import transactional
 from repositories import wallet as wallet_repo
 from domain.errors import InsufficientBalanceError, ValidationError
@@ -18,13 +20,14 @@ class WalletService:
         if amount <= 0:
             raise ValidationError("credit amount must be positive")
         with transactional():
-            balance = wallet_repo.get_balance(user_id)
-            new_balance = balance + amount
-            wallet_repo.set_balance(user_id, new_balance)
-            wallet_repo.insert_ledger_entry(
-                user_id, "credit", amount, reference_type, reference_id, reason
+            return wallet_repo.credit_atomic(
+                user_id=user_id,
+                amount=amount,
+                entry_type="credit",
+                reference_type=reference_type,
+                reference_id=reference_id,
+                reason=reason,
             )
-            return new_balance
 
     def debit(
         self,
@@ -37,12 +40,14 @@ class WalletService:
         if amount <= 0:
             raise ValidationError("debit amount must be positive")
         with transactional():
-            balance = wallet_repo.get_balance(user_id)
-            if balance < amount:
+            try:
+                return wallet_repo.debit_atomic(
+                    user_id=user_id,
+                    amount=amount,
+                    entry_type="debit",
+                    reference_type=reference_type,
+                    reference_id=reference_id,
+                    reason=reason,
+                )
+            except ValueError:
                 raise InsufficientBalanceError("insufficient balance")
-            new_balance = balance - amount
-            wallet_repo.set_balance(user_id, new_balance)
-            wallet_repo.insert_ledger_entry(
-                user_id, "debit", amount, reference_type, reference_id, reason
-            )
-            return new_balance
