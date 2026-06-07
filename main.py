@@ -2,6 +2,7 @@ import threading
 import logging
 from app.logging import configure_logging
 from app.settings import get_settings
+from app.keepalive import start_keepalive
 from infra.db import init_db
 from infra.migrate import run_migrations, verify_schema
 from bot.application import build_app
@@ -24,6 +25,9 @@ def main() -> None:
     dashboard_thread = threading.Thread(target=run_dashboard, daemon=True, name="dashboard")
     dashboard_thread.start()
     logger.info("✅ Dashboard started on port 5000")
+
+    # Keep container alive on Railway Trial
+    start_keepalive()
 
     app = build_app()
     logger.info("🚀 NexVault Bot polling...")
