@@ -4,7 +4,7 @@ import logging
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ContextTypes
 from repositories.users import ensure_user, get_user_language
-from repositories.products import get_active_products_by_category, get_active_products, get_stock_count, get_product
+from repositories.products import get_active_products_with_stock, get_product_with_stock
 from services.orders import OrderService
 from domain.errors import InsufficientBalanceError, OutOfStockError, NotFoundError
 from bot.render.keyboards import back_home
@@ -46,18 +46,15 @@ async def open_catalog(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
             "⚡️ سيتم الرد عليك في أقرب وقت ممكن."
         )
         await query.edit_message_text(
-            proxy_msg,
-            parse_mode="HTML",
-            reply_markup=back_home(lang),
+            proxy_msg, parse_mode="HTML", reply_markup=back_home(lang),
         )
         return
 
-    if category and category in CATEGORY_LABELS:
-        products = get_active_products_by_category(category)
-        title = CATEGORY_LABELS[category]
-    else:
-        products = get_active_products()
-        title = "📦 المنتجات" if lang == "ar" else "📦 Products"
+    cat_filter = category if (category and category in CATEGORY_LABELS) else None
+    title = CATEGORY_LABELS.get(cat_filter, "📦 المنتجات" if lang == "ar" else "📦 Products")
+
+    # Single query: products + stock count combined
+    products = get_active_products_with_stock(cat_filter)
 
     if not products:
         await query.edit_message_text(
@@ -68,9 +65,8 @@ async def open_catalog(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
 
     buttons = []
     for row in products:
-        product_id, name, _desc, price_usd, _cat, _platform = row
-        stock = get_stock_count(product_id)
-        status = "🟢" if stock > 0 else "🔴"
+        product_id, name, _desc, price_usd, _cat, _platform, stock_count = row
+        status = "🟢" if stock_count > 0 else "🔴"
         buttons.append([
             InlineKeyboardButton(
                 f"{status} {name} — ${price_usd}",
@@ -92,20 +88,30 @@ async def show_product(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
     ensure_user(user.id, user.username or "", user.full_name or "")
     lang = get_user_language(user.id)
     product_id = int(query.data.split(":")[-1])
-    product = get_product(product_id)
+
+    # Single query: product + stock count
+    product = get_product_with_stock(product_id)
     if not product:
         await query.edit_message_text(t("out_of_stock", lang), reply_markup=back_home(lang))
         return
-    stock = get_stock_count(product_id)
-    stock_label = ("🟢 متوفر" if stock > 0 else "🔴 غير متوفر") if lang == "ar" else ("🟢 In Stock" if stock > 0 else "🔴 Out of Stock")
+
+    _id, name, description, price_usd, _cat, _platform, active, stock_count = product
+    if not active:
+        await query.edit_message_text(t("out_of_stock", lang), reply_markup=back_home(lang))
+        return
+
+    stock_label = (
+        ("🟢 متوفر" if stock_count > 0 else "🔴 غير متوفر") if lang == "ar"
+        else ("🟢 In Stock" if stock_count > 0 else "🔴 Out of Stock")
+    )
     text = (
-        f"<b>{safe(product[1])}</b>\n\n"
-        f"{safe(product[2]) or ''}\n\n"
-        f"💵 ${product[3]}\n"
+        f"<b>{safe(name)}</b>\n\n"
+        f"{safe(description) or ''}\n\n"
+        f"💵 ${price_usd}\n"
         f"{stock_label}"
     )
     buttons = []
-    if stock > 0:
+    if stock_count > 0:
         buttons.append([InlineKeyboardButton(t("buy", lang), callback_data=f"catalog:buy:{product_id}")])
     buttons.append([InlineKeyboardButton(t("back", lang), callback_data="home")])
     await query.edit_message_text(text, parse_mode="HTML", reply_markup=InlineKeyboardMarkup(buttons))
@@ -132,11 +138,13 @@ async def buy_product(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
 
     payload_sent = False
     try:
-        msg_text = t("product_details", lang) + "\n\n" + SEP + "\n\n" + code(result["payload"]) + "\n\n" + SEP + "\n\n" + t("save_info", lang)
+        msg_text = (
+            t("product_details", lang) + "\n\n" + SEP + "\n\n"
+            + code(result["payload"]) + "\n\n" + SEP + "\n\n"
+            + t("save_info", lang)
+        )
         await context.bot.send_message(
-            chat_id=user.id,
-            text=msg_text,
-            parse_mode="HTML",
+            chat_id=user.id, text=msg_text, parse_mode="HTML",
         )
         payload_sent = True
     except Exception:

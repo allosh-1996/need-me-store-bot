@@ -24,6 +24,55 @@ def get_product(product_id: int):
     ).fetchone()
 
 
+def get_product_with_stock(product_id: int):
+    """
+    Returns (id, name, description, price_usd, category, platform, active, stock_count)
+    in a single query — avoids two round-trips to get product + stock.
+    """
+    return execute(
+        """
+        SELECT p.id, p.name, p.description, p.price_usd, p.category, p.platform, p.active,
+               COUNT(s.id) as stock_count
+          FROM products p
+          LEFT JOIN stock_items s ON s.product_id = p.id AND s.status = 'available'
+         WHERE p.id = ?
+         GROUP BY p.id
+        """,
+        (product_id,),
+    ).fetchone()
+
+
+def get_active_products_with_stock(category: str | None = None) -> list:
+    """
+    Returns products with stock count in a single query.
+    Each row: (id, name, description, price_usd, category, platform, stock_count)
+    """
+    if category:
+        return execute(
+            """
+            SELECT p.id, p.name, p.description, p.price_usd, p.category, p.platform,
+                   COUNT(s.id) as stock_count
+              FROM products p
+              LEFT JOIN stock_items s ON s.product_id = p.id AND s.status = 'available'
+             WHERE p.active = 1 AND p.category = ?
+             GROUP BY p.id
+             ORDER BY p.id ASC
+            """,
+            (category,),
+        ).fetchall()
+    return execute(
+        """
+        SELECT p.id, p.name, p.description, p.price_usd, p.category, p.platform,
+               COUNT(s.id) as stock_count
+          FROM products p
+          LEFT JOIN stock_items s ON s.product_id = p.id AND s.status = 'available'
+         WHERE p.active = 1
+         GROUP BY p.id
+         ORDER BY p.id ASC
+        """,
+    ).fetchall()
+
+
 def add_product(
     name: str, description: str, price_usd: float, category: str, platform: str
 ) -> int:
