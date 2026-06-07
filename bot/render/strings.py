@@ -1,7 +1,27 @@
 STRINGS: dict[str, dict[str, str]] = {
     "welcome": {
-        "ar": "أهلاً بك في <b>NexVault</b> 🛍️\nاختر من القائمة أدناه.",
-        "en": "Welcome to <b>NexVault</b> 🛍️\nChoose from the menu below.",
+        "ar": (
+            "✨ مرحباً بك في <b>NEXVAULT</b> ✨\n"
+            "حيث تُحفظ الأصول الرقمية القيمة.\n\n"
+            "نوفر مجموعة مختارة من المنتجات الرقمية المميزة مع تجربة شراء سريعة وآمنة.\n\n"
+            "📱 iCloud Accounts  📧 Email Accounts  📊 Survey Accounts  🎮 Digital Gaming Products\n\n"
+            "━━━━━━━━━━━━━━━\n"
+            "⚜️ Premium Quality  ⚜️ Instant Delivery  ⚜️ Secure Transactions  ⚜️ Professional Support\n"
+            "━━━━━━━━━━━━━━━\n\n"
+            "اضغط على أحد الأقسام أدناه للبدء.\n\n"
+            "🔐 <b>NEXVAULT</b> — Beyond Digital. Beyond Expectations."
+        ),
+        "en": (
+            "✨ Welcome to <b>NEXVAULT</b> ✨\n"
+            "Where valuable digital assets are secured.\n\n"
+            "We offer a curated selection of premium digital products with a fast and secure buying experience.\n\n"
+            "📱 iCloud Accounts  📧 Email Accounts  📊 Survey Accounts  🎮 Digital Gaming Products\n\n"
+            "━━━━━━━━━━━━━━━\n"
+            "⚜️ Premium Quality  ⚜️ Instant Delivery  ⚜️ Secure Transactions  ⚜️ Professional Support\n"
+            "━━━━━━━━━━━━━━━\n\n"
+            "Press a section below to get started.\n\n"
+            "🔐 <b>NEXVAULT</b> — Beyond Digital. Beyond Expectations."
+        ),
     },
     "back":        {"ar": "رجوع ◀️",      "en": "Back ◀️"},
     "home":        {"ar": "الرئيسية 🏠",  "en": "Home 🏠"},
