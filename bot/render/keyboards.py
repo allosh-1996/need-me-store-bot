@@ -4,12 +4,24 @@ from bot.render.strings import t
 
 def main_menu(lang: str) -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup([
-        [InlineKeyboardButton(t("products", lang),  callback_data="catalog:open")],
-        [InlineKeyboardButton(t("balance", lang),   callback_data="wallet:balance"),
-         InlineKeyboardButton(t("top_up", lang),    callback_data="charge:start")],
-        [InlineKeyboardButton(t("appsflyer", lang), callback_data="af:start")],
-        [InlineKeyboardButton(t("contact", lang),   url="https://t.me/Allosh96ha"),
-         InlineKeyboardButton(t("language", lang),  callback_data="user:toggle_lang")],
+        [
+            InlineKeyboardButton("iCloud",       callback_data="catalog:open:icloud"),
+            InlineKeyboardButton("ايميلات",      callback_data="catalog:open:emails"),
+        ],
+        [
+            InlineKeyboardButton("رصيدي 💰",     callback_data="wallet:balance"),
+            InlineKeyboardButton("بروكسي",       callback_data="catalog:open:proxy"),
+        ],
+        [
+            InlineKeyboardButton("Surveys",      callback_data="catalog:open:surveys"),
+        ],
+        [
+            InlineKeyboardButton("🟢 Win AppsFlyer 🟢", callback_data="af:start"),
+        ],
+        [
+            InlineKeyboardButton("تواصل 💬",     url="https://t.me/Allosh96ha"),
+            InlineKeyboardButton("English 🌐" if lang == "ar" else "العربية 🌐", callback_data="user:toggle_lang"),
+        ],
     ])
 
 
