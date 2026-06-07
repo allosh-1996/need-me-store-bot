@@ -16,7 +16,7 @@ def main_menu(lang: str) -> InlineKeyboardMarkup:
             InlineKeyboardButton("Surveys",      callback_data="catalog:open:surveys"),
         ],
         [
-            InlineKeyboardButton("🟢 Win AppsFlyer 🟢", callback_data="af:start"),
+            InlineKeyboardButton("🔥 AppsFlyer Games 🔥", callback_data="af:start"),
         ],
         [
             InlineKeyboardButton("تواصل 💬",     url="https://t.me/Allosh96ha"),
