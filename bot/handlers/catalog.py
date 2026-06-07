@@ -4,7 +4,7 @@ import logging
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ContextTypes
 from repositories.users import ensure_user, get_user_language
-from repositories.products import get_active_products, get_stock_count, get_product
+from repositories.products import get_active_products_by_category, get_active_products, get_stock_count, get_product
 from services.orders import OrderService
 from domain.errors import InsufficientBalanceError, OutOfStockError, NotFoundError
 from bot.render.keyboards import back_home
@@ -14,6 +14,13 @@ from bot.render.formatters import safe, code
 logger = logging.getLogger(__name__)
 service = OrderService()
 
+CATEGORY_LABELS = {
+    "icloud":   "📱 iCloud",
+    "emails":   "📧 ايميلات",
+    "proxy":    "🌐 بروكسي",
+    "surveys":  "📊 Surveys",
+}
+
 
 async def open_catalog(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     query = update.callback_query
@@ -21,13 +28,25 @@ async def open_catalog(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
     user = query.from_user
     ensure_user(user.id, user.username or "", user.full_name or "")
     lang = get_user_language(user.id)
-    products = get_active_products()
+
+    # Check if category filter passed e.g. catalog:open:icloud
+    parts = query.data.split(":")
+    category = parts[2] if len(parts) > 2 else None
+
+    if category and category in CATEGORY_LABELS:
+        products = get_active_products_by_category(category)
+        title = CATEGORY_LABELS[category]
+    else:
+        products = get_active_products()
+        title = "📦 المنتجات" if lang == "ar" else "📦 Products"
+
     if not products:
         await query.edit_message_text(
             "لا يوجد منتجات متاحة حالياً" if lang == "ar" else "No products available",
             reply_markup=back_home(lang),
         )
         return
+
     buttons = []
     for row in products:
         product_id, name, _desc, price_usd, _cat, _platform = row
@@ -40,8 +59,9 @@ async def open_catalog(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
             )
         ])
     buttons.append([InlineKeyboardButton(t("back", lang), callback_data="home")])
+
     await query.edit_message_text(
-        "📦 اختر المنتج:" if lang == "ar" else "📦 Choose a product:",
+        f"{title}:" if lang == "ar" else f"{title}:",
         reply_markup=InlineKeyboardMarkup(buttons),
     )
 
@@ -68,7 +88,7 @@ async def show_product(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
     buttons = []
     if stock > 0:
         buttons.append([InlineKeyboardButton(t("buy", lang), callback_data=f"catalog:buy:{product_id}")])
-    buttons.append([InlineKeyboardButton(t("back", lang), callback_data="catalog:open")])
+    buttons.append([InlineKeyboardButton(t("back", lang), callback_data="home")])
     await query.edit_message_text(text, parse_mode="HTML", reply_markup=InlineKeyboardMarkup(buttons))
 
 
@@ -91,17 +111,15 @@ async def buy_product(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
         await query.edit_message_text(t("out_of_stock", lang), reply_markup=back_home(lang))
         return
 
-    # Send product payload FIRST — if this fails the order is still delivered in DB
-    # but at least we tried. The admin can look up the payload manually if needed.
     payload_sent = False
     try:
         await context.bot.send_message(
             chat_id=user.id,
             text=(
                 f"{t('product_details', lang)}\n\n"
-                f"{'—' * 20}\n\n"
+                f"{\'—\' * 20}\n\n"
                 f"{code(result['payload'])}\n\n"
-                f"{'—' * 20}\n\n"
+                f"{\'—\' * 20}\n\n"
                 f"{t('save_info', lang)}"
             ),
             parse_mode="HTML",
@@ -110,7 +128,6 @@ async def buy_product(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
     except Exception:
         logger.error("Failed to send product payload to user %s for order %s", user.id, result["order_id"])
 
-    # Then show the confirmation
     await query.edit_message_text(
         f"{t('purchase_success', lang)}\n\n"
         f"🔖 #{result['order_id']}\n"
