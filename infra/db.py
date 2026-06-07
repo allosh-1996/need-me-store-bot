@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import logging
-import os
 import threading
 import libsql_experimental as libsql
 
@@ -10,29 +9,17 @@ from app.settings import get_settings
 logger = logging.getLogger(__name__)
 
 _local = threading.local()
-_sync_lock = threading.Lock()
-
-# Path for the embedded replica file inside the container
 _REPLICA_PATH = "/tmp/nexvault_local.db"
 
 
 def _open_connection() -> libsql.Connection:
     s = get_settings()
     logger.debug("Opening libsql connection for thread %s", threading.current_thread().name)
-
-    # Use embedded replica: local SQLite file synced from Turso
-    # Reads are instant (local), writes go to Turso + sync back
     conn = libsql.connect(
         _REPLICA_PATH,
         sync_url=s.turso_database_url,
         auth_token=s.turso_auth_token,
     )
-    # Initial sync from remote
-    try:
-        conn.sync()
-        logger.info("✅ Embedded replica synced from Turso")
-    except Exception as e:
-        logger.warning("Initial sync failed (will retry): %s", e)
     return conn
 
 
@@ -91,12 +78,17 @@ def execute(sql: str, params: tuple = ()) -> _Result:
 
 
 def sync_replica() -> None:
-    """Sync embedded replica with Turso remote — call after writes."""
-    try:
-        conn = get_connection()
-        conn.sync()
-    except Exception as e:
-        logger.warning("Replica sync failed: %s", e)
+    """Sync embedded replica with Turso — runs in background thread, never blocks."""
+    def _do_sync():
+        try:
+            conn = get_connection()
+            conn.sync()
+            logger.debug("Replica synced")
+        except Exception as e:
+            logger.warning("Replica sync failed: %s", e)
+
+    t = threading.Thread(target=_do_sync, daemon=True, name="turso-sync")
+    t.start()
 
 
 def init_db() -> None:
@@ -196,3 +188,5 @@ def init_db() -> None:
     for stmt in stmts:
         execute(stmt)
     logger.info("DB schema ready")
+    # Sync in background after init — never blocks startup
+    sync_replica()
