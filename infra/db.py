@@ -2,31 +2,26 @@ from __future__ import annotations
 
 import logging
 import threading
-import libsql
+import libsql_experimental as libsql
 
 from app.settings import get_settings
 
 logger = logging.getLogger(__name__)
 
-# Per-thread connection pool
 _local = threading.local()
 
 
 def _open_connection() -> libsql.Connection:
     s = get_settings()
-    url = s.turso_database_url
     logger.debug("Opening libsql connection for thread %s", threading.current_thread().name)
     conn = libsql.connect(
-        database=":memory:",   # local cache (required by SDK)
-        sync_url=url,
+        s.turso_database_url,
         auth_token=s.turso_auth_token,
     )
-    conn.sync()
     return conn
 
 
 def get_connection() -> libsql.Connection:
-    """Return a per-thread libsql connection, creating one if needed."""
     conn = getattr(_local, "conn", None)
     if conn is None:
         _local.conn = _open_connection()
@@ -34,7 +29,6 @@ def get_connection() -> libsql.Connection:
 
 
 def _reset_thread_connection() -> None:
-    """Discard the current thread's connection (used after errors)."""
     conn = getattr(_local, "conn", None)
     if conn is not None:
         try:
@@ -58,7 +52,6 @@ class _Result:
 
 
 def execute(sql: str, params: tuple = ()) -> _Result:
-    # If inside a transaction, use the transaction cursor
     txn_execute = getattr(_local, "txn_execute", None)
     if txn_execute is not None:
         return txn_execute(sql, params)
