@@ -17,6 +17,7 @@
 </head>
 <body>
   <form class="card" method="post" action="/login">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
     <h2>🔐 NexVault</h2>
     {% with messages = get_flashed_messages() %}
       {% if messages %}<div class="err">{{ messages[0] }}</div>{% endif %}
