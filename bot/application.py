@@ -47,7 +47,7 @@ def build_app() -> Application:
     app.add_handler(CallbackQueryHandler(start_h.toggle_language, pattern=r"^user:toggle_lang$"))
 
     # ── Catalog ───────────────────────────────────────────────────────────────
-    app.add_handler(CallbackQueryHandler(catalog_h.open_catalog,  pattern=r"^catalog:open$"))
+    app.add_handler(CallbackQueryHandler(catalog_h.open_catalog,  pattern=r"^catalog:open(:[a-z]+)?$"))
     app.add_handler(CallbackQueryHandler(catalog_h.show_product,  pattern=r"^catalog:product:\d+$"))
     app.add_handler(CallbackQueryHandler(catalog_h.buy_product,   pattern=r"^catalog:buy:\d+$"))
 
