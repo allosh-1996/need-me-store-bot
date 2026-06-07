@@ -21,6 +21,8 @@ CATEGORY_LABELS = {
     "surveys":  "📊 Surveys",
 }
 
+SEP = "—" * 20
+
 
 async def open_catalog(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     query = update.callback_query
@@ -29,7 +31,6 @@ async def open_catalog(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
     ensure_user(user.id, user.username or "", user.full_name or "")
     lang = get_user_language(user.id)
 
-    # Check if category filter passed e.g. catalog:open:icloud
     parts = query.data.split(":")
     category = parts[2] if len(parts) > 2 else None
 
@@ -61,7 +62,7 @@ async def open_catalog(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
     buttons.append([InlineKeyboardButton(t("back", lang), callback_data="home")])
 
     await query.edit_message_text(
-        f"{title}:" if lang == "ar" else f"{title}:",
+        f"{title}:",
         reply_markup=InlineKeyboardMarkup(buttons),
     )
 
@@ -113,28 +114,24 @@ async def buy_product(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
 
     payload_sent = False
     try:
+        msg_text = t("product_details", lang) + "\n\n" + SEP + "\n\n" + code(result["payload"]) + "\n\n" + SEP + "\n\n" + t("save_info", lang)
         await context.bot.send_message(
             chat_id=user.id,
-            text=(
-                f"{t('product_details', lang)}\n\n"
-                f"{\'—\' * 20}\n\n"
-                f"{code(result['payload'])}\n\n"
-                f"{\'—\' * 20}\n\n"
-                f"{t('save_info', lang)}"
-            ),
+            text=msg_text,
             parse_mode="HTML",
         )
         payload_sent = True
     except Exception:
         logger.error("Failed to send product payload to user %s for order %s", user.id, result["order_id"])
 
+    suffix = "\n\n⚠️ تعذّر إرسال المنتج، تواصل مع الدعم" if not payload_sent else ""
     await query.edit_message_text(
         f"{t('purchase_success', lang)}\n\n"
         f"🔖 #{result['order_id']}\n"
         f"📦 {safe(result['product_name'])}\n"
         f"💵 ${result['amount_usd']:.2f}\n"
         f"💰 Balance: ${result['balance_after']:.2f}"
-        + ("\n\n⚠️ تعذّر إرسال المنتج، تواصل مع الدعم" if not payload_sent else ""),
+        + suffix,
         parse_mode="HTML",
         reply_markup=back_home(lang),
     )
