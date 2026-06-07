@@ -6,7 +6,7 @@ from __future__ import annotations
 
 import threading
 import pytest
-import libsql
+import libsql_experimental as libsql
 
 import infra.db as db_module
 from infra.db import init_db

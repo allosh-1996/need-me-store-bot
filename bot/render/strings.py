@@ -118,6 +118,14 @@ STRINGS: dict[str, dict[str, str]] = {
         "ar": "❌ UUID غير صحيح، أعد الإرسال.",
         "en": "❌ Invalid UUID format, try again.",
     },
+    "af_invalid_ios": {
+        "ar": "❌ إصدار iOS غير صحيح.\n<i>مثال صحيح:</i> <code>17.4.1</code>",
+        "en": "❌ Invalid iOS version.\n<i>Valid example:</i> <code>17.4.1</code>",
+    },
+    "af_invalid_afid": {
+        "ar": "❌ AppsFlyer ID غير صحيح، أعد الإرسال.",
+        "en": "❌ Invalid AppsFlyer ID, try again.",
+    },
     "cancelled": {
         "ar": "تم الإلغاء ✅",
         "en": "Cancelled ✅",

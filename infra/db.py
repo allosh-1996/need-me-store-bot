@@ -52,6 +52,7 @@ class _Result:
 
 
 def execute(sql: str, params: tuple = ()) -> _Result:
+    # If we're inside a transaction, use the transaction's executor directly.
     txn_execute = getattr(_local, "txn_execute", None)
     if txn_execute is not None:
         return txn_execute(sql, params)
@@ -63,6 +64,11 @@ def execute(sql: str, params: tuple = ()) -> _Result:
         conn.commit()
         return _Result(cur)
     except Exception as exc:
+        # Never reconnect inside an active transaction — it would silently
+        # discard any in-flight writes and corrupt data integrity.
+        if getattr(_local, "active", False):
+            raise
+
         logger.warning("Query failed (%s) — reconnecting once", exc)
         _reset_thread_connection()
         conn = get_connection()

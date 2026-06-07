@@ -24,15 +24,13 @@ class AppsflyerService:
                 user_id, game_key, game_name, price_usd,
                 idfa, idfv, ios_version, appsflyer_id, levels,
             )
-            try:
-                wallet_repo.debit_atomic(
-                    user_id=user_id,
-                    amount=price_usd,
-                    entry_type="debit",
-                    reference_type="appsflyer_order",
-                    reference_id=str(order_id),
-                    reason="appsflyer purchase",
-                )
-            except ValueError:
-                raise InsufficientBalanceError("insufficient balance")
+            # debit_atomic raises InsufficientBalanceError directly
+            wallet_repo.debit_atomic(
+                user_id=user_id,
+                amount=price_usd,
+                entry_type="debit",
+                reference_type="appsflyer_order",
+                reference_id=str(order_id),
+                reason="appsflyer purchase",
+            )
             return order_id

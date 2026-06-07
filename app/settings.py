@@ -58,6 +58,8 @@ class Settings:
             raise RuntimeError(f"Missing required env vars: {', '.join(missing)}")
         if not self.admin_ids:
             raise RuntimeError("ADMIN_TELEGRAM_IDS must contain at least one Telegram ID")
+        if self.syp_rate <= 0:
+            raise RuntimeError("SYP_RATE must be greater than 0")
 
 
 @lru_cache(maxsize=1)

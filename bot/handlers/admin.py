@@ -216,7 +216,6 @@ async def charge_action(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
     query = update.callback_query
     await query.answer()
     user_id = query.from_user.id
-    lang = get_user_language(user_id)
     if not _is_admin(user_id):
         await query.edit_message_text("Unauthorized")
         return
@@ -240,6 +239,16 @@ async def charge_action(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
         else:
             service.reject_charge(str(user_id), charge_id)
             await query.edit_message_text(f"❌ Charge #{charge_id} rejected")
+            charge = get_charge(charge_id)
+            if charge:
+                try:
+                    await context.bot.send_message(
+                        chat_id=int(charge[1]),
+                        text=f"❌ تم رفض طلب الشحن #{charge_id}.",
+                        parse_mode="HTML",
+                    )
+                except Exception as e:
+                    logger.warning("Failed to notify user %s: %s", charge[1], e)
     except (NotFoundError, InvalidStateTransitionError) as exc:
         await query.edit_message_text(str(exc))
 
@@ -248,7 +257,6 @@ async def af_action(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     query = update.callback_query
     await query.answer()
     user_id = query.from_user.id
-    lang = get_user_language(user_id)
     if not _is_admin(user_id):
         await query.edit_message_text("Unauthorized")
         return

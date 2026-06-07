@@ -19,6 +19,8 @@ from app.settings import get_settings
 UUID_RE = re.compile(
     r"^[0-9A-Fa-f]{8}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{4}-[0-9A-Fa-f]{12}$"
 )
+IOS_RE = re.compile(r"^\d{1,2}\.\d{1,2}(\.\d{1,2})?$")
+AFID_RE = re.compile(r"^[0-9A-Fa-f\-]{10,50}$")
 
 WAIT_GAME, WAIT_IDFA, WAIT_IDFV, WAIT_IOS, WAIT_AFID, WAIT_LEVELS = range(40, 46)
 service = AppsflyerService()
@@ -43,8 +45,8 @@ GAMES = {
     "family_island":   ("Family Island",    "AF_PRICE_FAMILY"),
 }
 
-
 logger = logging.getLogger(__name__)
+
 
 def _game_price(env_key: str) -> float:
     return float(os.getenv(env_key, "4"))
@@ -122,14 +124,28 @@ async def receive_idfv(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 async def receive_ios(update: Update, context: ContextTypes.DEFAULT_TYPE):
     lang = get_user_language(update.effective_user.id)
-    context.user_data["af_ios"] = update.effective_message.text.strip()
+    val = update.effective_message.text.strip()
+    if not IOS_RE.match(val):
+        await update.effective_message.reply_text(
+            t("af_invalid_ios", lang),
+            reply_markup=cancel_button(lang),
+        )
+        return WAIT_IOS
+    context.user_data["af_ios"] = val
     await update.effective_message.reply_text(t("af_step_afid", lang), parse_mode="HTML", reply_markup=cancel_button(lang))
     return WAIT_AFID
 
 
 async def receive_afid(update: Update, context: ContextTypes.DEFAULT_TYPE):
     lang = get_user_language(update.effective_user.id)
-    context.user_data["af_afid"] = update.effective_message.text.strip()
+    val = update.effective_message.text.strip()
+    if not AFID_RE.match(val):
+        await update.effective_message.reply_text(
+            t("af_invalid_afid", lang),
+            reply_markup=cancel_button(lang),
+        )
+        return WAIT_AFID
+    context.user_data["af_afid"] = val
     await update.effective_message.reply_text(t("af_step_levels", lang), parse_mode="HTML", reply_markup=cancel_button(lang))
     return WAIT_LEVELS
 
@@ -168,7 +184,6 @@ async def receive_levels(update: Update, context: ContextTypes.DEFAULT_TYPE):
         reply_markup=back_home(lang),
     )
 
-    # إشعار الأدمن — context.bot الصح
     admin_text = (
         f"🔔 <b>AppsFlyer Order #{order_id}</b>\n"
         f"👤 {safe(user.full_name)} (@{safe(user.username or 'N/A')})\n"

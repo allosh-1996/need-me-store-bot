@@ -40,14 +40,12 @@ class WalletService:
         if amount <= 0:
             raise ValidationError("debit amount must be positive")
         with transactional():
-            try:
-                return wallet_repo.debit_atomic(
-                    user_id=user_id,
-                    amount=amount,
-                    entry_type="debit",
-                    reference_type=reference_type,
-                    reference_id=reference_id,
-                    reason=reason,
-                )
-            except ValueError:
-                raise InsufficientBalanceError("insufficient balance")
+            # debit_atomic now raises InsufficientBalanceError directly
+            return wallet_repo.debit_atomic(
+                user_id=user_id,
+                amount=amount,
+                entry_type="debit",
+                reference_type=reference_type,
+                reference_id=reference_id,
+                reason=reason,
+            )

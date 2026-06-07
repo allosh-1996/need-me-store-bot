@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from infra.db import execute
+from domain.errors import InsufficientBalanceError
 
 
 def get_balance(user_id: int) -> float:
@@ -31,7 +32,6 @@ def credit_atomic(
         """,
         (amount, user_id),
     )
-    # Verify the row existed
     changed = execute("SELECT changes()").fetchone()
     if not changed or changed[0] == 0:
         raise RuntimeError(f"wallet_balances row missing for user {user_id}")
@@ -49,7 +49,7 @@ def debit_atomic(
 ) -> float:
     """
     Atomically subtract `amount` from the user's balance only if sufficient funds exist.
-    Uses SELECT changes() to detect if the conditional UPDATE matched.
+    Raises InsufficientBalanceError directly — no ValueError wrapping needed upstream.
     Must be called inside a transactional() context.
     """
     execute(
@@ -65,7 +65,9 @@ def debit_atomic(
     changed = execute("SELECT changes()").fetchone()
     if not changed or changed[0] == 0:
         balance = get_balance(user_id)
-        raise ValueError(f"insufficient_balance:{balance:.8f}")
+        raise InsufficientBalanceError(
+            f"Insufficient balance: have ${balance:.2f}, need ${amount:.2f}"
+        )
     insert_ledger_entry(user_id, entry_type, amount, reference_type, reference_id, reason)
     return get_balance(user_id)
 

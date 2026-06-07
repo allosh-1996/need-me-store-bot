@@ -17,7 +17,7 @@ class OrderService:
 
             amount_usd = float(product[3])
 
-            # Reserve stock first (before touching money)
+            # Atomically reserve stock — single UPDATE RETURNING, no race condition
             stock_row = stock_repo.reserve_first_available(product_id)
             if not stock_row:
                 raise OutOfStockError("out of stock")
@@ -28,21 +28,18 @@ class OrderService:
             # Create the order record
             order_id = orders_repo.create_order(user_id, product_id, amount_usd)
 
-            # Mark stock reserved
+            # Attach order_id to the reserved stock item
             stock_repo.mark_reserved(stock_item_id, order_id)
 
-            # Atomic debit — raises ValueError if balance insufficient
-            try:
-                balance_after = wallet_repo.debit_atomic(
-                    user_id=user_id,
-                    amount=amount_usd,
-                    entry_type="debit",
-                    reference_type="order",
-                    reference_id=str(order_id),
-                    reason="product purchase",
-                )
-            except ValueError:
-                raise InsufficientBalanceError("insufficient balance")
+            # Atomic debit — raises InsufficientBalanceError directly
+            balance_after = wallet_repo.debit_atomic(
+                user_id=user_id,
+                amount=amount_usd,
+                entry_type="debit",
+                reference_type="order",
+                reference_id=str(order_id),
+                reason="product purchase",
+            )
 
             # Finalize order and stock
             orders_repo.attach_stock_and_payload(order_id, stock_item_id, payload)

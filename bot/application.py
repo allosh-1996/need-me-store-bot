@@ -21,7 +21,6 @@ async def _error_handler(update: object, context: ContextTypes.DEFAULT_TYPE) -> 
     """
     logger.error("Unhandled exception in update %s", update, exc_info=context.error)
 
-    # Try to send a friendly error message to the user
     if isinstance(update, Update):
         try:
             msg = update.effective_message
@@ -32,11 +31,17 @@ async def _error_handler(update: object, context: ContextTypes.DEFAULT_TYPE) -> 
                     "⚠️ حدث خطأ، حاول مرة أخرى", show_alert=True
                 )
         except Exception:
-            pass  # If we can't notify the user, at least we logged it
+            pass
 
 
 def build_app() -> Application:
     app = Application.builder().token(get_settings().telegram_bot_token).build()
+
+    # ── Conversations MUST be registered first ────────────────────────────────
+    # PTB walks handlers in order; ConversationHandlers must intercept their
+    # entry_points before any global CallbackQueryHandler can steal them.
+    app.add_handler(build_charge_conv())
+    app.add_handler(build_af_conv())
 
     # ── Commands ──────────────────────────────────────────────────────────────
     app.add_handler(CommandHandler("start", start_h.start))
@@ -53,10 +58,6 @@ def build_app() -> Application:
 
     # ── Wallet ────────────────────────────────────────────────────────────────
     app.add_handler(CallbackQueryHandler(wallet_h.show_balance,   pattern=r"^wallet:balance$"))
-
-    # ── Conversations (MUST be before global CallbackQueryHandlers) ───────────
-    app.add_handler(build_charge_conv())
-    app.add_handler(build_af_conv())
 
     # ── Admin panel ───────────────────────────────────────────────────────────
     app.add_handler(CallbackQueryHandler(admin_h.admin_panel,          pattern=r"^admin:panel$"))
