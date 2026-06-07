@@ -4,3 +4,5 @@ builder = "dockerfile"
 [deploy]
 startCommand = "python main.py"
 restartPolicyType = "always"
+healthcheckPath = "/health"
+healthcheckTimeout = 30
