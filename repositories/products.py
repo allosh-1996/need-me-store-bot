@@ -8,6 +8,14 @@ def get_active_products() -> list:
     ).fetchall()
 
 
+def get_active_products_by_category(category: str) -> list:
+    return execute(
+        "SELECT id, name, description, price_usd, category, platform "
+        "FROM products WHERE active = 1 AND category = ? ORDER BY id ASC",
+        (category,),
+    ).fetchall()
+
+
 def get_product(product_id: int):
     return execute(
         "SELECT id, name, description, price_usd, category, platform, active "
