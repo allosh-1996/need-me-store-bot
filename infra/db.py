@@ -2,52 +2,53 @@ from __future__ import annotations
 
 import logging
 import threading
-import libsql_client
+import libsql
+
 from app.settings import get_settings
 
 logger = logging.getLogger(__name__)
 
+# Per-thread connection pool
 _local = threading.local()
 
 
-def _open_connection() -> libsql_client.ClientSync:
+def _open_connection() -> libsql.Connection:
     s = get_settings()
     url = s.turso_database_url
-    if url.startswith("libsql://"):
-        url = "https://" + url[len("libsql://"):]
-    elif url.startswith("wss://"):
-        url = "https://" + url[len("wss://"):]
-    logger.debug("Opening Turso connection for thread %s", threading.current_thread().name)
-    return libsql_client.create_client_sync(
-        url=url,
+    logger.debug("Opening libsql connection for thread %s", threading.current_thread().name)
+    conn = libsql.connect(
+        database=":memory:",   # local cache (required by SDK)
+        sync_url=url,
         auth_token=s.turso_auth_token,
     )
+    conn.sync()
+    return conn
 
 
-def get_client() -> libsql_client.ClientSync:
-    """Return a per-thread Turso client, creating one if needed."""
-    client = getattr(_local, "client", None)
-    if client is None or client.closed:
-        _local.client = _open_connection()
-    return _local.client
+def get_connection() -> libsql.Connection:
+    """Return a per-thread libsql connection, creating one if needed."""
+    conn = getattr(_local, "conn", None)
+    if conn is None:
+        _local.conn = _open_connection()
+    return _local.conn
 
 
-def _reset_thread_client() -> None:
-    """Close and discard the current thread's client (used after errors)."""
-    client = getattr(_local, "client", None)
-    if client is not None:
+def _reset_thread_connection() -> None:
+    """Discard the current thread's connection (used after errors)."""
+    conn = getattr(_local, "conn", None)
+    if conn is not None:
         try:
-            client.close()
+            conn.close()
         except Exception:
             pass
-        _local.client = None
+        _local.conn = None
 
 
 class _Result:
-    def __init__(self, rs: libsql_client.ResultSet) -> None:
-        self._rows = [tuple(r) for r in rs.rows]
-        self.lastrowid: int | None = rs.last_insert_rowid
-        self.rowcount: int = rs.rows_affected
+    def __init__(self, cursor: libsql.Cursor) -> None:
+        rows = cursor.fetchall(); self._rows = [tuple(r) for r in rows] if rows is not None else []
+        self.lastrowid: int | None = cursor.lastrowid
+        self.rowcount: int = cursor.rowcount
 
     def fetchone(self):
         return self._rows[0] if self._rows else None
@@ -57,36 +58,25 @@ class _Result:
 
 
 def execute(sql: str, params: tuple = ()) -> _Result:
-    # If we're inside a transaction, delegate to the transaction executor
-    txn_exec = getattr(_local, "txn_execute", None)
-    if txn_exec is not None:
-        return txn_exec(sql, params)
+    # If inside a transaction, use the transaction cursor
+    txn_execute = getattr(_local, "txn_execute", None)
+    if txn_execute is not None:
+        return txn_execute(sql, params)
 
-    args = list(params) if params else None
     try:
-        rs = get_client().execute(sql, args)
-        return _Result(rs)
+        conn = get_connection()
+        cur = conn.cursor()
+        cur.execute(sql, params)
+        conn.commit()
+        return _Result(cur)
     except Exception as exc:
         logger.warning("Query failed (%s) — reconnecting once", exc)
-        _reset_thread_client()
-        rs = get_client().execute(sql, args)
-        return _Result(rs)
-
-
-def execute_batch(statements: list[tuple[str, list]]) -> list[_Result]:
-    """Execute multiple statements atomically via Turso batch."""
-    stmts = [
-        libsql_client.Statement(sql, args if args else None)
-        for sql, args in statements
-    ]
-    try:
-        results = get_client().batch(stmts)
-        return [_Result(rs) for rs in results]
-    except Exception as exc:
-        logger.warning("Batch failed (%s) — reconnecting once", exc)
-        _reset_thread_client()
-        results = get_client().batch(stmts)
-        return [_Result(rs) for rs in results]
+        _reset_thread_connection()
+        conn = get_connection()
+        cur = conn.cursor()
+        cur.execute(sql, params)
+        conn.commit()
+        return _Result(cur)
 
 
 def init_db() -> None:
