@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 from telegram import Update
+from telegram.error import TimedOut, NetworkError, RetryAfter
 from telegram.ext import Application, CommandHandler, CallbackQueryHandler, ContextTypes
 from app.settings import get_settings
 from bot.handlers import start as start_h
@@ -17,10 +18,19 @@ logger = logging.getLogger(__name__)
 async def _error_handler(update: object, context: ContextTypes.DEFAULT_TYPE) -> None:
     """
     Global error handler — catches ALL unhandled exceptions from any handler.
-    Logs the error and tries to notify the user so they're not left with silence.
+    Network/timeout errors are logged silently — no need to alarm the user.
+    Real errors are logged and the user gets a friendly message.
     """
-    logger.error("Unhandled exception in update %s", update, exc_info=context.error)
+    err = context.error
 
+    # Silent errors — transient network issues, not user-visible bugs
+    if isinstance(err, (TimedOut, NetworkError, RetryAfter)):
+        logger.warning("Transient Telegram error (ignored): %s", err)
+        return
+
+    logger.error("Unhandled exception in update %s", update, exc_info=err)
+
+    # Only notify user for real unexpected errors
     if isinstance(update, Update):
         try:
             msg = update.effective_message
@@ -38,8 +48,6 @@ def build_app() -> Application:
     app = Application.builder().token(get_settings().telegram_bot_token).build()
 
     # ── Conversations MUST be registered first ────────────────────────────────
-    # PTB walks handlers in order; ConversationHandlers must intercept their
-    # entry_points before any global CallbackQueryHandler can steal them.
     app.add_handler(build_charge_conv())
     app.add_handler(build_af_conv())
 
