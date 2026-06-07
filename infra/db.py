@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import os
 import threading
 import libsql_experimental as libsql
 
@@ -9,15 +10,29 @@ from app.settings import get_settings
 logger = logging.getLogger(__name__)
 
 _local = threading.local()
+_sync_lock = threading.Lock()
+
+# Path for the embedded replica file inside the container
+_REPLICA_PATH = "/tmp/nexvault_local.db"
 
 
 def _open_connection() -> libsql.Connection:
     s = get_settings()
     logger.debug("Opening libsql connection for thread %s", threading.current_thread().name)
+
+    # Use embedded replica: local SQLite file synced from Turso
+    # Reads are instant (local), writes go to Turso + sync back
     conn = libsql.connect(
-        s.turso_database_url,
+        _REPLICA_PATH,
+        sync_url=s.turso_database_url,
         auth_token=s.turso_auth_token,
     )
+    # Initial sync from remote
+    try:
+        conn.sync()
+        logger.info("✅ Embedded replica synced from Turso")
+    except Exception as e:
+        logger.warning("Initial sync failed (will retry): %s", e)
     return conn
 
 
@@ -40,7 +55,8 @@ def _reset_thread_connection() -> None:
 
 class _Result:
     def __init__(self, cursor: libsql.Cursor) -> None:
-        rows = cursor.fetchall(); self._rows = [tuple(r) for r in rows] if rows is not None else []
+        rows = cursor.fetchall()
+        self._rows = [tuple(r) for r in rows] if rows is not None else []
         self.lastrowid: int | None = cursor.lastrowid
         self.rowcount: int = cursor.rowcount
 
@@ -52,7 +68,6 @@ class _Result:
 
 
 def execute(sql: str, params: tuple = ()) -> _Result:
-    # If we're inside a transaction, use the transaction's executor directly.
     txn_execute = getattr(_local, "txn_execute", None)
     if txn_execute is not None:
         return txn_execute(sql, params)
@@ -64,11 +79,8 @@ def execute(sql: str, params: tuple = ()) -> _Result:
         conn.commit()
         return _Result(cur)
     except Exception as exc:
-        # Never reconnect inside an active transaction — it would silently
-        # discard any in-flight writes and corrupt data integrity.
         if getattr(_local, "active", False):
             raise
-
         logger.warning("Query failed (%s) — reconnecting once", exc)
         _reset_thread_connection()
         conn = get_connection()
@@ -76,6 +88,15 @@ def execute(sql: str, params: tuple = ()) -> _Result:
         cur.execute(sql, params)
         conn.commit()
         return _Result(cur)
+
+
+def sync_replica() -> None:
+    """Sync embedded replica with Turso remote — call after writes."""
+    try:
+        conn = get_connection()
+        conn.sync()
+    except Exception as e:
+        logger.warning("Replica sync failed: %s", e)
 
 
 def init_db() -> None:
