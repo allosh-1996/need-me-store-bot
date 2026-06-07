@@ -34,6 +34,24 @@ async def open_catalog(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
     parts = query.data.split(":")
     category = parts[2] if len(parts) > 2 else None
 
+    # Proxy — contact support only
+    if category == "proxy":
+        proxy_msg = (
+            "🌐 <b>قسم البروكسي</b>\n\n"
+            "━━━━━━━━━━━━━━━\n"
+            "هذا القسم يتطلب طلباً مخصصاً.\n\n"
+            "📩 للطلب والاستفسار تواصل مع الدعم مباشرة:\n\n"
+            "👤 <b>@Allosh96ha</b>\n\n"
+            "━━━━━━━━━━━━━━━\n"
+            "⚡️ سيتم الرد عليك في أقرب وقت ممكن."
+        )
+        await query.edit_message_text(
+            proxy_msg,
+            parse_mode="HTML",
+            reply_markup=back_home(lang),
+        )
+        return
+
     if category and category in CATEGORY_LABELS:
         products = get_active_products_by_category(category)
         title = CATEGORY_LABELS[category]
